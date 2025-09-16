@@ -8,7 +8,6 @@ import {
 } from "@chakra-ui/react";
 
 export const Loader = () => {
-  // Array con 4 loaders (puedes cambiar la cantidad)
   const loaders = Array.from({ length: 10 });
 
   return (

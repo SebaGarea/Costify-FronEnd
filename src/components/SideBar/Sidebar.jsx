@@ -31,11 +31,9 @@ import {
   FiChevronDown,
 } from "react-icons/fi";
 import { FaHammer } from "react-icons/fa";
-// ...existing code...
 import { Link } from "react-router-dom";
 
 
-// Array de links para el sidebar
 const LinkItems = [
   { name: "Home", icon: FiHome, to: "/" },
   { name: "Planillas", icon: FiTrendingUp, to: "/" },
@@ -44,7 +42,6 @@ const LinkItems = [
   { name: "Settings", icon: FiSettings, to: "/" },
 ];
 
-// Componente principal del sidebar
 export const SidebarWithHeader = ({ children }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -66,7 +63,7 @@ export const SidebarWithHeader = ({ children }) => {
           <SidebarContent onClose={onClose} />
         </DrawerContent>
       </Drawer>
-      {/* Navbar para móvil */}
+      
       <MobileNav onOpen={onOpen} />
       <Box ml={{ base: 0, md: 60 }} p="4">
         {children}
@@ -75,7 +72,6 @@ export const SidebarWithHeader = ({ children }) => {
   );
 };
 
-// Contenido del sidebar
 const SidebarContent = ({ onClose, ...rest }) => {
   return (
     <Box
@@ -94,7 +90,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
         </Text>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
-      {/* Mapea los ítems del sidebar */}
+
       {LinkItems.map((link) => (
         <NavItem key={link.name} icon={link.icon} to={link.to}>
           {link.name}

@@ -14,8 +14,7 @@ export const MainRouter = () => {
       <Route path="/materias-primas" element={<RawMaterials />} />
       <Route path="/materias-primas/categoria/:nombre" element={<CategoriesRawMaterials />} />
       <Route path="/productos/itemAdd" element={<AddProduct/>} />
-      <Route path="/productos/update/:id" element={<UpdateProduct/>} />
-      {/* Otras rutas */}
+  <Route path="/productos/update/:id" element={<UpdateProduct/>} />
     </Routes>
   );
 };
