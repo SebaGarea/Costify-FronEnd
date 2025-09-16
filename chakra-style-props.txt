@@ -1,0 +1,88 @@
+Lista de Style Props de Chakra UI
+==================================
+
+Espaciado
+m, mt, mb, ml, mr — margin, margin-top, margin-bottom, margin-left, margin-right
+p, pt, pb, pl, pr — padding, padding-top, padding-bottom, padding-left, padding-right
+
+Escala de Espaciado (por defecto)
+---------------------------------
+0:    0px
+1:    0.25rem (4px)
+2:    0.5rem (8px)
+3:    0.75rem (12px)
+4:    1rem (16px)
+5:    1.25rem (20px)
+6:    1.5rem (24px)
+8:    2rem (32px)
+10:   2.5rem (40px)
+12:   3rem (48px)
+16:   4rem (64px)
+20:   5rem (80px)
+24:   6rem (96px)
+32:   8rem (128px)
+40:  10rem (160px)
+48:  12rem (192px)
+56:  14rem (224px)
+64:  16rem (256px)
+
+También puedes usar valores personalizados como "32px", "2rem", "10%", etc.
+
+Color
+color — color del texto
+bg, background — color de fondo
+opacity — opacidad
+
+Tipografía
+----------
+fontSize — tamaño de fuente
+fontWeight — grosor de fuente
+lineHeight — altura de línea
+letterSpacing — espaciado entre letras
+textAlign — alineación de texto
+fontFamily — familia de fuente
+
+Bordes
+------
+border — borde
+borderWidth — ancho de borde
+borderStyle — estilo de borde
+borderColor — color de borde
+borderRadius — radio de borde (esquinas redondeadas)
+
+Sombra
+------
+boxShadow — sombra de caja
+textShadow — sombra de texto
+
+Tamaño
+------
+w, width — ancho
+h, height — alto
+minW, maxW — ancho mínimo/máximo
+minH, maxH — alto mínimo/máximo
+
+Posición
+--------
+position — posición (relative, absolute, etc.)
+top, right, bottom, left — desplazamiento
+
+Flexbox y Grid
+--------------
+display — tipo de display (flex, grid, etc.)
+alignItems — alineación vertical
+justifyContent — alineación horizontal
+flexDirection — dirección de los elementos
+flexWrap — envoltura de los elementos
+gridTemplateColumns, gridTemplateRows — columnas/filas de grid
+gap — espacio entre elementos
+
+Otros
+-----
+cursor — tipo de cursor (pointer, default, text, move, not-allowed, wait, crosshair, grab, grabbing, help, progress, etc.)
+zIndex — nivel de apilamiento
+overflow — desbordamiento
+transition — transición
+visibility — visibilidad
+
+Referencia oficial: https://chakra-ui.com/docs/styled-system/style-props
