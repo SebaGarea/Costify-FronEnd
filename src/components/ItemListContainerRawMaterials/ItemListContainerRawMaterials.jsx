@@ -18,6 +18,7 @@ import { FiChevronDown, FiPlus } from "react-icons/fi";
 import { useCategoryMp } from "../../hooks/materiasPrimas";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { RiArrowRightLine } from "react-icons/ri";
 
 export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
   const { categoriesMp } = useCategoryMp();
@@ -185,6 +186,20 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
                 <Text fontSize={"sm"} color={"gray.600"}>
                   ID MONGO: {mp._id}
                 </Text>
+                <HStack>
+                                  <Button
+                                    as={Link}
+                                    to={`/api/materiasPrimas/${mp._id}`}
+                                    colorScheme="teal"
+                                    variant="outline"
+                                    m={2}
+                                  >
+                                    Ver Detalle
+                                    <Box as="span" ml={2}>
+                                      <RiArrowRightLine />
+                                    </Box>
+                                  </Button>
+                                </HStack>
               </Stack>
             </Box>
           ))}
