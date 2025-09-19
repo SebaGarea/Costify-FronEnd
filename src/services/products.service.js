@@ -62,18 +62,12 @@ export async function getMpByCategory(category) {
   );
 }
 
-export async function createRawMaterial(rawMaterialData, isFormData = false) {
-  return await axios.post(`${BASE_URL}/api/materiasPrimas`, rawMaterialData, isFormData
-    ? { headers: { "Content-Type": "multipart/form-data" } }
-    : undefined
-  );
+export async function createRawMaterial(rawMaterialData) {
+  return await axios.post(`${BASE_URL}/api/materiasPrimas`, rawMaterialData);
 }
 
-export async function updateRawMaterial(id, rawMaterialData, isFormData = false) {
-  return await axios.put(`${BASE_URL}/api/materiasPrimas/${id}`, rawMaterialData, isFormData
-    ? { headers: { "Content-Type": "multipart/form-data" } }
-    : undefined
-  );
+export async function updateRawMaterial(id, rawMaterialData) {
+  return await axios.put(`${BASE_URL}/api/materiasPrimas/${id}`, rawMaterialData);
 }
 
 export async function deleteRawMaterial(id) {

@@ -10,6 +10,7 @@ export const useAddMp = () => {
         setError(null);
         try {
             await createRawMaterial(form, isFormData);
+            return true
         } catch (error) {
             setError(error.response?.data?.error || "Error al agregar la materia prima");
             return false;
