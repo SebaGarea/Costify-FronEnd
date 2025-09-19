@@ -1,5 +1,7 @@
 import axios from "axios";
 const BASE_URL = import.meta.env.VITE_API_URL;
+
+
 // PRODUCTOS
 export async function getAllProducts() {
   return await axios.get(`${BASE_URL}/api/productos`);
@@ -58,4 +60,25 @@ export async function getMpByCategory(category) {
   return await axios.get(
     `${BASE_URL}/api/materiasPrimas/category/${category}`
   );
+}
+
+export async function createRawMaterial(rawMaterialData, isFormData = false) {
+  return await axios.post(`${BASE_URL}/api/materiasPrimas`, rawMaterialData, isFormData
+    ? { headers: { "Content-Type": "multipart/form-data" } }
+    : undefined
+  );
+}
+
+export async function updateRawMaterial(id, rawMaterialData, isFormData = false) {
+  return await axios.put(`${BASE_URL}/api/materiasPrimas/${id}`, rawMaterialData, isFormData
+    ? { headers: { "Content-Type": "multipart/form-data" } }
+    : undefined
+  );
+}
+
+export async function deleteRawMaterial(id) {
+  return await axios.delete(`${BASE_URL}/api/materiasPrimas/${id}`);
+}
+export async function getRawMaterialById(id) {
+  return await axios.get(`${BASE_URL}/api/materiasPrimas/${id}`);
 }

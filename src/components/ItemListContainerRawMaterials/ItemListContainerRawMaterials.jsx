@@ -12,10 +12,12 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  Spacer,
 } from "@chakra-ui/react";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, FiPlus } from "react-icons/fi";
 import { useCategoryMp } from "../../hooks/materiasPrimas";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
   const { categoriesMp } = useCategoryMp();
@@ -25,7 +27,6 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
   const [selectedType, setSelectedType] = useState(null);
   const [selectedMedida, setSelectedMedida] = useState(null);
 
-  // Obtén los tipos y medidas disponibles según el filtro actual
   const filteredByCategory = selectedCategory
     ? rawMaterials.filter((mp) => mp.categoria === selectedCategory)
     : rawMaterials;
@@ -54,7 +55,7 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
         w={"min-content"}
         justifyContent={"center"}
       >
-  <HStack spacing={4} justify="center">
+        <HStack spacing={4} justify="center">
           {/* Dropdown Categoría */}
           <Menu>
             <MenuButton as={Button} rightIcon={<FiChevronDown />}>
@@ -63,7 +64,7 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
             <MenuList minW="150px">
               {categoriesMp.map((cat) => (
                 <MenuItem
-                justifyContent={"center"}
+                  justifyContent={"center"}
                   key={cat.nombre}
                   onClick={() => {
                     setSelectedCategory(cat.nombre);
@@ -88,7 +89,7 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
             <MenuList minW="120px">
               {tipos.map((tipo) => (
                 <MenuItem
-                justifyContent={"center"}
+                  justifyContent={"center"}
                   key={tipo}
                   onClick={() => {
                     setSelectedType(tipo);
@@ -100,7 +101,7 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
               ))}
             </MenuList>
           </Menu>
-          
+
           {/* Dropdown Medida */}
           <Menu>
             <MenuButton
@@ -113,7 +114,7 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
             <MenuList>
               {medidas.map((medida) => (
                 <MenuItem
-                justifyContent={"center"}
+                  justifyContent={"center"}
                   key={medida}
                   onClick={() => setSelectedMedida(medida)}
                 >
@@ -122,17 +123,31 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
               ))}
             </MenuList>
           </Menu>
-          
+
           {(selectedCategory || selectedType || selectedMedida) && (
-            <Button colorScheme="red" variant="outline" onClick={() => {
-              setSelectedCategory(null);
-              setSelectedType(null);
-              setSelectedMedida(null);
-            }}>
+            <Button
+              colorScheme="red"
+              variant="outline"
+              onClick={() => {
+                setSelectedCategory(null);
+                setSelectedType(null);
+                setSelectedMedida(null);
+              }}
+            >
               Borrar Filtros
             </Button>
           )}
-        
+
+          <Spacer />
+
+          <Button
+            as={Link}
+            to={"/materias-primas/itemAdd"}
+            leftIcon={<FiPlus color="#67e8f9" size={"25"} strokeWidth={4} />}
+            mr={15}
+          >
+            Agregar Materia Prima
+          </Button>
         </HStack>
       </Box>
 

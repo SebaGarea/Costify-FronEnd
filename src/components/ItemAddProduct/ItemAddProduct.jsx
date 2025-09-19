@@ -43,7 +43,7 @@ export const ItemAddProduct = ({ productId }) => {
           descripcion: res.data.descripcion,
         });
         setImagenesActuales(res.data.imagenes || []);
-        setImagenes([]); // Si quieres mostrar imágenes actuales, deberías manejarlas aparte
+        setImagenes([]); 
       });
     }
   }, [productId]);
