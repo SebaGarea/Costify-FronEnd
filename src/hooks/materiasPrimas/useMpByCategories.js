@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getMpByCategory } from '../../services/products.service.js';
+import { getMpByCategory } from '../../services/rawMaterials.service.js';
+
 export const useMpByCategories = (category) => {
   const[ mp, setMp] = useState([]);
   const [loading, setLoading] = useState(true);

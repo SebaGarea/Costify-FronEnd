@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAllCategoriesMp } from "../../services/products.service.js";
+import { getAllCategoriesMp } from "../../services/rawMaterials.service.js";
 
 //Get all Categories de Materias Primas
 export const useCategoryMp = () => {

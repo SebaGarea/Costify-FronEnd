@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAllMateriasPrimas } from "../../services/products.service.js";
+import { getAllMateriasPrimas } from "../../services/rawMaterials.service.js";
 
 //Get all Materias Primas
 export const useItemsMateriasPrimas = () => {

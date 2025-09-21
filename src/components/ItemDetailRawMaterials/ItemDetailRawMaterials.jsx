@@ -1,18 +1,12 @@
-import React, { useState } from "react";
 import {
   Box,
   Container,
-  Stack,
   Text,
-  Image,
   Flex,
   VStack,
   Button,
   Heading,
-  SimpleGrid,
-  StackDivider,
   useColorModeValue,
-  Center,
   HStack,
   useDisclosure,
   Modal,
@@ -21,9 +15,13 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Alert,
-  Toast,
   useToast,
+  Grid,
+  GridItem,
+  Card,
+  CardBody,
+  Badge,
+  Divider,
 } from "@chakra-ui/react";
 
 import { FcMoneyTransfer, FcSettings } from "react-icons/fc";
@@ -77,181 +75,211 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
   };
 
   return (
-    <Container maxW={"7xl"}>
-      <Box>
+    <Container maxW="7xl" minH="100vh" py={8}>
+      {/* Botón de volver */}
+      <Box mb={8}>
         <Button leftIcon={<GoArrowLeft />} as={Link} to={"/materias-primas"}>
           Volver a Materias Primas
         </Button>
       </Box>
-      <SimpleGrid
-        columns={{ base: 1, lg: 2 }}
-        spacing={{ base: 8, md: 10 }}
-        py={{ base: 18, md: 24 }}
-      >
-        <Stack spacing={{ base: 6, md: 10 }}>
-          <Box as={"header"}>
-            <Heading
-              textAlign="center"
-              lineHeight={1.1}
-              fontWeight={600}
-              fontSize={{ base: "2xl", sm: "4xl", lg: "5xl" }}
+
+      {/* Layout horizontal */}
+      <Flex minH="60vh" align="center" justify="center">
+        <Card
+          maxW="1200px"
+          w="100%"
+          boxShadow="2xl"
+          bg={useColorModeValue("white", "gray.800")}
+        >
+          <CardBody p={8}>
+            <Grid
+              templateColumns={{ base: "1fr", lg: "2fr 1fr" }}
+              gap={8}
+              alignItems="center"
             >
-              {RawMaterials.nombre}
-            </Heading>
-            <Box
-              textAlign="center"
-              color={useColorModeValue("gray.900", "gray.100")}
-              fontWeight={200}
-              fontSize={"md"}
-              mt={3}
-              textTransform={"uppercase"}
-              as="span"
-              display="block"
-            >
-              {RawMaterials.categoria}
-            </Box>
-            <Box
-              textAlign="center"
-              color={useColorModeValue("gray.900", "gray.100")}
-              fontWeight={200}
-              fontSize={"md"}
-              mt={3}
-              textTransform={"uppercase"}
-              as="span"
-              display="block"
-            >
-              Tipo: {RawMaterials.type}
-            </Box>
-            <Box
-              textAlign="center"
-              color={useColorModeValue("gray.900", "gray.100")}
-              fontWeight={400}
-              fontSize={"2xl"}
-              mt={3}
-              as="span"
-              display="block"
-            >
-              <Flex align="center" justify="center" display="inline-flex">
-                ${RawMaterials.precio}
-                <Box as="span" ml={4}>
-                  <FcMoneyTransfer />
-                </Box>
-              </Flex>
-            </Box>
-          </Box>
-          <Stack
-            spacing={{ base: 4, sm: 6 }}
-            direction={"column"}
-            divider={
-              <StackDivider
-                borderColor={useColorModeValue("gray.200", "gray.600")}
-              />
-            }
-          >
-            <VStack spacing={{ base: 4, sm: 6 }}>
-              <Text
-                color={useColorModeValue("gray.500", "gray.400")}
-                fontSize={"2xl"}
-                fontWeight={"300"}
-              >
-                {RawMaterials.medida}
-              </Text>
-              <Text
-                color={useColorModeValue("gray.500", "gray.400")}
-                fontSize={"lg"}
-                fontWeight={"300"}
-              >
-                Stock: {RawMaterials.stock}
-              </Text>
-            </VStack>
-          </Stack>
-          <Center>
+              {/* Información principal - Lado izquierdo */}
+              <GridItem>
+                <VStack spacing={6} align="start">
+                  <Box w="100%">
+                    <Flex align="center" justify="space-between" mb={4}>
+                      <Heading
+                        fontSize={{ base: "3xl", md: "4xl", lg: "5xl" }}
+                        fontWeight={400}
+                        color={useColorModeValue("gray.800", "white")}
+                      >
+                        {RawMaterials.nombre}
+                      </Heading>
+                      <Badge
+                        colorScheme="blue"
+                        fontSize="lg"
+                        px={4}
+                        py={2}
+                        borderRadius="full"
+                      >
+                        {RawMaterials.categoria}
+                      </Badge>
+                    </Flex>
+
+                    {/* Precio destacado */}
+                    <HStack spacing={3} mb={6}>
+                      <Text fontSize="4xl" fontWeight="bold" color="green.500">
+                        ${RawMaterials.precio}
+                      </Text>
+                      <FcMoneyTransfer size={40} />
+                    </HStack>
+                  </Box>
+
+                  <Divider />
+
+                  {/* Detalles en grid horizontal */}
+                  <Grid
+                    templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
+                    gap={6}
+                    w="100%"
+                  >
+                    <Box>
+                      <Text
+                        fontSize="sm"
+                        color="gray.500"
+                        fontWeight="bold"
+                        mb={1}
+                      >
+                        TIPO
+                      </Text>
+                      <Text fontSize="lg" fontWeight={500}>
+                        {RawMaterials.type}
+                      </Text>
+                    </Box>
+
+                    <Box>
+                      <Text
+                        fontSize="sm"
+                        color="gray.500"
+                        fontWeight="bold"
+                        mb={1}
+                      >
+                        MEDIDA
+                      </Text>
+                      <Text fontSize="lg" fontWeight={500}>
+                        {RawMaterials.medida}
+                      </Text>
+                    </Box>
+
+                    <Box>
+                      <Text
+                        fontSize="sm"
+                        color="gray.500"
+                        fontWeight="bold"
+                        mb={1}
+                      >
+                        STOCK
+                      </Text>
+                      <Badge
+                        colorScheme={
+                          RawMaterials.stock > 10
+                            ? "green"
+                            : RawMaterials.stock > 0
+                            ? "yellow"
+                            : "red"
+                        }
+                        fontSize="lg"
+                        px={3}
+                        py={1}
+                      >
+                        {RawMaterials.stock} unidades
+                      </Badge>
+                    </Box>
+                  </Grid>
+                </VStack>
+              </GridItem>
+
+              {/* Botones de acción - Lado derecho */}
+              <GridItem>
+                <VStack spacing={4} w="100%">
+                  <Button
+                    w="100%"
+                    size="lg"
+                    bg={useColorModeValue("blue.500", "blue.300")}
+                    color="white"
+                    _hover={{
+                      transform: "translateY(-2px)",
+                      boxShadow: "lg",
+                      bg: useColorModeValue("blue.600", "blue.400"),
+                    }}
+                    transition="all 0.2s"
+                  >
+                    Ver Planilla
+                  </Button>
+
+                  <Button
+                    as={Link}
+                    to={`/materias-primas/update/${RawMaterials._id}`}
+                    rightIcon={<FcSettings size={20} />}
+                    w="100%"
+                    size="lg"
+                    bg={useColorModeValue("gray.600", "gray.400")}
+                    color="white"
+                    _hover={{
+                      transform: "translateY(-2px)",
+                      boxShadow: "lg",
+                      bg: useColorModeValue("gray.700", "gray.500"),
+                    }}
+                    transition="all 0.2s"
+                  >
+                    Modificar
+                  </Button>
+
+                  <Button
+                    rightIcon={<MdDeleteForever size={24} />}
+                    w="100%"
+                    size="lg"
+                    bg="red.500"
+                    color="white"
+                    _hover={{
+                      transform: "translateY(-2px)",
+                      boxShadow: "lg",
+                      bg: "red.600",
+                    }}
+                    transition="all 0.2s"
+                    isLoading={loading}
+                    onClick={onOpen}
+                  >
+                    Eliminar
+                  </Button>
+                </VStack>
+              </GridItem>
+            </Grid>
+          </CardBody>
+        </Card>
+      </Flex>
+
+      {/* Modal de confirmación */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+        <ModalOverlay bg="blackAlpha.300" backdropFilter="blur(10px)" />
+        <ModalContent>
+          <ModalHeader>¿Eliminar Materia Prima?</ModalHeader>
+          <ModalBody>
+            ¿Estás seguro de que quieres eliminar{" "}
+            <strong>{RawMaterials.nombre}</strong>? Esta acción no se puede
+            deshacer.
+          </ModalBody>
+          <ModalFooter>
             <Button
-              rounded={"15px"}
-              w={"75%"}
-              mt={1}
-              size={"md"}
-              py={"2"}
-              bg={useColorModeValue("gray.900", "gray.300")}
-              color={useColorModeValue("white", "gray.900")}
-              textTransform={"uppercase"}
-              _hover={{
-                transform: "translateY(2px)",
-                boxShadow: "lg",
+              colorScheme="red"
+              mr={3}
+              onClick={async () => {
+                await handleDelete();
+                onClose();
               }}
             >
-              Ver Planilla
+              Sí, eliminar
             </Button>
-          </Center>
-          <Center>
-            <Button
-              as={Link}
-              to={`/materias-primas/update/${RawMaterials._id}`}
-              rightIcon={<FcSettings size={20} />}
-              rounded={"15px"}
-              w={"75%"}
-              mt={1}
-              size={"md"}
-              py={"2"}
-              bg={useColorModeValue("gray.900", "gray.300")}
-              color={useColorModeValue("white", "gray.900")}
-              textTransform={"uppercase"}
-              _hover={{
-                transform: "translateY(2px)",
-                boxShadow: "lg",
-              }}
-            >
-              Modificar Materia Primas
+            <Button variant="ghost" onClick={onClose}>
+              Cancelar
             </Button>
-          </Center>
-          <Center>
-            <Button
-              rightIcon={<MdDeleteForever size={24} />}
-              rounded={"15px"}
-              w={"75%"}
-              mt={1}
-              size={"md"}
-              py={"2"}
-              bg={"red.700"}
-              color={"black"}
-              textTransform={"uppercase"}
-              _hover={{
-                transform: "translateY(2px)",
-                boxShadow: "lg",
-              }}
-              isLoading={loading}
-              onClick={onOpen}
-            >
-              Eliminar Materia Prima
-            </Button>
-          </Center>
-          <Modal isOpen={isOpen} onClose={onClose} isCentered>
-            <ModalOverlay />
-            <ModalContent>
-              <ModalHeader>¿Eliminar Materia Prima?</ModalHeader>
-              <ModalBody>
-                ¿Estás seguro de que quieres eliminar esta Materia Prima? Esta
-                acción no se puede deshacer.
-              </ModalBody>
-              <ModalFooter>
-                <Button
-                  colorScheme="red"
-                  mr={3}
-                  onClick={async () => {
-                    await handleDelete();
-                    onClose();
-                  }}
-                >
-                  Sí, eliminar
-                </Button>
-                <Button variant="ghost" onClick={onClose}>
-                  Cancelar
-                </Button>
-              </ModalFooter>
-            </ModalContent>
-          </Modal>
-        </Stack>
-      </SimpleGrid>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Container>
   );
 };

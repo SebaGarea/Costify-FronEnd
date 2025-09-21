@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { deleteRawMaterial as deleteRawMaterialService } from "../../services/products.service.js";
+import { deleteRawMaterial as deleteRawMaterialService } from "../../services/rawMaterials.service.js";
 
 export const useDeleteMp = () => {
   const [loading, setLoading] = useState(false);

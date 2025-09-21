@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getRawMaterialById } from "../../services/products.service.js";
+import { getRawMaterialById } from "../../services/rawMaterials.service.js";
 
 export const useMpById = (id) => {
   const [mpById, setMpById] = useState(null);

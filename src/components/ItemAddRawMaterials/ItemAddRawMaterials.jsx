@@ -17,7 +17,7 @@ import { useEffect } from "react";
 import {
   getRawMaterialById,
   updateRawMaterial,
-} from "../../services/products.service.js";
+} from "../../services/rawMaterials.service.js";
 
 export const ItemAddRawMaterials = ({ RawMaterialId }) => {
   const [form, setForm] = useState({
