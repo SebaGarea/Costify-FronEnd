@@ -25,56 +25,50 @@ import {
   Toast,
   useToast,
 } from "@chakra-ui/react";
+
 import { FcMoneyTransfer, FcSettings } from "react-icons/fc";
 import { GoArrowLeft } from "react-icons/go";
 import { MdDeleteForever } from "react-icons/md";
-import { useDeleteProduct } from "../../hooks/index.js";
 import { Link, useNavigate } from "react-router-dom";
+import { useDeleteMp } from "../../hooks/index.js";
 
-export const ItemDetailProduct = ({ products }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const imagenes =
-    products.imagenes && Array.isArray(products.imagenes)
-      ? products.imagenes
-      : products.imagenes
-      ? [products.imagenes]
-      : [];
-
-  const BASE_URL = import.meta.env.VITE_API_URL;
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev === 0 ? imagenes.length - 1 : prev - 1));
-  };
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev === imagenes.length - 1 ? 0 : prev + 1));
-  };
-  const handleSelect = (idx) => {
-    setCurrentIndex(idx);
-  };
-
+export const ItemDetailRawMaterials = ({ RawMaterials }) => {
   const toast = useToast();
-
   const navigate = useNavigate();
-  const { deleteProduct, loading } = useDeleteProduct();
+  const { deleteMp, loading } = useDeleteMp();
+
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleDelete = async () => {
-    const ok = await deleteProduct(products._id);
+    console.log("ID a elimar", RawMaterials._id);
+
+    if (!RawMaterials._id) {
+      toast({
+        title: "Error",
+        description: "ID de materia prima no encontrado",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const ok = await deleteMp(RawMaterials._id);
     if (ok) {
       toast({
-        title: "Producto Eliminado.",
-        description: "El producto fue eliminado correctamente.",
+        title: "Materia Prima Eliminada.",
+        description: "La Materia Prima fue eliminado correctamente.",
         status: "warning",
         duration: 2000,
         isClosable: true,
       });
       setTimeout(() => {
-        navigate("/productos");
+        navigate("/materias-primas");
       }, 1000);
     } else {
       toast({
-        title: "El Producto no se pudo ELIMINAR.",
-        description: "El producto NO se pudo ELIMINAR..",
+        title: "La Materia Prima no se pudo ELIMINAR.",
+        description: "La Materia Prima NO se pudo ELIMINAR..",
         status: "error",
         duration: 2000,
         isClosable: true,
@@ -85,8 +79,8 @@ export const ItemDetailProduct = ({ products }) => {
   return (
     <Container maxW={"7xl"}>
       <Box>
-        <Button leftIcon={<GoArrowLeft />} as={Link} to={"/productos"}>
-          Volver a Productos
+        <Button leftIcon={<GoArrowLeft />} as={Link} to={"/materias-primas"}>
+          Volver a Materias Primas
         </Button>
       </Box>
       <SimpleGrid
@@ -94,58 +88,6 @@ export const ItemDetailProduct = ({ products }) => {
         spacing={{ base: 8, md: 10 }}
         py={{ base: 18, md: 24 }}
       >
-        <Flex direction="column" align="center">
-          {imagenes.length > 0 && (
-            <>
-              <Image
-                rounded={"md"}
-                alt={"product image"}
-                src={`${BASE_URL}${imagenes[currentIndex]}`}
-                fit={"cover"}
-                align={"center"}
-                w={"100%"}
-                h={{ base: "100%", sm: "400px", lg: "500px" }}
-                mb={2}
-              />
-              {imagenes.length > 1 && (
-                <HStack justify="center" spacing={2} mb={2}>
-                  <Button size="sm" onClick={handlePrev}>
-                    &lt;
-                  </Button>
-                  <Text fontSize="sm">
-                    {currentIndex + 1} / {imagenes.length}
-                  </Text>
-                  <Button size="sm" onClick={handleNext}>
-                    &gt;
-                  </Button>
-                </HStack>
-              )}
-              {imagenes.length > 1 && (
-                <HStack justify="center" spacing={1}>
-                  {imagenes.map((img, idx) => (
-                    <Image
-                      key={img}
-                      src={`${BASE_URL}${img}`}
-                      alt={`miniatura-${idx}`}
-                      boxSize="40px"
-                      objectFit="cover"
-                      border={
-                        idx === currentIndex
-                          ? "2px solid #3182ce"
-                          : "1px solid #ccc"
-                      }
-                      borderRadius="md"
-                      cursor="pointer"
-                      onClick={() => handleSelect(idx)}
-                      opacity={idx === currentIndex ? 1 : 0.6}
-                      transition="opacity 0.2s"
-                    />
-                  ))}
-                </HStack>
-              )}
-            </>
-          )}
-        </Flex>
         <Stack spacing={{ base: 6, md: 10 }}>
           <Box as={"header"}>
             <Heading
@@ -154,7 +96,7 @@ export const ItemDetailProduct = ({ products }) => {
               fontWeight={600}
               fontSize={{ base: "2xl", sm: "4xl", lg: "5xl" }}
             >
-              {products.nombre}
+              {RawMaterials.nombre}
             </Heading>
             <Box
               textAlign="center"
@@ -166,7 +108,19 @@ export const ItemDetailProduct = ({ products }) => {
               as="span"
               display="block"
             >
-              {products.modelo}
+              {RawMaterials.categoria}
+            </Box>
+            <Box
+              textAlign="center"
+              color={useColorModeValue("gray.900", "gray.100")}
+              fontWeight={200}
+              fontSize={"md"}
+              mt={3}
+              textTransform={"uppercase"}
+              as="span"
+              display="block"
+            >
+              Tipo: {RawMaterials.type}
             </Box>
             <Box
               textAlign="center"
@@ -178,7 +132,7 @@ export const ItemDetailProduct = ({ products }) => {
               display="block"
             >
               <Flex align="center" justify="center" display="inline-flex">
-                ${products.precio}
+                ${RawMaterials.precio}
                 <Box as="span" ml={4}>
                   <FcMoneyTransfer />
                 </Box>
@@ -200,7 +154,14 @@ export const ItemDetailProduct = ({ products }) => {
                 fontSize={"2xl"}
                 fontWeight={"300"}
               >
-                {products.descripcion}
+                {RawMaterials.medida}
+              </Text>
+              <Text
+                color={useColorModeValue("gray.500", "gray.400")}
+                fontSize={"lg"}
+                fontWeight={"300"}
+              >
+                Stock: {RawMaterials.stock}
               </Text>
             </VStack>
           </Stack>
@@ -225,7 +186,7 @@ export const ItemDetailProduct = ({ products }) => {
           <Center>
             <Button
               as={Link}
-              to={`/productos/update/${products._id}`}
+              to={`/materias-primas/update/${RawMaterials._id}`}
               rightIcon={<FcSettings size={20} />}
               rounded={"15px"}
               w={"75%"}
@@ -240,7 +201,7 @@ export const ItemDetailProduct = ({ products }) => {
                 boxShadow: "lg",
               }}
             >
-              Modificar Producto
+              Modificar Materia Primas
             </Button>
           </Center>
           <Center>
@@ -261,16 +222,16 @@ export const ItemDetailProduct = ({ products }) => {
               isLoading={loading}
               onClick={onOpen}
             >
-              Eliminar Producto
+              Eliminar Materia Prima
             </Button>
           </Center>
           <Modal isOpen={isOpen} onClose={onClose} isCentered>
             <ModalOverlay />
             <ModalContent>
-              <ModalHeader>¿Eliminar producto?</ModalHeader>
+              <ModalHeader>¿Eliminar Materia Prima?</ModalHeader>
               <ModalBody>
-                ¿Estás seguro de que quieres eliminar este producto? Esta acción
-                no se puede deshacer.
+                ¿Estás seguro de que quieres eliminar esta Materia Prima? Esta
+                acción no se puede deshacer.
               </ModalBody>
               <ModalFooter>
                 <Button

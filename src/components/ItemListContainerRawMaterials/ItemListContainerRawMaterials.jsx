@@ -189,7 +189,7 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
                 <HStack>
                                   <Button
                                     as={Link}
-                                    to={`/api/materiasPrimas/${mp._id}`}
+                                    to={`/materias-primas/${mp._id}`}
                                     colorScheme="teal"
                                     variant="outline"
                                     m={2}

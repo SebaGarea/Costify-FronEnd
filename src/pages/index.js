@@ -7,3 +7,4 @@ export * from './AddProduct.jsx';
 export * from './UpdateProduct.jsx';
 export * from './AddRawMaterial.jsx';
 export * from './UpdateRawMaterial.jsx';
+export * from './DetailRawMaterials.jsx';
