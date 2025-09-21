@@ -22,6 +22,8 @@ import { RiArrowRightLine } from "react-icons/ri";
 
 export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
   const { categoriesMp } = useCategoryMp();
+  const colorBg = useColorModeValue("white", "gray.800");
+  const colorBgBox = useColorModeValue("gray.100", "gray.700");
 
   // Estados para los filtros
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -48,24 +50,22 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
 
   return (
     <>
-      <Box
-        mb={6}
-        p={4}
-        bg={useColorModeValue("gray.100", "gray.700")}
-        borderRadius="lg"
-        w={"min-content"}
-        justifyContent={"center"}
-      >
-        <HStack spacing={4} justify="center">
+      <Box mb={2} p={2} bg={colorBgBox} borderRadius="lg">
+        <HStack spacing={4}>
           {/* Dropdown Categoría */}
           <Menu>
-            <MenuButton as={Button} rightIcon={<FiChevronDown />}>
+            <MenuButton
+              textTransform="uppercase"
+              as={Button}
+              rightIcon={<FiChevronDown />}
+            >
               {selectedCategory || "Categoría"}
             </MenuButton>
-            <MenuList minW="150px">
+            <MenuList>
               {categoriesMp.map((cat) => (
                 <MenuItem
-                  justifyContent={"center"}
+                  justifyContent="center"
+                  textTransform="uppercase"
                   key={cat.nombre}
                   onClick={() => {
                     setSelectedCategory(cat.nombre);
@@ -78,50 +78,61 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
               ))}
             </MenuList>
           </Menu>
+
           {/* Dropdown Tipo */}
-          <Menu>
+          <Menu isDisabled={!selectedCategory}>
             <MenuButton
+              textTransform="uppercase"
               as={Button}
               rightIcon={<FiChevronDown />}
-              isDisabled={!selectedCategory || tipos.length === 0}
             >
               {selectedType || "Tipo"}
             </MenuButton>
-            <MenuList minW="120px">
-              {tipos.map((tipo) => (
-                <MenuItem
-                  justifyContent={"center"}
-                  key={tipo}
-                  onClick={() => {
-                    setSelectedType(tipo);
-                    setSelectedMedida(null); // Reset medida al cambiar tipo
-                  }}
-                >
-                  {tipo}
-                </MenuItem>
-              ))}
+            <MenuList>
+              {tipos.length === 0 ? (
+                <MenuItem disabled>Sin tipos</MenuItem>
+              ) : (
+                tipos.map((tipo) => (
+                  <MenuItem
+                    justifyContent="center"
+                    textTransform="uppercase"
+                    key={tipo}
+                    onClick={() => {
+                      setSelectedType(tipo);
+                      setSelectedMedida(null); // Reset medida al cambiar tipo
+                    }}
+                  >
+                    {tipo}
+                  </MenuItem>
+                ))
+              )}
             </MenuList>
           </Menu>
 
           {/* Dropdown Medida */}
-          <Menu>
+          <Menu isDisabled={!selectedType}>
             <MenuButton
+              textTransform="uppercase"
               as={Button}
               rightIcon={<FiChevronDown />}
-              isDisabled={!selectedType || medidas.length === 0}
             >
               {selectedMedida || "Medida"}
             </MenuButton>
             <MenuList>
-              {medidas.map((medida) => (
-                <MenuItem
-                  justifyContent={"center"}
-                  key={medida}
-                  onClick={() => setSelectedMedida(medida)}
-                >
-                  {medida}
-                </MenuItem>
-              ))}
+              {medidas.length === 0 ? (
+                <MenuItem disabled>Sin medidas</MenuItem>
+              ) : (
+                medidas.map((medida) => (
+                  <MenuItem
+                    justifyContent="center"
+                    textTransform="uppercase"
+                    key={medida}
+                    onClick={() => setSelectedMedida(medida)}
+                  >
+                    {medida}
+                  </MenuItem>
+                ))
+              )}
             </MenuList>
           </Menu>
 
@@ -160,7 +171,7 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
               p={6}
               maxW={"330px"}
               w={"full"}
-              bg={useColorModeValue("white", "gray.800")}
+              bg={colorBg}
               boxShadow={"2xl"}
               rounded={"lg"}
             >
@@ -187,19 +198,19 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
                   ID MONGO: {mp._id}
                 </Text>
                 <HStack>
-                                  <Button
-                                    as={Link}
-                                    to={`/materias-primas/${mp._id}`}
-                                    colorScheme="teal"
-                                    variant="outline"
-                                    m={2}
-                                  >
-                                    Ver Detalle
-                                    <Box as="span" ml={2}>
-                                      <RiArrowRightLine />
-                                    </Box>
-                                  </Button>
-                                </HStack>
+                  <Button
+                    as={Link}
+                    to={`/materias-primas/${mp._id}`}
+                    colorScheme="teal"
+                    variant="outline"
+                    m={2}
+                  >
+                    Ver Detalle
+                    <Box as="span" ml={2}>
+                      <RiArrowRightLine />
+                    </Box>
+                  </Button>
+                </HStack>
               </Stack>
             </Box>
           ))}

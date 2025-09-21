@@ -12,12 +12,9 @@ import {
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAddMp } from "../../hooks/index.js";
+import { useAddMp, useUpdateRawMaterials } from "../../hooks/index.js";
 import { useEffect } from "react";
-import {
-  getRawMaterialById,
-  updateRawMaterial,
-} from "../../services/rawMaterials.service.js";
+import { getRawMaterialById } from "../../services/rawMaterials.service.js";
 
 export const ItemAddRawMaterials = ({ RawMaterialId }) => {
   const [form, setForm] = useState({
@@ -31,12 +28,19 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
 
   const toast = useToast();
   const navigate = useNavigate();
-  const { addRawMaterial, loading, error } = useAddMp();
 
-  // Categorías disponibles
+  const { addRawMaterial, loading: addLoading, error: addError } = useAddMp();
+  const {
+    updateRawMaterial,
+    loading: updateLoading,
+    error: updateError,
+  } = useUpdateRawMaterials();
+
+  const loading = RawMaterialId ? updateLoading : addLoading;
+  const error = RawMaterialId ? updateError : addError;
+
   const categorias = ["Hierro", "Madera", "Pintura", "Herraje", "Buloneria"];
 
-  // Tipos según categoría
   const tiposPorCategoria = {
     Hierro: [
       "Cuadrado",
@@ -78,27 +82,39 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
 
   useEffect(() => {
     if (RawMaterialId) {
-      getRawMaterialById(RawMaterialId).then((res) => {
-        setForm({
-          nombre: res.data.nombre,
-          categoria: res.data.categoria,
-          type: res.data.type,
-          medida: res.data.medida,
-          precio: res.data.precio,
-          stock: res.data.stock,
+      getRawMaterialById(RawMaterialId)
+        .then((res) => {
+          const materiaPrima = res.data.materiaPrima || res.data;
+          setForm({
+            nombre: materiaPrima.nombre || "",
+            categoria: materiaPrima.categoria || "",
+            type: materiaPrima.type || "",
+            medida: materiaPrima.medida || "",
+            precio: materiaPrima.precio || "",
+            stock: materiaPrima.stock || "",
+          });
+        })
+        .catch((error) => {
+          console.error("Error al cargar materia prima:", error);
+          toast({
+            title: "Error",
+            description: "No se pudo cargar la materia prima",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
         });
-      });
     }
-  }, [RawMaterialId]);
+  }, [RawMaterialId, toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     let ok;
     if (RawMaterialId) {
-      ok = await updateRawMaterial(RawMaterialId, form, true);
+      ok = await updateRawMaterial(RawMaterialId, form);
     } else {
-      ok = await addRawMaterial(form, true);
+      ok = await addRawMaterial(form);
     }
     if (ok) {
       toast({
@@ -136,7 +152,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Si cambia la categoría, resetea el tipo
     if (name === "categoria") {
       setForm({
@@ -192,7 +208,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
               required
             />
           </FormControl>
-          
+
           <FormControl>
             <FormLabel>Tipo</FormLabel>
             <Select
