@@ -24,6 +24,7 @@ export const ItemAddProduct = ({ productId }) => {
     catalogo: "",
     modelo: "",
     precio: "",
+    stock:"",
     descripcion: "",
   });
   const toast = useToast();
@@ -40,6 +41,7 @@ export const ItemAddProduct = ({ productId }) => {
           catalogo: res.data.catalogo,
           modelo: res.data.modelo,
           precio: res.data.precio,
+          stock: res.data.stock,
           descripcion: res.data.descripcion,
         });
         setImagenesActuales(res.data.imagenes || []);
@@ -166,6 +168,17 @@ export const ItemAddProduct = ({ productId }) => {
               name="precio"
               placeholder="Precio"
               value={form.precio}
+              onChange={handleChange}
+              required
+            />
+          </FormControl>
+          <FormControl>
+            <FormLabel>Stock</FormLabel>
+            <Input
+              type="number"
+              name="stock"
+              placeholder="Stock"
+              value={form.stock}
               onChange={handleChange}
               required
             />

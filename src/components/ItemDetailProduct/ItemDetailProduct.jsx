@@ -160,7 +160,7 @@ export const ItemDetailProduct = ({ products }) => {
               textAlign="center"
               color={useColorModeValue("gray.900", "gray.100")}
               fontWeight={200}
-              fontSize={"md"}
+              fontSize={"xl"}
               mt={3}
               textTransform={"uppercase"}
               as="span"
@@ -182,6 +182,19 @@ export const ItemDetailProduct = ({ products }) => {
                 <Box as="span" ml={4}>
                   <FcMoneyTransfer />
                 </Box>
+              </Flex>
+            </Box>
+            <Box
+              textAlign="center"
+              color={useColorModeValue("gray.900", "gray.100")}
+              fontWeight={400}
+              fontSize={"2xl"}
+              mt={3}
+              as="span"
+              display="block"
+            >
+              <Flex align="center" justify="center" display="inline-flex">
+                {products.stock} unidades en Stock
               </Flex>
             </Box>
           </Box>

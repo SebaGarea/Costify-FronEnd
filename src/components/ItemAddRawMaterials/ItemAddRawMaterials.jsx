@@ -8,6 +8,7 @@ import {
   Flex,
   useToast,
   Select,
+  HStack,
 } from "@chakra-ui/react";
 
 import { useState } from "react";
@@ -22,6 +23,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
     categoria: "",
     type: "",
     medida: "",
+    unidad: "",
     precio: "",
     stock: "",
   });
@@ -39,7 +41,9 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
   const loading = RawMaterialId ? updateLoading : addLoading;
   const error = RawMaterialId ? updateError : addError;
 
-  const categorias = ["Hierro", "Madera", "Pintura", "Herraje", "Buloneria"];
+  const categorias = ["Hierro", "Madera", "Pintura", "Herrajes", "Buloneria","Insumos"];
+
+  const unidades = ["mm", "cm", "mts", "lts", "kg", "gr", "unidad", "m²", "pie²", "pulgadas"];
 
   const tiposPorCategoria = {
     Hierro: [
@@ -61,7 +65,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "Listón",
       "Otros",
     ],
-    Pintura: ["Esmalte", "Látex", "Antióxido", "Barniz", "Sellador", "Otros"],
+    Pintura: ["Sintetico", "Antióxido","Laca", "Barniz", "Otros"],
     Herraje: [
       "Bisagras",
       "Manijas",
@@ -78,6 +82,11 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "Tirafondos",
       "Otros",
     ],
+    Insumos:[
+      "Discos de Corte/Desbaste/Flap",
+      "Discos Sensitiva",
+      "Insumos MIG"
+    ]
   };
 
   useEffect(() => {
@@ -90,6 +99,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
             categoria: materiaPrima.categoria || "",
             type: materiaPrima.type || "",
             medida: materiaPrima.medida || "",
+            unidad: materiaPrima.unidad || "",
             precio: materiaPrima.precio || "",
             stock: materiaPrima.stock || "",
           });
@@ -125,7 +135,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
           ? "La Materia Prima fue actualizada"
           : "La Materia Prima fue cargada con Exito",
         status: "success",
-        duration: 2000,
+        duration: 1000,
         isClosable: true,
       });
       setTimeout(() => {
@@ -136,6 +146,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
         categoria: "",
         type: "",
         medida: "",
+        unidad: "",
         precio: "",
         stock: "",
       });
@@ -158,7 +169,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       setForm({
         ...form,
         categoria: value,
-        type: "", // Reset tipo al cambiar categoría
+        type: "", 
       });
     } else {
       setForm({
@@ -227,16 +238,35 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
                 ))}
             </Select>
           </FormControl>
-          <FormControl>
-            <FormLabel>Medida</FormLabel>
-            <Input
-              type="text"
-              name="medida"
-              placeholder="Medida"
-              value={form.medida}
-              onChange={handleChange}
-            />
-          </FormControl>
+          
+          <HStack spacing={4}>
+            <FormControl>
+              <FormLabel>Medida</FormLabel>
+              <Input
+                type="text"
+                name="medida"
+                placeholder="Medida"
+                value={form.medida}
+                onChange={handleChange}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Unidad</FormLabel>
+              <Select
+                name="unidad"
+                placeholder="Seleccionar unidad"
+                value={form.unidad}
+                onChange={handleChange}
+              >
+                {unidades.map((unidad) => (
+                  <option key={unidad} value={unidad}>
+                    {unidad}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+          </HStack>
+          
           <FormControl>
             <FormLabel>Precio</FormLabel>
             <Input
