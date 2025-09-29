@@ -14,6 +14,9 @@ import {
   MenuItem,
   Menu,
   Spacer,
+  Badge,
+  VStack,
+  Divider,
 } from "@chakra-ui/react";
 import { FiChevronDown, FiPlus } from "react-icons/fi";
 import { RiArrowRightLine } from "react-icons/ri";
@@ -193,25 +196,71 @@ export const ItemListContainer = ({ products }) => {
                   alt={product.nombre}
                 />
               </Box>
-              <Stack pt={10} align={"center"}>
+              <Stack pt={10} align={"center"} spacing={4}>
                 <Text
-                  
                   fontSize={"md"}
                   textTransform={"uppercase"}
                   fontWeight={500}
+                  textAlign="center"
                 >
                   {product.nombre}
                 </Text>
-                <Heading fontSize={"md"} fontFamily={"body"} fontWeight={200}>
+                
+                {/* Información de la plantilla asociada */}
+                {product.planillaCosto ? (
+                  <VStack spacing={3} w="full">
+                    <Badge colorScheme="blue" fontSize="xs" px={2} py={1}>
+                      Plantilla: {product.planillaCosto.nombre}
+                    </Badge>
+                    
+                    {product.planillaCosto.tipoProyecto && (
+                      <Badge colorScheme="purple" fontSize="xs" px={2} py={1}>
+                        {product.planillaCosto.tipoProyecto}
+                      </Badge>
+                    )}
+                    
+                    <VStack spacing={1} w="full">
+                      <HStack justify="space-between" w="full">
+                        <Text fontSize="xs" color="gray.600">Costo Total:</Text>
+                        <Text fontSize="xs" fontWeight="bold" color="green.600">
+                          ${Number(product.planillaCosto.costoTotal || 0).toLocaleString()}
+                        </Text>
+                      </HStack>
+                      
+                      <HStack justify="space-between" w="full">
+                        <Text fontSize="xs" color="gray.600">Precio Plantilla:</Text>
+                        <Text fontSize="xs" fontWeight="bold" color="blue.600">
+                          ${Number(product.planillaCosto.precioFinal || 0).toLocaleString()}
+                        </Text>
+                      </HStack>
+                      
+                      <HStack justify="space-between" w="full">
+                        <Text fontSize="xs" color="gray.600">Ganancia Plantilla:</Text>
+                        <Text fontSize="xs" fontWeight="bold" color="orange.600">
+                          ${Number((product.planillaCosto.precioFinal || 0) - (product.planillaCosto.costoTotal || 0)).toLocaleString()}
+                        </Text>
+                      </HStack>
+                    </VStack>
+                    
+                    <Divider />
+                  </VStack>
+                ) : (
+                  <Badge colorScheme="gray" fontSize="xs" px={2} py={1}>
+                    Sin plantilla asociada
+                  </Badge>
+                )}
+                
+                <Heading fontSize={"sm"} fontFamily={"body"} fontWeight={200} textAlign="center">
                   {product.descripcion.length > 60
                     ? product.descripcion.slice(0, 60) + "..."
                     : product.descripcion}
                 </Heading>
+                
                 <Stack direction={"row"} align={"center"}>
-                  <Text fontWeight={800} fontSize={"xl"}>
-                    ${product.precio}
+                  <Text fontWeight={800} fontSize={"xl"} color="green.500">
+                    ${Number(product.precio).toLocaleString()}
                   </Text>
-                  <Text ml={2} color={"gray.600"}>
+                  <Text ml={2} color={"gray.600"} fontSize="sm">
                     Stock: {product.stock}
                   </Text>
                 </Stack>

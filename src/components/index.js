@@ -7,4 +7,6 @@ export * from './ItemListContainerRawMaterials'
 export * from './ItemAddProduct'
 export * from './ItemAddRawMaterials'
 export * from './ItemDetailRawMaterials'
+export * from './ItemAddPlantillas'
+export * from './ItemListPlantillas'
 

@@ -23,6 +23,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
     categoria: "",
     type: "",
     medida: "",
+    espesor: "",
     unidad: "",
     precio: "",
     stock: "",
@@ -41,9 +42,9 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
   const loading = RawMaterialId ? updateLoading : addLoading;
   const error = RawMaterialId ? updateError : addError;
 
-  const categorias = ["Hierro", "Madera", "Pintura", "Herrajes", "Buloneria","Insumos"];
+  const categorias = ["Hierro", "Madera", "Pintura", "Herrajes", "Buloneria","Chapas","Insumos"];
 
-  const unidades = ["mm", "cm", "mts", "lts", "kg", "gr", "unidad", "m²", "pie²", "pulgadas"];
+  const unidades = ["mm", "cm", "mts", "lts", "kg", "gr", "unidad", "m²", "pie²", "pulgadas","calibre"];
 
   const tiposPorCategoria = {
     Hierro: [
@@ -52,6 +53,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "Macizo",
       "Angulo",
       "Planchuela",
+      "Planchuela Punzonada",
       "Tee",
       "Otros",
     ],
@@ -64,6 +66,10 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "Tabla",
       "Listón",
       "Otros",
+    ],
+      Chapas: [
+      "Lisas"
+    
     ],
     Pintura: ["Sintetico", "Antióxido","Laca", "Barniz", "Otros"],
     Herraje: [
@@ -99,6 +105,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
             categoria: materiaPrima.categoria || "",
             type: materiaPrima.type || "",
             medida: materiaPrima.medida || "",
+            espesor: materiaPrima.espesor || "",
             unidad: materiaPrima.unidad || "",
             precio: materiaPrima.precio || "",
             stock: materiaPrima.stock || "",
@@ -146,6 +153,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
         categoria: "",
         type: "",
         medida: "",
+        espesor: "",
         unidad: "",
         precio: "",
         stock: "",
@@ -245,8 +253,18 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
               <Input
                 type="text"
                 name="medida"
-                placeholder="Medida"
+                placeholder="30x30"
                 value={form.medida}
+                onChange={handleChange}
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Espesor</FormLabel>
+              <Input
+                type="text"
+                name="espesor"
+                placeholder="1.2mm"
+                value={form.espesor}
                 onChange={handleChange}
               />
             </FormControl>

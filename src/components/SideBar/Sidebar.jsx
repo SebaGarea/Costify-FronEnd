@@ -36,7 +36,7 @@ import { Link } from "react-router-dom";
 
 const LinkItems = [
   { name: "Home", icon: FiHome, to: "/" },
-  { name: "Planillas", icon: FiTrendingUp, to: "/" },
+  { name: "Planillas", icon: FiTrendingUp, to: "/plantillas" },
   { name: "Productos", icon: FiCompass, to: "/productos" },
   { name: "Materia Primas", icon: FaHammer, to: "/materias-primas" },
   { name: "Settings", icon: FiSettings, to: "/" },

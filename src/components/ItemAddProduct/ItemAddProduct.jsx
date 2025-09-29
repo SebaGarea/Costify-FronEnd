@@ -7,6 +7,14 @@ import {
   Textarea,
   Flex,
   useToast,
+  Select,
+  Box,
+  Heading,
+  Text,
+  Badge,
+  VStack,
+  HStack,
+  Divider,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import {
@@ -14,6 +22,7 @@ import {
   updateProduct,
 } from "../../services/products.service.js";
 import { useAddProduct } from "../../hooks/productos/useAddProduct.js";
+import { useGetAllPlantillas } from "../../hooks/index.js";
 import { useNavigate } from "react-router-dom";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -26,7 +35,14 @@ export const ItemAddProduct = ({ productId }) => {
     precio: "",
     stock:"",
     descripcion: "",
+    planillaCosto: "", // Nueva relación con plantilla
   });
+  
+  // Hook para obtener todas las plantillas
+  const { plantillasData, loading: loadingPlantillas } = useGetAllPlantillas();
+  
+  // Estado para almacenar la plantilla seleccionada completa
+  const [plantillaSeleccionada, setPlantillaSeleccionada] = useState(null);
   const toast = useToast();
   const navigate = useNavigate();
   const { addProduct, loading, error } = useAddProduct();
@@ -43,12 +59,32 @@ export const ItemAddProduct = ({ productId }) => {
           precio: res.data.precio,
           stock: res.data.stock,
           descripcion: res.data.descripcion,
+          planillaCosto: res.data.planillaCosto?._id || "", // Cargar ID de plantilla si existe
         });
         setImagenesActuales(res.data.imagenes || []);
-        setImagenes([]); 
+        setImagenes([]);
+        
+        // Si tiene plantilla asociada, cargarla para mostrar información
+        if (res.data.planillaCosto) {
+          setPlantillaSeleccionada(res.data.planillaCosto);
+        }
       });
     }
   }, [productId]);
+
+  // Función para manejar el cambio de plantilla
+  const handlePlantillaChange = (plantillaId) => {
+    setForm(prev => ({ ...prev, planillaCosto: plantillaId }));
+    
+    // Encontrar la plantilla seleccionada para mostrar información
+    const plantilla = plantillasData.find(p => p._id === plantillaId);
+    setPlantillaSeleccionada(plantilla || null);
+    
+    // Opcional: Auto-llenar el precio basado en la plantilla
+    if (plantilla && plantilla.precioFinal) {
+      setForm(prev => ({ ...prev, precio: plantilla.precioFinal.toString() }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -161,6 +197,63 @@ export const ItemAddProduct = ({ productId }) => {
               required
             />
           </FormControl>
+          
+          {/* Selector de Plantilla */}
+          <FormControl>
+            <FormLabel>Plantilla de Costos</FormLabel>
+            <Select
+              name="planillaCosto"
+              placeholder="Seleccionar plantilla (opcional)"
+              value={form.planillaCosto}
+              onChange={(e) => handlePlantillaChange(e.target.value)}
+              isLoading={loadingPlantillas}
+            >
+              {plantillasData.map((plantilla) => (
+                <option key={plantilla._id} value={plantilla._id}>
+                  {plantilla.nombre} - ${plantilla.precioFinal || plantilla.costoTotal || 'N/A'}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Información de la plantilla seleccionada */}
+          {plantillaSeleccionada && (
+            <Box p={4} border="1px" borderColor="blue.200" borderRadius="md" bg="blue.50">
+              <VStack align="stretch" spacing={3}>
+                <Heading size="sm" color="blue.600">
+                  Información de la Plantilla: {plantillaSeleccionada.nombre}
+                </Heading>
+                
+                <HStack justify="space-between">
+                  <Text fontSize="sm">Tipo de Proyecto:</Text>
+                  <Badge colorScheme="purple">{plantillaSeleccionada.tipoProyecto || 'N/A'}</Badge>
+                </HStack>
+                
+                <HStack justify="space-between">
+                  <Text fontSize="sm">Costo Total:</Text>
+                  <Badge colorScheme="green">${plantillaSeleccionada.costoTotal || 0}</Badge>
+                </HStack>
+                
+                <HStack justify="space-between">
+                  <Text fontSize="sm">Precio Final:</Text>
+                  <Badge colorScheme="blue">${plantillaSeleccionada.precioFinal || 0}</Badge>
+                </HStack>
+                
+                <HStack justify="space-between">
+                  <Text fontSize="sm">Ganancia:</Text>
+                  <Badge colorScheme="orange">
+                    ${(plantillaSeleccionada.precioFinal || 0) - (plantillaSeleccionada.costoTotal || 0)}
+                  </Badge>
+                </HStack>
+                
+                <Divider />
+                <Text fontSize="xs" color="gray.600">
+                  Esta plantilla se aplicará automáticamente al producto
+                </Text>
+              </VStack>
+            </Box>
+          )}
+          
           <FormControl>
             <FormLabel>Precio</FormLabel>
             <Input
