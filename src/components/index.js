@@ -9,4 +9,5 @@ export * from './ItemAddRawMaterials'
 export * from './ItemDetailRawMaterials'
 export * from './ItemAddPlantillas'
 export * from './ItemListPlantillas'
+export * from './ItemListVentas'
 

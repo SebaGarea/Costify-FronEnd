@@ -30,12 +30,13 @@ import {
   FiBell,
   FiChevronDown,
 } from "react-icons/fi";
-import { FaHammer } from "react-icons/fa";
+import { FaHammer,FaSalesforce } from "react-icons/fa";
 import { Link } from "react-router-dom";
-
+import { PiAlignLeftDuotone } from "react-icons/pi";
 
 const LinkItems = [
   { name: "Home", icon: FiHome, to: "/" },
+  { name: "Ventas", icon: PiAlignLeftDuotone, to: "/ventas" },
   { name: "Planillas", icon: FiTrendingUp, to: "/plantillas" },
   { name: "Productos", icon: FiCompass, to: "/productos" },
   { name: "Materia Primas", icon: FaHammer, to: "/materias-primas" },

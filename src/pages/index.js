@@ -11,4 +11,5 @@ export * from './DetailRawMaterials.jsx';
 export * from './Plantillas.jsx';
 export * from './AddPlantilla.jsx';
 export * from './UpdatePlantillas.jsx';
+export * from './Ventas.jsx';
 
