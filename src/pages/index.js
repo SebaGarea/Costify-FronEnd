@@ -12,4 +12,5 @@ export * from './Plantillas.jsx';
 export * from './AddPlantilla.jsx';
 export * from './UpdatePlantillas.jsx';
 export * from './Ventas.jsx';
+export * from './AddVenta.jsx';
 

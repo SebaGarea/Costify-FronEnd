@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
-import {DetailProduct, Home, Products,AddProduct,RawMaterials,CategoriesRawMaterials, UpdateProduct, AddRawMaterial,DetailRawMaterials, UpdateRawMaterial, Plantillas, AddPlantilla, Ventas} from "../pages";
-import { ItemListPlantillas } from "../components/ItemListPlantillas/ItemListPlantillas.jsx";
+import {DetailProduct, Home, Products,AddProduct,RawMaterials,CategoriesRawMaterials, UpdateProduct, AddRawMaterial,DetailRawMaterials, UpdateRawMaterial, Plantillas, AddPlantilla, Ventas, AddVenta} from "../pages";
+
 
 
 
@@ -25,6 +25,7 @@ export const MainRouter = () => {
       <Route path="/plantillas/plantillaAdd/:id" element={<AddPlantilla/>} />
       <Route path="/plantillas" element={<Plantillas/>} />
       <Route path="/ventas" element={<Ventas/>} />
+      <Route path="/ventas/itemAdd" element={<AddVenta/>} />
     </Routes>
   );
 };

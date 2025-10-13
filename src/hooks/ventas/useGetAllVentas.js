@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getAllVentas } from "../../services/ventas.service.js";
 //hook
 const BASE_URL = import.meta.env.VITE_API_URL;

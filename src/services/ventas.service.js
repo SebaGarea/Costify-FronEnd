@@ -14,6 +14,18 @@ export const getAllVentas = async () => {
   }
 };
 
+export const getAllVentasPaginated = async (page = 1, limit = 10) => {
+  try {
+    const response = await axios.get(`${BASE_URL}/api/ventas`, {
+      params: { page, limit }
+    });
+    return response.data; // { items, total, page, limit, totalPages }
+  } catch (error) {
+    console.error("Error en getAllVentasPaginated:", error);
+    throw error;
+  }
+};
+
 export const getUpdateVentas = async (id, ventasData) => {
  try {
    const response = await axios.put(`${BASE_URL}/api/ventas/${id}`, ventasData);

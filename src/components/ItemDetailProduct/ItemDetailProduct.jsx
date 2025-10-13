@@ -177,7 +177,7 @@ export const ItemDetailProduct = ({ products }) => {
               as="span"
               display="block"
             >
-              <Flex align="center" justify="center" display="inline-flex">
+              <Flex alignItems="center" justifyContent="center" display="inline-flex">
                 ${products.precio}
                 <Box as="span" ml={4}>
                   <FcMoneyTransfer />
@@ -193,7 +193,7 @@ export const ItemDetailProduct = ({ products }) => {
               as="span"
               display="block"
             >
-              <Flex align="center" justify="center" display="inline-flex">
+              <Flex alignItems="center" justifyContent="center" display="inline-flex">
                 {products.stock} unidades en Stock
               </Flex>
             </Box>
