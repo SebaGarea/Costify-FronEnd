@@ -9,9 +9,12 @@ export const useUpdateVentas = () => {
     setLoading(true);
     setError(null);
     try {
-      await getUpdateVentas(id, ventasData);
+      const res = await getUpdateVentas(id, ventasData);
+      return res.data || res;
     } catch (err) {
-      setError(err.message || "Error al actualizar la venta");
+      console.error("Error actualizando venta:", err);
+      setError(err.response?.data?.error || "Error al actualizar la venta");
+      throw err;
     } finally {
       setLoading(false);
     }

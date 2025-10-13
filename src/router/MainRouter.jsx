@@ -25,7 +25,8 @@ export const MainRouter = () => {
       <Route path="/plantillas/plantillaAdd/:id" element={<AddPlantilla/>} />
       <Route path="/plantillas" element={<Plantillas/>} />
       <Route path="/ventas" element={<Ventas/>} />
-      <Route path="/ventas/itemAdd" element={<AddVenta/>} />
+  <Route path="/ventas/itemAdd" element={<AddVenta/>} />
+  <Route path="/ventas/itemAdd/:id" element={<AddVenta/>} />
     </Routes>
   );
 };

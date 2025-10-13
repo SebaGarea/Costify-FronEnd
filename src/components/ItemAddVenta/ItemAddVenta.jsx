@@ -4,10 +4,12 @@ import {
   useColorModeValue, Text,
   Select
 } from "@chakra-ui/react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useItems } from "../../hooks/index.js";
 import { useAddVenta } from "../../hooks/ventas/useAddVenta.js";
+import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
+import axios from "axios";
 
 const mediosVenta = [
   { value: "mercado_libre", label: "Mercado Libre" },
@@ -20,8 +22,11 @@ const mediosVenta = [
 export const ItemAddVenta = () => {
   const { productsData = [] } = useItems();
   const { addVenta, loading } = useAddVenta();
+  const { updateVenta } = useUpdateVentas();
   const navigate = useNavigate();
   const toast = useToast();
+  const { id: ventaId } = useParams();
+  const loadedRef = useRef(false);
 
   const card = useColorModeValue("gray.100", "gray.800");
   const border = useColorModeValue("gray.500", "gray.600");
@@ -36,6 +41,7 @@ export const ItemAddVenta = () => {
     descripcion: "",
     valorEnvio: 0,
     seña: 0,
+    fechaLimite: "",
   });
 
   // Sugerencias de producto
@@ -118,14 +124,53 @@ export const ItemAddVenta = () => {
       valorEnvio: Number(form.valorEnvio || 0),
       seña: Number(form.seña || 0),
       valorTotal,
+  // enviar como string 'YYYY-MM-DD' y convertir en backend para evitar shifts de zona
+  fechaLimite: form.fechaLimite ? form.fechaLimite : null,
     };
 
-    const ok = await addVenta(payload);
-    if (ok) {
-      toast({ status: "success", title: "Venta creada" });
+    try {
+      if (ventaId) {
+        await updateVenta(ventaId, payload);
+        toast({ status: "success", title: "Venta actualizada" });
+      } else {
+        const ok = await addVenta(payload);
+        if (!ok) throw new Error("No se pudo crear la venta");
+        toast({ status: "success", title: "Venta creada" });
+      }
       navigate("/ventas");
+    } catch (err) {
+      toast({ status: "error", title: err.message || "Error al guardar" });
     }
   };
+
+  useEffect(() => {
+    if (!ventaId) return;
+    if (loadedRef.current) return;
+    const load = async () => {
+      try {
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/ventas/${ventaId}`);
+        const v = res.data;
+        const fmt = (d) => (d ? new Date(d).toISOString().split("T")[0] : "");
+        setForm((prev) => ({
+          ...prev,
+          fecha: fmt(v.fecha),
+          cliente: v.cliente || "",
+          medio: v.medio || mediosVenta[0].value,
+          productoId: v.producto?._id || v.producto || "",
+          productoNombre: v.productoNombre || (v.producto ? `${v.producto.nombre ?? ""} ${v.producto.modelo ?? ""}`.trim() : ""),
+          cantidad: v.cantidad || 1,
+          descripcion: v.descripcion || v.descripcionVenta || "",
+          valorEnvio: v.valorEnvio || 0,
+          seña: v.seña || 0,
+          fechaLimite: fmt(v.fechaLimite),
+        }));
+        loadedRef.current = true;
+      } catch (err) {
+        console.error("Error cargando venta:", err);
+      }
+    };
+    load();
+  }, [ventaId]);
 
   return (
     <Box p={6}>
@@ -213,7 +258,11 @@ export const ItemAddVenta = () => {
           </FormControl>
           <FormControl>
             <FormLabel>Fecha Limite</FormLabel>
-            <Input type="date" />
+            <Input
+              type="date"
+              value={form.fechaLimite}
+              onChange={onChange("fechaLimite")}
+            />
           </FormControl>
         </HStack>
         <FormControl>

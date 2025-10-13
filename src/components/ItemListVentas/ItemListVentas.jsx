@@ -6,19 +6,40 @@ import {
   VStack,
   useColorModeValue,
   Button,
+  IconButton,
   Textarea,
-  color,
 } from "@chakra-ui/react";
 import { PiListPlusDuotone } from "react-icons/pi";
 import { AiOutlineFileSearch } from "react-icons/ai";
+import { FiEdit2 } from "react-icons/fi";
+import { FiRefreshCw } from "react-icons/fi";
+import { MdDeleteForever } from "react-icons/md";
+import { FiCheck } from "react-icons/fi";
+import { FaTruck } from "react-icons/fa";
+import { useRef, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
+} from "@chakra-ui/react";
+import { useDeleteVenta } from "../../hooks/ventas/useDeleteVenta.js";
 import { useNavigate } from "react-router-dom";
 import { useGetVentasPaginated } from "../../hooks/ventas/useGetVentasPaginated.js";
+import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
 import { Loader } from "../Loader/Loader.jsx";
 
 export const ItemListVentas = () => {
-  const { items, total, page, totalPages, loading, error, setPage } =
+  const { items, total, page, totalPages, loading, error, setPage, refetch } =
     useGetVentasPaginated(1, 10);
   const navigate = useNavigate();
+  const { removeVenta, loading: deleting } = useDeleteVenta();
+  const { updateVenta } = useUpdateVentas();
+  const [deletingId, setDeletingId] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const cancelRef = useRef();
   const medioLabels = {
     mercado_libre: "Mercado Libre",
     instagram: "Instagram",
@@ -35,6 +56,14 @@ export const ItemListVentas = () => {
   const border = useColorModeValue("gray.500", "gray.600");
   const filaMonetariaBg = useColorModeValue("gray.50", "gray.700");
   const descBg = useColorModeValue("white", "gray.800");
+  const fmtDateUTC = (d) => {
+    try {
+      if (!d) return "";
+      return new Date(d).toLocaleDateString(undefined, { timeZone: "UTC" });
+    } catch {
+      return "";
+    }
+  };
   // Defensa: ordenar en cliente por si el cache responde fuera de orden
   const ventasOrdenadas = Array.isArray(items)
     ? [...items].sort((a, b) => {
@@ -97,6 +126,51 @@ export const ItemListVentas = () => {
                 width={"100vw"}
                 mx="auto"
               >
+                <HStack justifyContent="space-between" mb={2}>
+                  <Text fontSize="sm" color={text}>
+                    {venta.productoNombre || venta.producto?.nombre || ""}
+                  </Text>
+                  <HStack spacing={2}>
+                    {venta.estado === "finalizada" && (
+                      <Text
+                        fontSize="xs"
+                        color="green.700"
+                        bg="green.100"
+                        px={2}
+                        py={0.5}
+                        borderRadius="md"
+                      >
+                        Finalizada
+                      </Text>
+                    )}
+                    {venta.estado === "en_proceso" && (
+                      <Text
+                        fontSize="xs"
+                        color="orange.800"
+                        bg="orange.100"
+                        px={2}
+                        py={0.5}
+                        borderRadius="md"
+                      >
+                        En proceso
+                      </Text>
+                    )}
+                    {venta.estado === "despachada" && (
+                      <Text
+                        fontSize="xs"
+                        color="blue.700"
+                        bg="blue.100"
+                        px={2}
+                        py={0.5}
+                        borderRadius="md"
+                      >
+                        Despachada
+                      </Text>
+                    )}
+                  </HStack>
+                </HStack>
+                {/* Acciones: (moved to bottom row as icon buttons) */}
+
                 {/* Primera fila: datos principales */}
                 <HStack
                   spacing={2}
@@ -106,7 +180,7 @@ export const ItemListVentas = () => {
                   justifyContent={{ base: "flex-start", md: "space-between" }}
                 >
                   <Text fontWeight="bold" color={heading} minW="90px">
-                    {new Date(venta.fecha).toLocaleDateString()}
+                    {fmtDateUTC(venta.fecha)}
                   </Text>
                   <Text color={text} minW="120px" fontSize="md">
                     {venta.cliente}
@@ -136,10 +210,16 @@ export const ItemListVentas = () => {
                         />
                       </Box>
                     )}
+                    <Text color={text} minW="80px" fontSize="md">
+                      x{venta.cantidad}
+                    </Text>
+                    <Text color={text} minW="140px" fontSize="sm">
+                      <b>Fecha límite:</b>{" "}
+                      {venta.fechaLimite
+                        ? fmtDateUTC(venta.fechaLimite)
+                        : "null"}
+                    </Text>
                   </HStack>
-                  <Text color={text} minW="80px" fontSize="md">
-                    x{venta.cantidad}
-                  </Text>
                 </HStack>
                 {/* Descripción debajo en Textarea de solo lectura */}
                 <Box mt={2} w="100%">
@@ -164,14 +244,15 @@ export const ItemListVentas = () => {
                     placeholder="Sin descripción"
                   />
                 </Box>
-                {/* Segunda fila: valores monetarios */}
+
+                {/* Segunda fila */}
                 <HStack
                   spacing={4}
                   alignItems="center"
                   flexWrap="wrap"
-                  justifyContent={{ base: "flex-start", md: "flex-end" }}
+                  // justifyContent={{ base: "flex-start", md: "flex-end" }}
                   bg={filaMonetariaBg}
-                  p={2}
+                  p={1}
                   borderRadius="md"
                 >
                   <Text color={text} fontSize="sm">
@@ -186,6 +267,101 @@ export const ItemListVentas = () => {
                   <Text color={heading} fontWeight="bold" fontSize="md">
                     Restan: ${venta.restan}
                   </Text>
+                  <HStack spacing={2} ml={4}>
+                    <IconButton
+                      aria-label="Editar venta"
+                      icon={<FiEdit2 />}
+                      colorScheme="green"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/ventas/itemAdd/${venta._id}`)}
+                    />
+
+                    <IconButton
+                      aria-label="Eliminar venta"
+                      icon={<MdDeleteForever />}
+                      colorScheme="red"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setDeletingId(venta._id);
+                        setIsOpen(true);
+                      }}
+                    />
+                  </HStack>
+                  <HStack justifyContent={"flex-end"}>
+                    <IconButton
+                      aria-label="Marcar como en proceso"
+                      icon={<FiRefreshCw />}
+                      colorScheme={
+                        venta.estado === "en_proceso" ? "orange" : "gray"
+                      }
+                      variant={
+                        venta.estado === "en_proceso" ? "solid" : "ghost"
+                      }
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const next =
+                            venta.estado === "en_proceso"
+                              ? "pendiente"
+                              : "en_proceso";
+                          await updateVenta(venta._id, { estado: next });
+                          await refetch();
+                        } catch (err) {
+                          console.error("Error marcando en_proceso", err);
+                        }
+                      }}
+                    />
+                    <IconButton
+                      aria-label="Marcar como finalizada"
+                      icon={<FiCheck />}
+                      colorScheme={
+                        venta.estado === "finalizada" ? "green" : "gray"
+                      }
+                      variant={
+                        venta.estado === "finalizada" ? "solid" : "ghost"
+                      }
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await updateVenta(venta._id, {
+                            estado:
+                              venta.estado === "finalizada"
+                                ? "pendiente"
+                                : "finalizada",
+                          });
+                          await refetch();
+                        } catch (err) {
+                          console.error("Error marcando finalizada", err);
+                        }
+                      }}
+                    />
+
+                    <IconButton
+                      aria-label="Marcar como despachada"
+                      icon={<FaTruck />}
+                      colorScheme={
+                        venta.estado === "despachada" ? "green" : "gray"
+                      }
+                      variant={
+                        venta.estado === "despachada" ? "solid" : "ghost"
+                      }
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const next =
+                            venta.estado === "despachada"
+                              ? "pendiente"
+                              : "despachada";
+                          await updateVenta(venta._id, { estado: next });
+                          await refetch();
+                        } catch (err) {
+                          console.error("Error marcando despachada", err);
+                        }
+                      }}
+                    />
+                  </HStack>
                 </HStack>
               </Box>
             );
@@ -211,6 +387,53 @@ export const ItemListVentas = () => {
             </Button>
           </HStack>
         </HStack>
+        {/* AlertDialog confirmación eliminación */}
+        <AlertDialog
+          isOpen={isOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={() => {
+            setIsOpen(false);
+            setDeletingId(null);
+          }}
+          isCentered
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Eliminar venta
+              </AlertDialogHeader>
+
+              <AlertDialogBody>
+                ¿Estás seguro de que quieres eliminar esta venta? Esta acción no
+                se puede deshacer.
+              </AlertDialogBody>
+
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={() => setIsOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  colorScheme="red"
+                  onClick={async () => {
+                    try {
+                      await removeVenta(deletingId);
+                      setIsOpen(false);
+                      setDeletingId(null);
+                      // refetch the current page
+                      await refetch();
+                    } catch (err) {
+                      console.error("Error eliminando:", err);
+                    }
+                  }}
+                  ml={3}
+                  isLoading={deleting}
+                >
+                  Sí, eliminar
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
       </VStack>
     </Box>
   );
