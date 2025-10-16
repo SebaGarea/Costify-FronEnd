@@ -8,16 +8,6 @@ import {
   Button,
   IconButton,
   Textarea,
-} from "@chakra-ui/react";
-import { PiListPlusDuotone } from "react-icons/pi";
-import { AiOutlineFileSearch } from "react-icons/ai";
-import { FiEdit2 } from "react-icons/fi";
-import { FiRefreshCw } from "react-icons/fi";
-import { MdDeleteForever } from "react-icons/md";
-import { FiCheck } from "react-icons/fi";
-import { FaTruck } from "react-icons/fa";
-import { useRef, useState } from "react";
-import {
   AlertDialog,
   AlertDialogOverlay,
   AlertDialogContent,
@@ -25,6 +15,12 @@ import {
   AlertDialogBody,
   AlertDialogFooter,
 } from "@chakra-ui/react";
+import { PiListPlusDuotone } from "react-icons/pi";
+import { AiOutlineFileSearch } from "react-icons/ai";
+import { FiEdit2, FiRefreshCw, FiCheck } from "react-icons/fi";
+import { MdDeleteForever } from "react-icons/md";
+import { FaTruck } from "react-icons/fa";
+import { useEffect, useRef, useState } from "react";
 import { useDeleteVenta } from "../../hooks/ventas/useDeleteVenta.js";
 import { useNavigate } from "react-router-dom";
 import { useGetVentasPaginated } from "../../hooks/ventas/useGetVentasPaginated.js";
@@ -32,8 +28,9 @@ import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
 import { Loader } from "../Loader/Loader.jsx";
 
 export const ItemListVentas = () => {
-  const { items, total, page, totalPages, loading, error, setPage, refetch } =
+  const { items, total, page, totalPages, loading, error, setPage } =
     useGetVentasPaginated(1, 10);
+  const [ventas, setVentas] = useState([]);
   const navigate = useNavigate();
   const { removeVenta, loading: deleting } = useDeleteVenta();
   const { updateVenta } = useUpdateVentas();
@@ -64,20 +61,68 @@ export const ItemListVentas = () => {
       return "";
     }
   };
-  // Defensa: ordenar en cliente por si el cache responde fuera de orden
-  const ventasOrdenadas = Array.isArray(items)
-    ? [...items].sort((a, b) => {
+
+  useEffect(() => {
+    if (Array.isArray(items)) {
+      setVentas(items);
+    }
+  }, [items]);
+
+  const ventasOrdenadas = Array.isArray(ventas)
+    ? [...ventas].sort((a, b) => {
         const ca = new Date(a.createdAt || a.fecha || 0).getTime();
         const cb = new Date(b.createdAt || b.fecha || 0).getTime();
-        if (cb !== ca) return cb - ca; // más nuevo primero
-        // desempate por fecha explícita si existe
+        if (cb !== ca) return cb - ca;
+
         const fa = new Date(a.fecha || 0).getTime();
         const fb = new Date(b.fecha || 0).getTime();
         if (fb !== fa) return fb - fa;
-        // último recurso: _id descendente
+
         return String(b._id).localeCompare(String(a._id));
       })
     : [];
+
+  const patchVentaLocal = (idVenta, patch) => {
+    if (!patch || typeof patch !== "object") return;
+    setVentas((prev) =>
+      prev.map((v) => {
+        if (v._id !== idVenta) return v;
+
+        const merged = { ...v, ...patch };
+
+        if (Object.prototype.hasOwnProperty.call(patch, "producto")) {
+          if (patch.producto && typeof patch.producto === "object") {
+            merged.producto = { ...(v.producto || {}), ...patch.producto };
+          } else {
+            merged.producto = v.producto;
+          }
+        }
+
+        return merged;
+      })
+    );
+  };
+
+  const handleToggleEstado = async (venta, nextEstado) => {
+    const prevEstado = venta.estado;
+
+    patchVentaLocal(venta._id, { estado: nextEstado });
+    try {
+      const result = await updateVenta(venta._id, { estado: nextEstado });
+      const serverPatch =
+        result && typeof result === "object"
+          ? result.venta && typeof result.venta === "object"
+            ? result.venta
+            : result
+          : null;
+      if (serverPatch) {
+        patchVentaLocal(venta._id, serverPatch);
+      }
+    } catch (e) {
+      patchVentaLocal(venta._id, { estado: prevEstado });
+      console.error("Error actualizando estado de venta:", e);
+    }
+  };
 
   if (loading) return <Loader />;
   if (error) return <Text color={errorColor}>Error: {error}</Text>;
@@ -169,9 +214,7 @@ export const ItemListVentas = () => {
                     )}
                   </HStack>
                 </HStack>
-                {/* Acciones: (moved to bottom row as icon buttons) */}
 
-                {/* Primera fila: datos principales */}
                 <HStack
                   spacing={2}
                   alignItems="center"
@@ -221,7 +264,6 @@ export const ItemListVentas = () => {
                     </Text>
                   </HStack>
                 </HStack>
-                {/* Descripción debajo en Textarea de solo lectura */}
                 <Box mt={2} w="100%">
                   <Text
                     fontWeight="semibold"
@@ -245,12 +287,10 @@ export const ItemListVentas = () => {
                   />
                 </Box>
 
-                {/* Segunda fila */}
                 <HStack
                   spacing={4}
                   alignItems="center"
                   flexWrap="wrap"
-                  // justifyContent={{ base: "flex-start", md: "flex-end" }}
                   bg={filaMonetariaBg}
                   p={1}
                   borderRadius="md"
@@ -274,7 +314,11 @@ export const ItemListVentas = () => {
                       colorScheme="green"
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate(`/ventas/itemAdd/${venta._id}`)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate(`/ventas/itemAdd/${venta._id}`);
+                      }}
                     />
 
                     <IconButton
@@ -283,7 +327,9 @@ export const ItemListVentas = () => {
                       colorScheme="red"
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setDeletingId(venta._id);
                         setIsOpen(true);
                       }}
@@ -291,6 +337,7 @@ export const ItemListVentas = () => {
                   </HStack>
                   <HStack justifyContent={"flex-end"}>
                     <IconButton
+                      type="button"
                       aria-label="Marcar como en proceso"
                       icon={<FiRefreshCw />}
                       colorScheme={
@@ -300,17 +347,14 @@ export const ItemListVentas = () => {
                         venta.estado === "en_proceso" ? "solid" : "ghost"
                       }
                       size="sm"
-                      onClick={async () => {
-                        try {
-                          const next =
-                            venta.estado === "en_proceso"
-                              ? "pendiente"
-                              : "en_proceso";
-                          await updateVenta(venta._id, { estado: next });
-                          await refetch();
-                        } catch (err) {
-                          console.error("Error marcando en_proceso", err);
-                        }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const next =
+                          venta.estado === "en_proceso"
+                            ? "pendiente"
+                            : "en_proceso";
+                        handleToggleEstado(venta, next);
                       }}
                     />
                     <IconButton
@@ -323,18 +367,14 @@ export const ItemListVentas = () => {
                         venta.estado === "finalizada" ? "solid" : "ghost"
                       }
                       size="sm"
-                      onClick={async () => {
-                        try {
-                          await updateVenta(venta._id, {
-                            estado:
-                              venta.estado === "finalizada"
-                                ? "pendiente"
-                                : "finalizada",
-                          });
-                          await refetch();
-                        } catch (err) {
-                          console.error("Error marcando finalizada", err);
-                        }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const next =
+                          venta.estado === "finalizada"
+                            ? "pendiente"
+                            : "finalizada";
+                        handleToggleEstado(venta, next);
                       }}
                     />
 
@@ -348,17 +388,14 @@ export const ItemListVentas = () => {
                         venta.estado === "despachada" ? "solid" : "ghost"
                       }
                       size="sm"
-                      onClick={async () => {
-                        try {
-                          const next =
-                            venta.estado === "despachada"
-                              ? "pendiente"
-                              : "despachada";
-                          await updateVenta(venta._id, { estado: next });
-                          await refetch();
-                        } catch (err) {
-                          console.error("Error marcando despachada", err);
-                        }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const next =
+                          venta.estado === "despachada"
+                            ? "pendiente"
+                            : "despachada";
+                        handleToggleEstado(venta, next);
                       }}
                     />
                   </HStack>
@@ -367,7 +404,6 @@ export const ItemListVentas = () => {
             );
           })
         )}
-        {/* Controles de paginación */}
         <HStack justifyContent="space-between" mt={4}>
           <Text color={text}>
             Página {page} de {totalPages} — Total: {total}
@@ -387,7 +423,6 @@ export const ItemListVentas = () => {
             </Button>
           </HStack>
         </HStack>
-        {/* AlertDialog confirmación eliminación */}
         <AlertDialog
           isOpen={isOpen}
           leastDestructiveRef={cancelRef}
@@ -419,8 +454,10 @@ export const ItemListVentas = () => {
                       await removeVenta(deletingId);
                       setIsOpen(false);
                       setDeletingId(null);
-                      // refetch the current page
-                      await refetch();
+
+                      setVentas((prev) =>
+                        prev.filter((v) => v._id !== deletingId)
+                      );
                     } catch (err) {
                       console.error("Error eliminando:", err);
                     }
