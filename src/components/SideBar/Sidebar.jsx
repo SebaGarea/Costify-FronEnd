@@ -35,12 +35,12 @@ import { Link } from "react-router-dom";
 import { PiAlignLeftDuotone } from "react-icons/pi";
 
 const LinkItems = [
-  { name: "Home", icon: FiHome, to: "/" },
+  { name: "Inicio", icon: FiHome, to: "/" },
   { name: "Ventas", icon: PiAlignLeftDuotone, to: "/ventas" },
   { name: "Planillas", icon: FiTrendingUp, to: "/plantillas" },
   { name: "Productos", icon: FiCompass, to: "/productos" },
   { name: "Materia Primas", icon: FaHammer, to: "/materias-primas" },
-  { name: "Settings", icon: FiSettings, to: "/" },
+  { name: "Configuracion", icon: FiSettings, to: "/" },
 ];
 
 export const SidebarWithHeader = ({ children }) => {
