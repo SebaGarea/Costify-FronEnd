@@ -41,6 +41,10 @@ export const ItemDetailProduct = ({ products }) => {
       : [];
 
   const BASE_URL = import.meta.env.VITE_API_URL;
+  const resolveImageUrl = (imgPath) => {
+    if (!imgPath) return "";
+    return imgPath.startsWith("http") ? imgPath : `${BASE_URL}${imgPath}`;
+  };
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev === 0 ? imagenes.length - 1 : prev - 1));
@@ -57,6 +61,14 @@ export const ItemDetailProduct = ({ products }) => {
   const navigate = useNavigate();
   const { deleteProduct, loading } = useDeleteProduct();
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+  const plantillaId =
+    typeof products?.planillaCosto === "string"
+      ? products.planillaCosto
+      : products?.planillaCosto?._id ?? null;
+  const plantillaLink = plantillaId
+    ? `/plantillas/plantillaAdd/${plantillaId}`
+    : null;
 
   const handleDelete = async () => {
     const ok = await deleteProduct(products._id);
@@ -100,7 +112,7 @@ export const ItemDetailProduct = ({ products }) => {
               <Image
                 rounded={"md"}
                 alt={"product image"}
-                src={`${BASE_URL}${imagenes[currentIndex]}`}
+                src={resolveImageUrl(imagenes[currentIndex])}
                 fit={"cover"}
                 align={"center"}
                 w={"100%"}
@@ -125,7 +137,7 @@ export const ItemDetailProduct = ({ products }) => {
                   {imagenes.map((img, idx) => (
                     <Image
                       key={img}
-                      src={`${BASE_URL}${img}`}
+                      src={resolveImageUrl(img)}
                       alt={`miniatura-${idx}`}
                       boxSize="40px"
                       objectFit="cover"
@@ -219,6 +231,8 @@ export const ItemDetailProduct = ({ products }) => {
           </Stack>
           <Center>
             <Button
+              as={plantillaLink ? Link : undefined}
+              to={plantillaLink ?? undefined}
               rounded={"15px"}
               w={"75%"}
               mt={1}
@@ -231,6 +245,12 @@ export const ItemDetailProduct = ({ products }) => {
                 transform: "translateY(2px)",
                 boxShadow: "lg",
               }}
+              isDisabled={!plantillaLink}
+              title={
+                plantillaLink
+                  ? "Ver plantilla de costos"
+                  : "Este producto no tiene una plantilla asociada"
+              }
             >
               Ver Planilla
             </Button>

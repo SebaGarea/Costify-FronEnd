@@ -23,6 +23,12 @@ import { RiArrowRightLine } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 const BASE_URL = import.meta.env.VITE_API_URL;
+const resolveImageUrl = (imagenes) => {
+  if (!imagenes) return "";
+  const first = Array.isArray(imagenes) ? imagenes[0] : imagenes;
+  if (!first) return "";
+  return first.startsWith("http") ? first : `${BASE_URL}${first}`;
+};
 
 export const ItemListContainer = ({ products }) => {
   const [selectedCatalogo, setSelectedCatalogo] = useState(null);
@@ -169,11 +175,7 @@ export const ItemListContainer = ({ products }) => {
                   pos: "absolute",
                   top: 0,
                   left: 0,
-                  backgroundImage: `url(${
-                    Array.isArray(product.imagenes)
-                      ? product.imagenes[0]
-                      : product.imagenes
-                  })`,
+                  backgroundImage: `url(${resolveImageUrl(product.imagenes)})`,
                   filter: "blur(15px)",
                   zIndex: -1,
                 }}
@@ -188,11 +190,7 @@ export const ItemListContainer = ({ products }) => {
                   height={230}
                   width={282}
                   objectFit={"cover"}
-                  src={`${BASE_URL}${
-                    Array.isArray(product.imagenes)
-                      ? product.imagenes[0]
-                      : product.imagenes
-                  }`}
+                  src={resolveImageUrl(product.imagenes)}
                   alt={product.nombre}
                 />
               </Box>

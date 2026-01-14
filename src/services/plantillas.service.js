@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "./auth.service";
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const getAllPlantillas = async (filtros = {}) => {
@@ -17,26 +17,26 @@ export const getAllPlantillas = async (filtros = {}) => {
   }
   
   const url = `${BASE_URL}/api/plantillas${params.toString() ? `?${params.toString()}` : ''}`;
-  return await axios.get(url);
+  return await api.get(url);
 };
 
 export const getPlantillaById = async (id) => {
-    return await axios.get(`${BASE_URL}/api/plantillas/${id}`);
+    return await api.get(`${BASE_URL}/api/plantillas/${id}`);
 };
 
 export const createPlantilla = async (plantillaData) => {
-    return await axios.post(`${BASE_URL}/api/plantillas`, plantillaData);
+    return await api.post(`${BASE_URL}/api/plantillas`, plantillaData);
 };
 
 export const updatePlantilla = async (id, plantillaData) => {
-  return await axios.put(`${BASE_URL}/api/plantillas/${id}`, plantillaData);
+  return await api.put(`${BASE_URL}/api/plantillas/${id}`, plantillaData);
 };
 
 export const deletePlantilla = async (id) => {
-  return await axios.delete(`${BASE_URL}/api/plantillas/${id}`);
+  return await api.delete(`${BASE_URL}/api/plantillas/${id}`);
 };
 
 export const calculatePlantillaCost = async (plantillaData) => {
-  return await axios.post(`${BASE_URL}/api/plantillas/calculate`, plantillaData);
+  return await api.post(`${BASE_URL}/api/plantillas/calculate`, plantillaData);
 };
 

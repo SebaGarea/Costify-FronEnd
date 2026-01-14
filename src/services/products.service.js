@@ -1,29 +1,29 @@
-import axios from "axios";
+import api from "./auth.service";
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 
 export async function getAllProducts() {
-  return await axios.get(`${BASE_URL}/api/productos`);
+  return await api.get(`${BASE_URL}/api/productos`);
 }
 
 export async function getProductById(id) {
-  return await axios.get(`${BASE_URL}/api/productos/${id}`);
+  return await api.get(`${BASE_URL}/api/productos/${id}`);
 }
 
 export async function getProductsByCatalogo(catalogo) {
-  return await axios.get(
+  return await api.get(
     `${BASE_URL}/api/productos/catalogo/${catalogo}`
   );
 }
 
 export async function getProductsByModelo(modelo) {
-  return await axios.get(
+  return await api.get(
     `${BASE_URL}/api/productos/modelo/${modelo}`
   );
 }
 
 export async function createProduct(productData, isFormData = false) {
-  return await axios.post(
+  return await api.post(
     `${BASE_URL}/api/productos`,
     productData,
     isFormData
@@ -33,7 +33,7 @@ export async function createProduct(productData, isFormData = false) {
 }
 
 export async function updateProduct(id, productData, isFormData = false) {
-  return await axios.put(
+  return await api.put(
     `${BASE_URL}/api/productos/${id}`,
     productData,
     isFormData
@@ -43,5 +43,5 @@ export async function updateProduct(id, productData, isFormData = false) {
 }
 
 export async function deleteProduct(id) {
-  return await axios.delete(`${BASE_URL}/api/productos/${id}`);
+  return await api.delete(`${BASE_URL}/api/productos/${id}`);
 }

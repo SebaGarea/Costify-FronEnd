@@ -12,7 +12,16 @@ export const useAddMp = () => {
             await createRawMaterial(form, isFormData);
             return true
         } catch (error) {
-            setError(error.response?.data?.error || "Error al agregar la materia prima");
+            const validationErrors = error.response?.data?.errores;
+            if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+                setError(validationErrors.map((err) => err.msg).join(". "));
+            } else {
+                setError(
+                    error.response?.data?.error ||
+                    error.response?.data?.mensaje ||
+                    "Error al agregar la materia prima"
+                );
+            }
             return false;
         } finally {
             setLoading(false);

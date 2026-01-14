@@ -24,7 +24,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
     type: "",
     medida: "",
     espesor: "",
-    unidad: "",
+    unidad: "unidad",
     precio: "",
     stock: "",
   });
@@ -42,58 +42,55 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
   const loading = RawMaterialId ? updateLoading : addLoading;
   const error = RawMaterialId ? updateError : addError;
 
-  const categorias = ["Hierro", "Madera", "Pintura", "Herrajes", "Buloneria","Chapas","Insumos"];
+  const categorias = ["Hierro", "Caños", "Insumos", "Proteccion", "Madera", "Herrajes", "Otros"];
+  const categoriaOptions =
+    form.categoria && !categorias.includes(form.categoria)
+      ? [...categorias, form.categoria]
+      : categorias;
 
   const unidades = ["mm", "cm", "mts", "lts", "kg", "gr", "unidad", "m²", "pie²", "pulgadas","calibre"];
 
   const tiposPorCategoria = {
     Hierro: [
-      "Cuadrado",
-      "Rectangular",
-      "Macizo",
-      "Angulo",
+      "Macizo Cuadrado",
+      "Macizo Redondo",
       "Planchuela",
-      "Planchuela Punzonada",
       "Tee",
-      "Otros",
+      "Angulo",
+    ],
+    "Caños": [
+      "Rectangular",
+      "Cuadrado",
+      "Redondo",
+    ],
+    Insumos: ["Consumibles Soldadora", "Discos", "Ferreteria"],
+    Proteccion: [
+      "Sintetica",
+      "Laca Poliuretanica",
+      "Barniz",
+      "Impregnante",
+      "Aerosol",
     ],
     Madera: [
-      "Terciado",
-      "Tablero",
-      "Aglomerado",
-      "MDF",
-      "Machimbre",
-      "Tabla",
-      "Listón",
-      "Otros",
+      "Maciza",
+      "Enchapado",
+      "Melamina",
     ],
-      Chapas: [
-      "Lisas"
-    
-    ],
-    Pintura: ["Sintetico", "Antióxido","Laca", "Barniz", "Otros"],
-    Herraje: [
-      "Bisagras",
-      "Manijas",
+    Herrajes:[
+      "Bisagras Ocultas",
+      "Bisagras Elevables",
+      "Correderas",
+      "Tiradores",
       "Cerraduras",
-      "Picaportes",
-      "Rieles",
-      "Otros",
-    ],
-    Buloneria: [
       "Tornillos",
-      "Tuercas",
-      "Arandelas",
-      "Clavos",
-      "Tirafondos",
-      "Otros",
+      "Tirafondos"
     ],
-    Insumos:[
-      "Discos de Corte/Desbaste/Flap",
-      "Discos Sensitiva",
-      "Insumos MIG"
+    Otros: [
     ]
   };
+
+  const tipoOptions = form.categoria ? tiposPorCategoria[form.categoria] || [] : [];
+  const isNombreAuto = form.categoria === "Hierro" || form.categoria === "Caños";
 
   useEffect(() => {
     if (RawMaterialId) {
@@ -126,6 +123,44 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const requiredFields = [
+      "categoria",
+      "nombre",
+      "type",
+      "unidad",
+      "precio",
+      "stock",
+    ];
+
+    const missingFields = requiredFields.filter((field) => {
+      const value = form[field];
+      return value === "" || value === null || value === undefined;
+    });
+
+    if (missingFields.length > 0) {
+      toast({
+        title: "Datos incompletos",
+        description: `Completá los campos obligatorios: ${missingFields
+          .map((field) => field.toUpperCase())
+          .join(", ")}`,
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (Number(form.precio) <= 0) {
+      toast({
+        title: "Precio inválido",
+        description: "El precio debe ser mayor a 0",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
     let ok;
     if (RawMaterialId) {
@@ -174,17 +209,29 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
 
     // Si cambia la categoría, resetea el tipo
     if (name === "categoria") {
+      const isAuto = value === "Hierro" || value === "Caños";
       setForm({
         ...form,
         categoria: value,
-        type: "", 
+        type: "",
+        nombre: isAuto ? "" : form.nombre,
       });
-    } else {
+      return;
+    }
+
+    if (name === "type" && (form.categoria === "Hierro" || form.categoria === "Caños")) {
       setForm({
         ...form,
-        [name]: value,
+        type: value,
+        nombre: value,
       });
+      return;
     }
+
+    setForm({
+      ...form,
+      [name]: value,
+    });
   };
 
   return (
@@ -209,42 +256,58 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
               onChange={handleChange}
               required
             >
-              {categorias.map((cat) => (
+              {categoriaOptions.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
               ))}
             </Select>
           </FormControl>
+          
+          <FormControl>
+            <FormLabel>Tipo</FormLabel>
+            {form.categoria && tipoOptions.length === 0 ? (
+              <Input
+                type="text"
+                name="type"
+                placeholder="Ingresá el tipo"
+                value={form.type}
+                onChange={handleChange}
+                required
+              />
+            ) : (
+              <Select
+                name="type"
+                placeholder="Seleccione un tipo"
+                value={form.type}
+                onChange={handleChange}
+                isDisabled={!form.categoria}
+                required
+              >
+                {form.categoria &&
+                  tipoOptions.map((tipo) => (
+                    <option key={tipo} value={tipo}>
+                      {tipo}
+                    </option>
+                  ))}
+              </Select>
+            )}
+          </FormControl>
+
           <FormControl>
             <FormLabel>Nombre del Material</FormLabel>
             <Input
               type="text"
               name="nombre"
               placeholder="Nombre del material"
-              value={form.nombre}
-              onChange={handleChange}
+              value={isNombreAuto ? form.type || form.nombre : form.nombre}
+              onChange={(e) => {
+                if (isNombreAuto) return;
+                handleChange(e);
+              }}
+              isReadOnly={isNombreAuto}
               required
             />
-          </FormControl>
-
-          <FormControl>
-            <FormLabel>Tipo</FormLabel>
-            <Select
-              name="type"
-              placeholder="Seleccione un tipo"
-              value={form.type}
-              onChange={handleChange}
-              isDisabled={!form.categoria}
-              required
-            >
-              {form.categoria &&
-                tiposPorCategoria[form.categoria]?.map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {tipo}
-                  </option>
-                ))}
-            </Select>
           </FormControl>
           
           <HStack spacing={4}>

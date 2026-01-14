@@ -9,10 +9,11 @@ export const useItemsMateriasPrimas = () => {
   useEffect(() => {
     getAllMateriasPrimas()
       .then((res) => {
-        setRawsMaterialData(res.data.materiasPrimas);
+        setRawsMaterialData(res.data.materiasPrimas || []);
       })
       .catch((error) => {
-        console.log(error);
+        console.error("Error al cargar materias primas", error);
+        setRawsMaterialData([]);
       })
       .finally(() => setLoading(false));
   }, []);

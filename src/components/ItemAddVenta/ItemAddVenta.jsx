@@ -9,7 +9,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useItems } from "../../hooks/index.js";
 import { useAddVenta } from "../../hooks/ventas/useAddVenta.js";
 import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
-import axios from "axios";
+import api from "../../services/auth.service.js";
 
 const mediosVenta = [
   { value: "mercado_libre", label: "Mercado Libre" },
@@ -38,6 +38,7 @@ export const ItemAddVenta = () => {
     productoNombre: "",
     productoId: "",
     cantidad: 1,
+        precioManual: "",
     descripcion: "",
     valorEnvio: 0,
     seña: 0,
@@ -50,7 +51,9 @@ export const ItemAddVenta = () => {
 
   // Calcula el producto seleccionado
   const selectedProduct = productsData.find(p => p._id === form.productoId);
-  const precioUnit = Number(selectedProduct?.precio || 0);
+  const precioUnit = selectedProduct
+    ? Number(selectedProduct?.precio || 0)
+    : Number(form.precioManual || 0);
   const subtotal = Number(form.cantidad || 0) * precioUnit;
   const valorTotal = subtotal + Number(form.valorEnvio || 0);
   const restanPreview = valorTotal - Number(form.seña || 0);
@@ -82,6 +85,7 @@ export const ItemAddVenta = () => {
     setForm(prev => ({
       ...prev,
       productoId: productoCoincide ? productoCoincide._id : "",
+      precioManual: productoCoincide ? "" : prev.precioManual,
     }));
   };
 
@@ -91,6 +95,7 @@ export const ItemAddVenta = () => {
       ...prev,
       productoNombre: nombreModelo,
       productoId: producto._id,
+      precioManual: "",
     }));
     setShowSuggestions(false);
   };
@@ -104,6 +109,10 @@ export const ItemAddVenta = () => {
       toast({ status: "warning", title: "Falta producto" });
       return;
     }
+    if (!selectedProduct && Number(form.precioManual) <= 0) {
+      toast({ status: "warning", title: "Falta precio unitario" });
+      return;
+    }
     if (Number(form.cantidad) <= 0) {
       toast({ status: "warning", title: "La cantidad debe ser mayor a 0" });
       return;
@@ -113,19 +122,21 @@ export const ItemAddVenta = () => {
       return;
     }
 
+    const isManualProduct = !selectedProduct;
+
     const payload = {
       fecha: new Date(form.fecha),
       cliente: form.cliente.trim(),
       medio: form.medio,
-      productoId: form.productoId, // puede ir vacío si es producto nuevo
+      productoId: isManualProduct ? undefined : form.productoId,
       productoNombre: form.productoNombre.trim(),
       cantidad: Number(form.cantidad || 0),
       descripcion: form.descripcion.trim(),
       valorEnvio: Number(form.valorEnvio || 0),
       seña: Number(form.seña || 0),
       valorTotal,
-  // enviar como string 'YYYY-MM-DD' y convertir en backend para evitar shifts de zona
-  fechaLimite: form.fechaLimite ? form.fechaLimite : null,
+      precioManual: isManualProduct ? Number(form.precioManual || 0) : null,
+      fechaLimite: form.fechaLimite ? form.fechaLimite : null,
     };
 
     try {
@@ -148,7 +159,7 @@ export const ItemAddVenta = () => {
     if (loadedRef.current) return;
     const load = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/ventas/${ventaId}`);
+        const res = await api.get(`/api/ventas/${ventaId}`);
         const v = res.data;
         const fmt = (d) => (d ? new Date(d).toISOString().split("T")[0] : "");
         setForm((prev) => ({
@@ -162,6 +173,12 @@ export const ItemAddVenta = () => {
           descripcion: v.descripcion || v.descripcionVenta || "",
           valorEnvio: v.valorEnvio || 0,
           seña: v.seña || 0,
+          precioManual:
+            v.producto?._id || v.producto
+              ? ""
+              : v.cantidad
+                ? ((v.valorTotal ?? 0) - (v.valorEnvio ?? 0)) / (v.cantidad || 1)
+                : "",
           fechaLimite: fmt(v.fechaLimite),
         }));
         loadedRef.current = true;
@@ -255,6 +272,16 @@ export const ItemAddVenta = () => {
           <FormControl >
             <FormLabel>Cantidad</FormLabel>
             <Input type="number" value={form.cantidad} onChange={onChange("cantidad", true)} />
+          </FormControl>
+          <FormControl>
+            <FormLabel>Precio unitario</FormLabel>
+            <Input
+              type="number"
+              value={selectedProduct ? selectedProduct.precio : form.precioManual}
+              onChange={onChange("precioManual", true)}
+              isDisabled={Boolean(selectedProduct)}
+              placeholder={selectedProduct ? "Precio del catálogo" : "Ingresá el precio"}
+            />
           </FormControl>
           <FormControl>
             <FormLabel>Fecha Limite</FormLabel>

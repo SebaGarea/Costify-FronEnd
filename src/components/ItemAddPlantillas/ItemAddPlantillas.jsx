@@ -1299,67 +1299,109 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     if (ok) {
       // Refrescar la lista de tipos de proyecto para que aparezcan los nuevos tipos
       refetchTipos();
-      
-      // Si es una plantilla nueva y se debe crear un producto
-      if (!PlantillasId && crearProducto) {
-        try {
-          // Validar datos del producto
-          if (!datosProducto.nombre.trim() || !datosProducto.catalogo.trim() || !datosProducto.modelo.trim()) {
-            toast({
-              title: "Advertencia",
-              description: "Plantilla creada. Complete los datos del producto para crearlo también.",
-              status: "warning",
-              duration: 3000,
-              isClosable: true,
-            });
-          } else {
-            // Preparar datos del producto
-            const productoData = {
-              nombre: datosProducto.nombre.trim(),
-              catalogo: datosProducto.catalogo.trim(),
-              modelo: datosProducto.modelo.trim(),
-              descripcion: datosProducto.descripcion.trim() || `Producto basado en plantilla: ${form.nombre}`,
-              stock: parseInt(datosProducto.stock) || 0,
-              precio: Math.round(precioFinalTotal),
-              planillaCosto: ok._id, // ID de la plantilla recién creada
-            };
 
-            // Crear el producto
-            const productoResult = await addProduct(productoData);
-            
-            if (productoResult) {
-              toast({
-                title: "¡Éxito completo!",
-                description: "Plantilla y producto creados correctamente",
-                status: "success",
-                duration: 3000,
-                isClosable: true,
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Error al crear producto:", error);
-          toast({
-            title: "Plantilla creada",
-            description: "La plantilla se creó correctamente, pero hubo un error al crear el producto.",
-            status: "warning",
-            duration: 3000,
-            isClosable: true,
-          });
-        }
-      } else {
-        // Solo plantilla (actualización o creación sin producto)
+      const plantillaGuardadaId =
+        PlantillasId ||
+        ok?._id ||
+        ok?.id ||
+        ok?.plantilla?._id ||
+        ok?.data?._id ||
+        null;
+
+      const plantillaEsNueva = !PlantillasId;
+
+      const mostrarToastPlantilla = () => {
         toast({
           title: PlantillasId ? "Plantilla Actualizada" : "Plantilla Agregada",
           description: PlantillasId
-            ? "Plantilla fue actualizada"
-            : "Plantilla fue cargada con Éxito",
+            ? "La plantilla se actualizó correctamente"
+            : "La plantilla se cargó con éxito",
           status: "success",
           duration: 2000,
           isClosable: true,
         });
+      };
+
+      const intentarCrearProducto = async () => {
+        if (!datosProducto.nombre.trim() || !datosProducto.catalogo.trim() || !datosProducto.modelo.trim()) {
+          toast({
+            title: plantillaEsNueva ? "Plantilla creada" : "Plantilla actualizada",
+            description:
+              "Completá nombre, catálogo y modelo del producto para generarlo automáticamente.",
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          });
+          return false;
+        }
+
+        if (!plantillaGuardadaId) {
+          toast({
+            title: "No se pudo asociar la plantilla",
+            description: "Guardá nuevamente y vuelve a intentar crear el producto.",
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          });
+          return false;
+        }
+
+        try {
+          const productoData = {
+            nombre: datosProducto.nombre.trim(),
+            catalogo: datosProducto.catalogo.trim(),
+            modelo: datosProducto.modelo.trim(),
+            descripcion:
+              datosProducto.descripcion.trim() || `Producto basado en plantilla: ${form.nombre}`,
+            stock: parseInt(datosProducto.stock) || 0,
+            precio: Math.round(precioFinalTotal),
+            planillaCosto: plantillaGuardadaId,
+          };
+
+          const productoResult = await addProduct(productoData);
+
+          if (productoResult) {
+            toast({
+              title: plantillaEsNueva
+                ? "Plantilla y producto creados"
+                : "Producto generado desde la plantilla",
+              description: plantillaEsNueva
+                ? "Todo listo: ya tenés el producto listado en catálogo"
+                : "Se creó un producto nuevo basado en esta plantilla",
+              status: "success",
+              duration: 3000,
+              isClosable: true,
+            });
+            return true;
+          }
+
+          toast({
+            title: plantillaEsNueva ? "Plantilla creada" : "Plantilla actualizada",
+            description: "La plantilla se guardó, pero hubo un problema al crear el producto.",
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          });
+          return false;
+        } catch (error) {
+          console.error("Error al crear producto:", error);
+          toast({
+            title: plantillaEsNueva ? "Plantilla creada" : "Plantilla actualizada",
+            description: "La plantilla se guardó correctamente, pero falló la creación del producto.",
+            status: "warning",
+            duration: 3000,
+            isClosable: true,
+          });
+          return false;
+        }
+      };
+
+      const productoCreado = crearProducto ? await intentarCrearProducto() : false;
+
+      if (!productoCreado && (!crearProducto || PlantillasId)) {
+        mostrarToastPlantilla();
       }
-      
+
       setTimeout(() => {
         navigate("/plantillas");
       }, 1000);

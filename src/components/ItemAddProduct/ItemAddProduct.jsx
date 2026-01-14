@@ -26,6 +26,10 @@ import { useGetAllPlantillas } from "../../hooks/index.js";
 import { useNavigate } from "react-router-dom";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
+const resolveImageUrl = (imgPath) => {
+  if (!imgPath) return "";
+  return imgPath.startsWith("http") ? imgPath : `${BASE_URL}${imgPath}`;
+};
 
 export const ItemAddProduct = ({ productId }) => {
   const [form, setForm] = useState({
@@ -218,36 +222,36 @@ export const ItemAddProduct = ({ productId }) => {
 
           {/* Información de la plantilla seleccionada */}
           {plantillaSeleccionada && (
-            <Box p={4} border="1px" borderColor="blue.200" borderRadius="md" bg="blue.50">
-              <VStack align="stretch" spacing={3}>
-                <Heading size="sm" color="blue.600">
+            <Box p={4} border="1px" borderColor="blue.200" borderRadius="md" bg="blue.100" >
+              <VStack align="stretch" spacing={3}  >
+                <Heading size="sm" color="blue.700" textAlign={"center"} >
                   Información de la Plantilla: {plantillaSeleccionada.nombre}
                 </Heading>
                 
                 <HStack justify="space-between">
-                  <Text fontSize="sm">Tipo de Proyecto:</Text>
-                  <Badge colorScheme="purple">{plantillaSeleccionada.tipoProyecto || 'N/A'}</Badge>
+                  <Text fontSize="sm" color="blue.700">Tipo de Proyecto:</Text>
+                  <Badge color={"Black"}>{plantillaSeleccionada.tipoProyecto || 'N/A'}</Badge>
                 </HStack>
                 
                 <HStack justify="space-between">
-                  <Text fontSize="sm">Costo Total:</Text>
-                  <Badge colorScheme="green">${plantillaSeleccionada.costoTotal || 0}</Badge>
+                  <Text fontSize="sm" color="blue.700">Costo Total:</Text>
+                  <Badge color={"Black"}>${plantillaSeleccionada.costoTotal || 0}</Badge>
                 </HStack>
                 
                 <HStack justify="space-between">
-                  <Text fontSize="sm">Precio Final:</Text>
-                  <Badge colorScheme="blue">${plantillaSeleccionada.precioFinal || 0}</Badge>
+                  <Text fontSize="sm" color="blue.700">Precio Final:</Text>
+                  <Badge color={"Black"}>${plantillaSeleccionada.precioFinal || 0}</Badge>
                 </HStack>
                 
                 <HStack justify="space-between">
-                  <Text fontSize="sm">Ganancia:</Text>
-                  <Badge colorScheme="orange">
+                  <Text fontSize="sm" color="blue.700">Ganancia:</Text>
+                  <Badge color={"Black"}>
                     ${(plantillaSeleccionada.precioFinal || 0) - (plantillaSeleccionada.costoTotal || 0)}
                   </Badge>
                 </HStack>
                 
                 <Divider />
-                <Text fontSize="xs" color="gray.600">
+                <Text fontSize="xs" color="gray.600" textAlign={"center"}>
                   Esta plantilla se aplicará automáticamente al producto
                 </Text>
               </VStack>
@@ -313,7 +317,7 @@ export const ItemAddProduct = ({ productId }) => {
                     style={{ position: "relative", display: "inline-block" }}
                   >
                     <img
-                      src={`${BASE_URL}${img}`}
+                      src={resolveImageUrl(img)}
                       alt={`actual-${idx}`}
                       style={{
                         width: 120,

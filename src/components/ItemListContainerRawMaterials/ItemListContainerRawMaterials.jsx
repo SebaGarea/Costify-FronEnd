@@ -164,8 +164,13 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
       </Box>
 
       <Center py={12}>
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8}>
-          {filteredByMedida.map((mp) => (
+        {filteredByMedida.length === 0 ? (
+          <Text fontSize="lg" color="gray.500" textAlign="center">
+            No hay materias primas registradas.
+          </Text>
+        ) : (
+          <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8}>
+            {filteredByMedida.map((mp) => (
             <Box
               key={mp._id}
               p={6}
@@ -213,8 +218,9 @@ export const ItemListContainerRawMaterials = ({ rawMaterials }) => {
                 </HStack>
               </Stack>
             </Box>
-          ))}
-        </SimpleGrid>
+            ))}
+          </SimpleGrid>
+        )}
       </Center>
     </>
   );

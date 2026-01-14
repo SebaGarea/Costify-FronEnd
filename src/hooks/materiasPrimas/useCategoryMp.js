@@ -8,8 +8,11 @@ export const useCategoryMp = () => {
 
   useEffect(() =>{
     getAllCategoriesMp()
-      .then((res) => setCategoriesMp(res.data.categorias))
-      .catch((error) => console.log(error))
+      .then((res) => setCategoriesMp(res.data.categorias || []))
+      .catch((error) => {
+        console.error("Error al cargar categorías de materias primas", error);
+        setCategoriesMp([]);
+      })
       .finally(() => setLoading(false));
   },[])
 

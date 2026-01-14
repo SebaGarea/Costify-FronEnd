@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "./auth.service";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -6,7 +6,7 @@ const BASE_URL = import.meta.env.VITE_API_URL;
 //service
 export const getAllVentas = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/api/ventas`);
+    const response = await api.get(`${BASE_URL}/api/ventas`);
     return response.data;
   } catch (error) {
     console.error("Error en getAllVentas:", error);
@@ -16,7 +16,7 @@ export const getAllVentas = async () => {
 
 export const getAllVentasPaginated = async (page = 1, limit = 10) => {
   try {
-    const response = await axios.get(`${BASE_URL}/api/ventas`, {
+    const response = await api.get(`${BASE_URL}/api/ventas`, {
       params: { page, limit }
     });
     return response.data; // { items, total, page, limit, totalPages }
@@ -28,7 +28,7 @@ export const getAllVentasPaginated = async (page = 1, limit = 10) => {
 
 export const getUpdateVentas = async (id, ventasData) => {
  try {
-   const response = await axios.put(`${BASE_URL}/api/ventas/${id}`, ventasData);
+  const response = await api.put(`${BASE_URL}/api/ventas/${id}`, ventasData);
    return response;
  } catch (error) {
    console.error("Error en getUpdateVentas Service:", error);
@@ -37,7 +37,7 @@ export const getUpdateVentas = async (id, ventasData) => {
 };
 export const createVenta = async (ventaData) => {
   try {
-    const response = await axios.post(`${BASE_URL}/api/ventas`, ventaData);
+    const response = await api.post(`${BASE_URL}/api/ventas`, ventaData);
     return response.data;
   } catch (error) {
     console.error("Error en createVenta Service:", error);
@@ -47,7 +47,7 @@ export const createVenta = async (ventaData) => {
 
 export const deleteVenta = async (id) => {
   try {
-    const response = await axios.delete(`${BASE_URL}/api/ventas/${id}`);
+    const response = await api.delete(`${BASE_URL}/api/ventas/${id}`);
     return response.data;
   } catch (error) {
     console.error("Error en deleteVenta Service:", error);
