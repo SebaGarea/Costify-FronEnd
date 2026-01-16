@@ -6,8 +6,16 @@ export async function getAllCategoriesMp() {
   return await api.get(`${BASE_URL}/api/materiasPrimas/categories`);
 }
 
-export async function getAllMateriasPrimas() {
-  return await api.get(`${BASE_URL}/api/materiasPrimas`);
+export async function getAllMateriasPrimas({ page = 1, limit = 10, category, type, medida } = {}) {
+  return await api.get(`${BASE_URL}/api/materiasPrimas`, {
+    params: {
+      page,
+      limit,
+      category,
+      type,
+      medida,
+    },
+  });
 }
 
 export async function getMpByCategory(category) {
@@ -28,6 +36,19 @@ export async function deleteRawMaterial(id) {
   return await api.delete(`${BASE_URL}/api/materiasPrimas/${id}`);
 }
 
+export async function deleteAllRawMaterials() {
+  return await api.delete(`${BASE_URL}/api/materiasPrimas`);
+}
+
 export async function getRawMaterialById(id) {
   return await api.get(`${BASE_URL}/api/materiasPrimas/${id}`);
+}
+
+export async function importRawMaterialsExcel(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return await api.post(`${BASE_URL}/api/materiasPrimas/import`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 }

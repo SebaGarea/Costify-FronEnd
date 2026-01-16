@@ -14,6 +14,7 @@ import {
   AddPlantilla,
   Ventas,
   AddVenta,
+  ImportRawMaterials,
 } from "../pages";
 import Login from "../pages/Login.jsx";
 import { useAuth } from "../hooks/auth/useAuth.jsx";
@@ -41,6 +42,7 @@ export const MainRouter = () => {
               <Route path="/materias-primas" element={<RawMaterials />} />
               <Route path="/materias-primas/categoria/:nombre" element={<CategoriesRawMaterials />} />
               <Route path="/materias-primas/itemAdd" element={<AddRawMaterial />} />
+              <Route path="/materias-primas/import" element={<ImportRawMaterials />} />
               <Route path="/materias-primas/:id" element={<DetailRawMaterials />} />
               <Route path="/materias-primas/update/:id" element={<UpdateRawMaterial />} />
               <Route path="/plantillas" element={<Plantillas />} />

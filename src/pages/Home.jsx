@@ -168,7 +168,11 @@ export const Home = () => {
     loading: plantillasLoading,
     error: plantillasError,
   } = useGetAllPlantillas();
-  const { rawsMaterialData = [], loading: materiasLoading } = useItemsMateriasPrimas();
+  const {
+    rawsMaterialData = [],
+    pagination: rawMaterialsPagination,
+    loading: materiasLoading,
+  } = useItemsMateriasPrimas();
 
   const isLoading = ventasLoading || productsLoading || plantillasLoading || materiasLoading;
   const errorMessage = ventasError || plantillasError;
@@ -404,7 +408,12 @@ export const Home = () => {
   const inventoryMetrics = useMemo(() => {
     const productsCount = Array.isArray(productsData) ? productsData.length : 0;
     const plantillasCount = Array.isArray(plantillasData) ? plantillasData.length : 0;
-    const rawMaterialsCount = Array.isArray(rawsMaterialData) ? rawsMaterialData.length : 0;
+    const rawMaterialsTotal = Number(rawMaterialsPagination?.total);
+    const rawMaterialsCount = Number.isFinite(rawMaterialsTotal)
+      ? rawMaterialsTotal
+      : Array.isArray(rawsMaterialData)
+        ? rawsMaterialData.length
+        : 0;
     const stockUnits = (productsData || []).reduce(
       (acc, product) => acc + Number(product?.stock ?? 0),
       0
@@ -424,7 +433,7 @@ export const Home = () => {
       productsWithPlanilla,
       planillaCoverage,
     };
-  }, [productsData, plantillasData, rawsMaterialData]);
+  }, [productsData, plantillasData, rawsMaterialData, rawMaterialsPagination]);
 
   const rangeDescription = selectedRange.start && selectedRange.end
     ? `${formatDateLabel(selectedRange.start)} — ${formatDateLabel(selectedRange.end)}`

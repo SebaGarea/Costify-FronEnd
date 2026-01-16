@@ -72,25 +72,61 @@ import {
 import { FiPlus, FiMinus, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router";
 import { getPlantillaById } from "../../services/plantillas.service.js";
+import { getMaterialTypeLabel } from "../../constants/materialTypes.js";
 
-// Función para formatear números con formato peso argentino
+// Función para formatear números con formato peso argentino similar a las cards
 const formatCurrency = (value) => {
-  if (!value) return "";
-  const number = value.toString().replace(/\D/g, ""); // Solo números
-  return number.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Agregar puntos cada 3 dígitos
+  if (value === null || value === undefined || value === "") return "";
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return "";
+  const truncated = Math.trunc(parsed * 100) / 100;
+  const hasDecimals = Math.abs(truncated % 1) > 0;
+  const options = hasDecimals
+    ? { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+    : { minimumFractionDigits: 0, maximumFractionDigits: 0 };
+  return truncated.toLocaleString("es-AR", options);
 };
 
-// Función para desformatear (quitar puntos para cálculos)
+// Función para desformatear (quitar separadores y normalizar decimales)
 const unformatCurrency = (value) => {
-  if (!value) return "";
-  return value.toString().replace(/\./g, ""); // Quitar todos los puntos
+  if (value === null || value === undefined) return "";
+  const raw = value.toString().trim();
+  if (!raw) return "";
+
+  const cleaned = raw.replace(/[^0-9.,-]/g, "");
+  if (!cleaned) return "";
+
+  const lastComma = cleaned.lastIndexOf(",");
+  const lastDot = cleaned.lastIndexOf(".");
+  let decimalSeparatorIndex = -1;
+  let decimalSeparator = null;
+
+  if (lastComma !== -1 && lastDot !== -1) {
+    decimalSeparatorIndex = Math.max(lastComma, lastDot);
+    decimalSeparator = cleaned[decimalSeparatorIndex];
+  } else if (lastComma !== -1) {
+    decimalSeparatorIndex = lastComma;
+    decimalSeparator = ",";
+  } else if (lastDot !== -1) {
+    decimalSeparatorIndex = lastDot;
+    decimalSeparator = ".";
+  }
+
+  if (decimalSeparatorIndex !== -1) {
+    const integerPart = cleaned
+      .slice(0, decimalSeparatorIndex)
+      .replace(/[^0-9-]/g, "");
+    const fractionalPart = cleaned.slice(decimalSeparatorIndex + 1).replace(/[^0-9]/g, "");
+    return `${integerPart || "0"}.${fractionalPart || "0"}`;
+  }
+
+  return cleaned.replace(/[^0-9-]/g, "");
 };
 
 // Función para formatear precios mostrados (para badges y totales)
 const formatPrice = (value) => {
-  const number = parseFloat(value);
-  if (isNaN(number)) return "$0";
-  return "$" + number.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const formatted = formatCurrency(value);
+  return formatted ? `$${formatted}` : "$0";
 };
 
 export const ItemAddPlantillas = ({ PlantillasId }) => {
@@ -227,7 +263,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     error: updateError,
   } = useUpdatePlantilla();
 
-  const { rawsMaterialData } = useItemsMateriasPrimas();
+  const { rawsMaterialData, loading: materiasLoading } = useItemsMateriasPrimas(100, { fetchAll: true });
 
   // Variables de color para modo claro/oscuro
   const cardBg = useColorModeValue("teal.50", "gray.700");
@@ -1099,15 +1135,18 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
   const getTipoOptions = (categoriaSeleccionada) => {
     if (!categoriaSeleccionada) return [];
-    const tipos = [
-      ...new Set(
-        rawsMaterialData
-          .filter((mp) => mp.categoria === categoriaSeleccionada)
-          .map((mp) => mp.type)
-          .filter(Boolean)
-      ),
-    ];
-    return tipos.sort();
+    const tipoMap = new Map();
+    rawsMaterialData
+      .filter((mp) => mp.categoria === categoriaSeleccionada)
+      .forEach((mp) => {
+        if (!mp.type) return;
+        if (!tipoMap.has(mp.type)) {
+          tipoMap.set(mp.type, getMaterialTypeLabel(mp.type));
+        }
+      });
+    return Array.from(tipoMap.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));
   };
 
   const getMedidaOptions = (categoriaSeleccionada, tipoSeleccionado) => {
@@ -1490,8 +1529,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   }
                 >
                   {getTipoOptions(item.categoriaMP).map((tipo) => (
-                    <option key={tipo} value={tipo}>
-                      {tipo}
+                    <option key={tipo.value} value={tipo.value}>
+                      {tipo.label}
                     </option>
                   ))}
                 </Select>
@@ -1654,25 +1693,25 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             <VStack spacing={2} align="stretch">
               <HStack justify="space-between">
                 <Text fontSize="sm">Materiales:</Text>
-                <Text fontSize="sm">${calcularSubtotal(items).toFixed(2)}</Text>
+                <Text fontSize="sm">{formatPrice(calcularSubtotal(items))}</Text>
               </HStack>
               <HStack justify="space-between">
                 <Text fontSize="sm">Consumibles:</Text>
                 <Text fontSize="sm">
-                  ${parseFloat(consumibles[categoria] || 0).toFixed(2)}
+                  {formatPrice(parseFloat(consumibles[categoria] || 0))}
                 </Text>
               </HStack>
               <Divider />
               <HStack justify="space-between">
                 <Text fontWeight="bold">Costo Total:</Text>
                 <Badge colorScheme="blue" fontSize="md" p={2}>
-                  ${subtotal.toFixed(2)}
+                  {formatPrice(subtotal)}
                 </Badge>
               </HStack>
               <HStack justify="space-between">
                 <Text fontWeight="bold">Precio con Ganancia:</Text>
                 <Badge colorScheme="green" fontSize="md" p={2}>
-                  ${precioFinal.toFixed(2)}
+                  {formatPrice(precioFinal)}
                 </Badge>
               </HStack>
               <HStack justify="space-between">
@@ -1680,7 +1719,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   Ganancia:
                 </Text>
                 <Badge colorScheme="orange" fontSize="md" p={2}>
-                  ${(precioFinal - subtotal).toFixed(2)}
+                  {formatPrice(precioFinal - subtotal)}
                 </Badge>
               </HStack>
             </VStack>
