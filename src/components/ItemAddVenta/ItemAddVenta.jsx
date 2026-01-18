@@ -52,7 +52,7 @@ export const ItemAddVenta = () => {
   // Calcula el producto seleccionado
   const selectedProduct = productsData.find(p => p._id === form.productoId);
   const precioUnit = selectedProduct
-    ? Number(selectedProduct?.precio || 0)
+    ? Number(selectedProduct?.precioActual ?? selectedProduct?.precio ?? 0)
     : Number(form.precioManual || 0);
   const subtotal = Number(form.cantidad || 0) * precioUnit;
   const valorTotal = subtotal + Number(form.valorEnvio || 0);
@@ -277,7 +277,7 @@ export const ItemAddVenta = () => {
             <FormLabel>Precio unitario</FormLabel>
             <Input
               type="number"
-              value={selectedProduct ? selectedProduct.precio : form.precioManual}
+              value={selectedProduct ? (selectedProduct.precioActual ?? selectedProduct.precio ?? 0) : form.precioManual}
               onChange={onChange("precioManual", true)}
               isDisabled={Boolean(selectedProduct)}
               placeholder={selectedProduct ? "Precio del catálogo" : "Ingresá el precio"}
