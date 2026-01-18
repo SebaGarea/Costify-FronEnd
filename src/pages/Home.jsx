@@ -794,8 +794,9 @@ export const Home = () => {
                     ? deliveryText
                     : primaryText;
 
-                const renderDayBox = (additionalProps = {}) => (
+                const renderDayBox = (keyValue, additionalProps = {}) => (
                   <Box
+                    key={keyValue}
                     textAlign="center"
                     py={2}
                     borderRadius="md"
@@ -826,7 +827,7 @@ export const Home = () => {
                 );
 
                 if (!hasDelivery) {
-                  return renderDayBox({ key: cell.key });
+                  return renderDayBox(cell.key);
                 }
 
                 const tooltipContent = (
@@ -870,7 +871,7 @@ export const Home = () => {
                     openDelay={150}
                     closeOnClick
                   >
-                    {renderDayBox({ cursor: "pointer", tabIndex: 0 })}
+                    {renderDayBox(undefined, { cursor: "pointer", tabIndex: 0 })}
                   </Tooltip>
                 );
               })}

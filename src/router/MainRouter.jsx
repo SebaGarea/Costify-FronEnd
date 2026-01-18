@@ -15,6 +15,7 @@ import {
   Ventas,
   AddVenta,
   ImportRawMaterials,
+  ListaDeCompras,
 } from "../pages";
 import Login from "../pages/Login.jsx";
 import { useAuth } from "../hooks/auth/useAuth.jsx";
@@ -51,6 +52,7 @@ export const MainRouter = () => {
               <Route path="/ventas" element={<Ventas />} />
               <Route path="/ventas/itemAdd" element={<AddVenta />} />
               <Route path="/ventas/itemAdd/:id" element={<AddVenta />} />
+              <Route path="/lista-compras" element={<ListaDeCompras />} />
             </Routes>
           </PrivateRoute>
         }

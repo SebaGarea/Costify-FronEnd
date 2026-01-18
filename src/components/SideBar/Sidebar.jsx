@@ -32,6 +32,7 @@ import {
 } from "react-icons/fi";
 import { FaHammer } from "react-icons/fa";
 import { PiAlignLeftDuotone } from "react-icons/pi";
+import { CiViewList } from "react-icons/ci";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/auth/useAuth.jsx";
 
@@ -41,6 +42,7 @@ const LinkItems = [
   { name: "Planillas", icon: FiTrendingUp, to: "/plantillas" },
   { name: "Productos", icon: FiCompass, to: "/productos" },
   { name: "Materia Primas", icon: FaHammer, to: "/materias-primas" },
+  { name: "Lista de Compras", icon: CiViewList, to: "/lista-compras" },
 ];
 
 export const SidebarWithHeader = ({ children }) => {
