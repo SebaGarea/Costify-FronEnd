@@ -42,6 +42,8 @@ import { useAddProduct } from "../../hooks/productos/useAddProduct.js";
 import {
   Button,
   Flex,
+  Grid,
+  GridItem,
   FormControl,
   FormLabel,
   Input,
@@ -116,7 +118,9 @@ const unformatCurrency = (value) => {
     const integerPart = cleaned
       .slice(0, decimalSeparatorIndex)
       .replace(/[^0-9-]/g, "");
-    const fractionalPart = cleaned.slice(decimalSeparatorIndex + 1).replace(/[^0-9]/g, "");
+    const fractionalPart = cleaned
+      .slice(decimalSeparatorIndex + 1)
+      .replace(/[^0-9]/g, "");
     return `${integerPart || "0"}.${fractionalPart || "0"}`;
   }
 
@@ -128,6 +132,67 @@ const formatPrice = (value) => {
   const formatted = formatCurrency(value);
   return formatted ? `$${formatted}` : "$0";
 };
+
+const normalizeText = (value = "") =>
+  value
+    ?.toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase() || "";
+
+const categoriaRules = {
+  herreria: {
+    exclude: ["madera", "pintura", "pinturas"],
+  },
+  carpinteria: {
+    include: ["madera"],
+  },
+  pintura: {
+    include: ["proteccion"],
+  },
+};
+
+const seccionLabels = {
+  herreria: "Herrería",
+  carpinteria: "Carpintería",
+  pintura: "Pintura",
+};
+
+const createEmptyItem = () => ({
+  categoriaMP: "",
+  tipoMP: "",
+  medidaMP: "",
+  espesorMP: "",
+  valor: "",
+  cantidad: "",
+  isPriceAuto: false,
+  isCustomMaterial: false,
+  descripcionPersonalizada: "",
+  nombreMadera: "",
+  selectedMaterialId: "",
+});
+
+const formatCategoriaLabel = (value = "") =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
+
+const shouldIncludeCategoria = (section, categoria) => {
+  if (!categoria || !section) return Boolean(categoria);
+  const normalized = normalizeText(categoria);
+  const rules = categoriaRules[section];
+  if (!rules) return true;
+
+  if (rules.include?.length) {
+    return rules.include.some((allowed) => normalized === allowed);
+  }
+
+  if (rules.exclude?.length) {
+    return !rules.exclude.some((blocked) => normalized === blocked);
+  }
+
+  return true;
+};
+
 
 export const ItemAddPlantillas = ({ PlantillasId }) => {
   const [form, setForm] = useState({
@@ -175,39 +240,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   );
 
   // Estados separados para cada categoría
-  const [herreria, setHerreria] = useState([
-    {
-      categoriaMP: "",
-      tipoMP: "",
-      medidaMP: "",
-      espesorMP: "",
-      valor: "",
-      cantidad: "",
-      isPriceAuto: false,
-    },
-  ]);
-  const [carpinteria, setCarpinteria] = useState([
-    {
-      categoriaMP: "",
-      tipoMP: "",
-      medidaMP: "",
-      espesorMP: "",
-      valor: "",
-      cantidad: "",
-      isPriceAuto: false,
-    },
-  ]);
-  const [pintura, setPintura] = useState([
-    {
-      categoriaMP: "",
-      tipoMP: "",
-      medidaMP: "",
-      espesorMP: "",
-      valor: "",
-      cantidad: "",
-      isPriceAuto: false,
-    },
-  ]);
+  const [herreria, setHerreria] = useState([createEmptyItem()]);
+  const [carpinteria, setCarpinteria] = useState([createEmptyItem()]);
+  const [pintura, setPintura] = useState([createEmptyItem()]);
 
   // Estado para consumibles por categoría
   const [consumibles, setConsumibles] = useState({
@@ -419,16 +454,30 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
           // Función para convertir item del servidor al formato de cascada
           const convertirItemACascada = (item) => {
+            const esPersonalizado = Boolean(item.esPersonalizado || !item.materiaPrima);
+            const materiaPrimaId =
+              typeof item.materiaPrima === "object"
+                ? item.materiaPrima?._id?.toString() || ""
+                : typeof item.materiaPrima === "string"
+                ? item.materiaPrima
+                : "";
+
             // Si ya tiene la estructura nueva (con campos separados), devolverlo tal como está
             if (item.categoriaMP && item.tipoMP && item.medidaMP) {
               return {
+                ...createEmptyItem(),
                 ...item,
-                isPriceAuto: false, // Agregar campo que falta
+                isPriceAuto: Boolean(item.isPriceAuto),
+                isCustomMaterial: esPersonalizado || Boolean(item.isCustomMaterial),
+                descripcionPersonalizada: item.descripcionPersonalizada || "",
+                nombreMadera: item.nombreMadera || "",
+                selectedMaterialId: item.selectedMaterialId || materiaPrimaId,
               };
             }
 
             // Si materiaPrima es un OBJETO (populate del backend)
             if (item.materiaPrima && typeof item.materiaPrima === "object") {
+              const selectedId = item.materiaPrima?._id?.toString() || materiaPrimaId;
               return {
                 categoriaMP:
                   item.materiaPrima.categoriaMP ||
@@ -445,6 +494,11 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                 valor: item.valor || item.materiaPrima.precio || "",
                 cantidad: item.cantidad || "",
                 isPriceAuto: true, // Marcar como automático ya que viene del backend
+                isCustomMaterial: esPersonalizado,
+                descripcionPersonalizada: item.descripcionPersonalizada || "",
+                nombreMadera:
+                  item.nombreMadera || item.materiaPrima.nombreMadera || "",
+                selectedMaterialId: selectedId,
               };
             }
 
@@ -463,6 +517,10 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   valor: item.valor || material.precio || "",
                   cantidad: item.cantidad || "",
                   isPriceAuto: false,
+                  isCustomMaterial: esPersonalizado,
+                  descripcionPersonalizada: item.descripcionPersonalizada || "",
+                  nombreMadera: item.nombreMadera || material.nombreMadera || "",
+                  selectedMaterialId: material._id?.toString() || materiaPrimaId,
                 };
               }
 
@@ -477,111 +535,45 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   valor: item.valor || "",
                   cantidad: item.cantidad || "",
                   isPriceAuto: false,
+                  isCustomMaterial: esPersonalizado,
+                  descripcionPersonalizada: item.descripcionPersonalizada || "",
+                  nombreMadera: item.nombreMadera || "",
+                  selectedMaterialId: "",
                 };
               }
             }
 
             // Si no tiene ninguna estructura válida, devolver estructura vacía
             return {
-              categoriaMP: "",
-              tipoMP: "",
-              medidaMP: "",
-              espesorMP: "",
-              valor: "",
-              cantidad: "",
-              isPriceAuto: false,
+              ...createEmptyItem(),
+              isCustomMaterial: esPersonalizado,
+              nombreMadera: item.nombreMadera || "",
+              selectedMaterialId: materiaPrimaId,
             };
           };
 
           // Separar items por categoría y convertir al formato de cascada
 
-          const herreriaItems = plantilla.items
-            ?.filter((item) => item.categoria === "herreria")
-            .map(convertirItemACascada) || [
-            {
-              categoriaMP: "",
-              tipoMP: "",
-              medidaMP: "",
-              espesorMP: "",
-              valor: "",
-              cantidad: "",
-              isPriceAuto: false,
-            },
-          ];
+          const herreriaItems =
+            plantilla.items
+              ?.filter((item) => item.categoria === "herreria")
+              .map(convertirItemACascada) ?? [createEmptyItem()];
 
-          const carpinteriaItems = plantilla.items
-            ?.filter((item) => item.categoria === "carpinteria")
-            .map(convertirItemACascada) || [
-            {
-              categoriaMP: "",
-              tipoMP: "",
-              medidaMP: "",
-              espesorMP: "",
-              valor: "",
-              cantidad: "",
-              isPriceAuto: false,
-            },
-          ];
+          const carpinteriaItems =
+            plantilla.items
+              ?.filter((item) => item.categoria === "carpinteria")
+              .map(convertirItemACascada) ?? [createEmptyItem()];
 
-          const pinturaItems = plantilla.items
-            ?.filter((item) => item.categoria === "pintura")
-            .map(convertirItemACascada) || [
-            {
-              categoriaMP: "",
-              tipoMP: "",
-              medidaMP: "",
-              espesorMP: "",
-              valor: "",
-              cantidad: "",
-              isPriceAuto: false,
-            },
-          ];
+          const pinturaItems =
+            plantilla.items
+              ?.filter((item) => item.categoria === "pintura")
+              .map(convertirItemACascada) ?? [createEmptyItem()];
 
-          setHerreria(
-            herreriaItems.length > 0
-              ? herreriaItems
-              : [
-                  {
-                    categoriaMP: "",
-                    tipoMP: "",
-                    medidaMP: "",
-                    espesorMP: "",
-                    valor: "",
-                    cantidad: "",
-                    isPriceAuto: false,
-                  },
-                ]
-          );
+          setHerreria(herreriaItems.length > 0 ? herreriaItems : [createEmptyItem()]);
           setCarpinteria(
-            carpinteriaItems.length > 0
-              ? carpinteriaItems
-              : [
-                  {
-                    categoriaMP: "",
-                    tipoMP: "",
-                    medidaMP: "",
-                    espesorMP: "",
-                    valor: "",
-                    cantidad: "",
-                    isPriceAuto: false,
-                  },
-                ]
+            carpinteriaItems.length > 0 ? carpinteriaItems : [createEmptyItem()]
           );
-          setPintura(
-            pinturaItems.length > 0
-              ? pinturaItems
-              : [
-                  {
-                    categoriaMP: "",
-                    tipoMP: "",
-                    medidaMP: "",
-                    espesorMP: "",
-                    valor: "",
-                    cantidad: "",
-                    isPriceAuto: false,
-                  },
-                ]
-          );
+          setPintura(pinturaItems.length > 0 ? pinturaItems : [createEmptyItem()]);
         })
         .catch((error) => {
           console.error("Error al cargar la plantilla:", error);
@@ -619,15 +611,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
   // Funciones para manejar agregar/quitar items por categoría
   const addItem = useCallback((categoria) => {
-    const newItem = {
-      categoriaMP: "",
-      tipoMP: "",
-      medidaMP: "",
-      espesorMP: "",
-      valor: "",
-      cantidad: "",
-      isPriceAuto: false,
-    };
+    const newItem = createEmptyItem();
     if (categoria === "herreria") {
       setHerreria((prev) => [...prev, newItem]);
     } else if (categoria === "carpinteria") {
@@ -670,7 +654,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     [rawsMaterialData]
   );
 
-  const getPrecioMaterial = useCallback(
+  const getMaterialMatch = useCallback(
     (
       categoriaSeleccionada,
       tipoSeleccionado,
@@ -680,17 +664,17 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       if (!categoriaSeleccionada || !tipoSeleccionado || !medidaSeleccionada)
         return null;
 
-      const material = rawsMaterialData.find(
-        (mp) =>
-          mp.categoria === categoriaSeleccionada &&
-          mp.type === tipoSeleccionado &&
-          mp.medida === medidaSeleccionada &&
-          (espesorSeleccionado
-            ? mp.espesor === espesorSeleccionado
-            : !mp.espesor || mp.espesor === "")
+      return (
+        rawsMaterialData.find(
+          (mp) =>
+            mp.categoria === categoriaSeleccionada &&
+            mp.type === tipoSeleccionado &&
+            mp.medida === medidaSeleccionada &&
+            (espesorSeleccionado
+              ? mp.espesor === espesorSeleccionado
+              : !mp.espesor || mp.espesor === "")
+        ) || null
       );
-
-      return material ? material.precio.toString() : null;
     },
     [rawsMaterialData]
   );
@@ -698,220 +682,176 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   // Función optimizada para manejar cambios en items específicos
   const handleItemChange = useCallback(
     (categoria, index, field, value) => {
-      if (categoria === "herreria") {
-        const newHerreria = [...herreria];
-        if (field === "categoriaMP") {
-          // Reset campos dependientes cuando cambia la categoría
-          newHerreria[index] = {
-            ...newHerreria[index],
-            categoriaMP: value,
-            tipoMP: "",
-            medidaMP: "",
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-        } else if (field === "tipoMP") {
-          // Reset campos dependientes cuando cambia el tipo
-          newHerreria[index] = {
-            ...newHerreria[index],
-            tipoMP: value,
-            medidaMP: "",
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-        } else if (field === "medidaMP") {
-          // Reset campos dependientes cuando cambia la medida
-          newHerreria[index] = {
-            ...newHerreria[index],
-            medidaMP: value,
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-          // Si no hay espesores disponibles, obtener precio directamente
-          const espesoresDisponibles = getEspesorOptions(
-            newHerreria[index].categoriaMP,
-            newHerreria[index].tipoMP,
-            value
-          );
-          if (espesoresDisponibles.length === 0) {
-            const precio = getPrecioMaterial(
-              newHerreria[index].categoriaMP,
-              newHerreria[index].tipoMP,
-              value,
-              null
-            );
-            if (precio) {
-              newHerreria[index].valor = precio;
-              newHerreria[index].isPriceAuto = true;
-            }
-          }
-        } else if (field === "espesorMP") {
-          // Cuando se selecciona el espesor, obtener precio automáticamente
-          newHerreria[index][field] = value;
-          newHerreria[index].isPriceAuto = false;
-          const precio = getPrecioMaterial(
-            newHerreria[index].categoriaMP,
-            newHerreria[index].tipoMP,
-            newHerreria[index].medidaMP,
-            value
-          );
-          if (precio) {
-            newHerreria[index].valor = precio;
-            newHerreria[index].isPriceAuto = true;
-          }
-        } else if (field === "valor") {
-          // Para valores, quitar formato antes de guardar y marcar como no automático
-          const unformatted = unformatCurrency(value);
-          newHerreria[index][field] = unformatted;
-          newHerreria[index].isPriceAuto = false;
-        } else {
-          newHerreria[index][field] = value;
+      const stateMap = {
+        herreria: [herreria, setHerreria],
+        carpinteria: [carpinteria, setCarpinteria],
+        pintura: [pintura, setPintura],
+      };
+
+      const entry = stateMap[categoria];
+      if (!entry) return;
+
+      const [items, setter] = entry;
+      const newItems = [...items];
+      const currentItem = newItems[index] ? { ...newItems[index] } : null;
+      if (!currentItem) return;
+
+      const saveItem = (nextItem) => {
+        newItems[index] = nextItem;
+        setter(newItems);
+      };
+
+      if (field === "isCustomMaterial") {
+        const isCustom = Boolean(value);
+        const nextItem = {
+          ...currentItem,
+          isCustomMaterial: isCustom,
+          isPriceAuto: false,
+        };
+
+        if (!isCustom) {
+          nextItem.descripcionPersonalizada = "";
+          nextItem.categoriaMP = "";
+          nextItem.tipoMP = "";
+          nextItem.medidaMP = "";
+          nextItem.espesorMP = "";
+          nextItem.valor = "";
+          nextItem.nombreMadera = "";
+          nextItem.selectedMaterialId = "";
         }
-        setHerreria(newHerreria);
-      } else if (categoria === "carpinteria") {
-        const newCarpinteria = [...carpinteria];
-        if (field === "categoriaMP") {
-          newCarpinteria[index] = {
-            ...newCarpinteria[index],
-            categoriaMP: value,
-            tipoMP: "",
-            medidaMP: "",
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-        } else if (field === "tipoMP") {
-          newCarpinteria[index] = {
-            ...newCarpinteria[index],
-            tipoMP: value,
-            medidaMP: "",
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-        } else if (field === "medidaMP") {
-          newCarpinteria[index] = {
-            ...newCarpinteria[index],
-            medidaMP: value,
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-          // Si no hay espesores disponibles, obtener precio directamente
-          const espesoresDisponibles = getEspesorOptions(
-            newCarpinteria[index].categoriaMP,
-            newCarpinteria[index].tipoMP,
-            value
-          );
-          if (espesoresDisponibles.length === 0) {
-            const precio = getPrecioMaterial(
-              newCarpinteria[index].categoriaMP,
-              newCarpinteria[index].tipoMP,
-              value,
-              null
-            );
-            if (precio) {
-              newCarpinteria[index].valor = precio;
-              newCarpinteria[index].isPriceAuto = true;
-            }
-          }
-        } else if (field === "espesorMP") {
-          // Cuando se selecciona el espesor, obtener precio automáticamente
-          newCarpinteria[index][field] = value;
-          newCarpinteria[index].isPriceAuto = false;
-          const precio = getPrecioMaterial(
-            newCarpinteria[index].categoriaMP,
-            newCarpinteria[index].tipoMP,
-            newCarpinteria[index].medidaMP,
-            value
-          );
-          if (precio) {
-            newCarpinteria[index].valor = precio;
-            newCarpinteria[index].isPriceAuto = true;
-          }
-        } else if (field === "valor") {
-          const unformatted = unformatCurrency(value);
-          newCarpinteria[index][field] = unformatted;
-          newCarpinteria[index].isPriceAuto = false;
-        } else {
-          newCarpinteria[index][field] = value;
-        }
-        setCarpinteria(newCarpinteria);
-      } else if (categoria === "pintura") {
-        const newPintura = [...pintura];
-        if (field === "categoriaMP") {
-          newPintura[index] = {
-            ...newPintura[index],
-            categoriaMP: value,
-            tipoMP: "",
-            medidaMP: "",
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-        } else if (field === "tipoMP") {
-          newPintura[index] = {
-            ...newPintura[index],
-            tipoMP: value,
-            medidaMP: "",
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-        } else if (field === "medidaMP") {
-          newPintura[index] = {
-            ...newPintura[index],
-            medidaMP: value,
-            espesorMP: "",
-            valor: "",
-            isPriceAuto: false,
-          };
-          // Si no hay espesores disponibles, obtener precio directamente
-          const espesoresDisponibles = getEspesorOptions(
-            newPintura[index].categoriaMP,
-            newPintura[index].tipoMP,
-            value
-          );
-          if (espesoresDisponibles.length === 0) {
-            const precio = getPrecioMaterial(
-              newPintura[index].categoriaMP,
-              newPintura[index].tipoMP,
-              value,
-              null
-            );
-            if (precio) {
-              newPintura[index].valor = precio;
-              newPintura[index].isPriceAuto = true;
-            }
-          }
-        } else if (field === "espesorMP") {
-          // Cuando se selecciona el espesor, obtener precio automáticamente
-          newPintura[index][field] = value;
-          newPintura[index].isPriceAuto = false;
-          const precio = getPrecioMaterial(
-            newPintura[index].categoriaMP,
-            newPintura[index].tipoMP,
-            newPintura[index].medidaMP,
-            value
-          );
-          if (precio) {
-            newPintura[index].valor = precio;
-            newPintura[index].isPriceAuto = true;
-          }
-        } else if (field === "valor") {
-          const unformatted = unformatCurrency(value);
-          newPintura[index][field] = unformatted;
-          newPintura[index].isPriceAuto = false;
-        } else {
-          newPintura[index][field] = value;
-        }
-        setPintura(newPintura);
+
+        saveItem(nextItem);
+        return;
       }
+
+      if (currentItem.isCustomMaterial) {
+        const nextItem = { ...currentItem, isPriceAuto: false };
+        if (field === "valor") {
+          nextItem.valor = unformatCurrency(value);
+        } else {
+          nextItem[field] = value;
+        }
+        saveItem(nextItem);
+        return;
+      }
+
+      const nextItem = { ...currentItem };
+
+      if (field === "categoriaMP") {
+        nextItem.categoriaMP = value;
+        nextItem.tipoMP = "";
+        nextItem.medidaMP = "";
+        nextItem.espesorMP = "";
+        nextItem.valor = "";
+        nextItem.isPriceAuto = false;
+        nextItem.nombreMadera = "";
+        nextItem.selectedMaterialId = "";
+        saveItem(nextItem);
+        return;
+      }
+
+      if (field === "tipoMP") {
+        nextItem.tipoMP = value;
+        nextItem.medidaMP = "";
+        nextItem.espesorMP = "";
+        nextItem.valor = "";
+        nextItem.isPriceAuto = false;
+        nextItem.nombreMadera = "";
+        nextItem.selectedMaterialId = "";
+        saveItem(nextItem);
+        return;
+      }
+
+      if (field === "medidaMP") {
+        nextItem.medidaMP = value;
+        nextItem.espesorMP = "";
+        nextItem.valor = "";
+        nextItem.isPriceAuto = false;
+        nextItem.selectedMaterialId = "";
+
+        const espesoresDisponibles = getEspesorOptions(
+          nextItem.categoriaMP,
+          nextItem.tipoMP,
+          value
+        );
+        if (espesoresDisponibles.length === 0) {
+          const material = getMaterialMatch(
+            nextItem.categoriaMP,
+            nextItem.tipoMP,
+            value,
+            null
+          );
+          if (material) {
+            nextItem.valor = material.precio?.toString() || "";
+            nextItem.isPriceAuto = true;
+            nextItem.nombreMadera =
+              material.nombreMadera?.trim() || nextItem.nombreMadera || "";
+            nextItem.selectedMaterialId = material._id?.toString() || "";
+          }
+        }
+
+        saveItem(nextItem);
+        return;
+      }
+
+      if (field === "espesorMP") {
+        nextItem.espesorMP = value;
+        nextItem.isPriceAuto = false;
+        nextItem.selectedMaterialId = "";
+        const material = getMaterialMatch(
+          nextItem.categoriaMP,
+          nextItem.tipoMP,
+          nextItem.medidaMP,
+          value
+        );
+        if (material) {
+          nextItem.valor = material.precio?.toString() || "";
+          nextItem.isPriceAuto = true;
+          nextItem.nombreMadera =
+            material.nombreMadera?.trim() || nextItem.nombreMadera || "";
+          nextItem.selectedMaterialId = material._id?.toString() || "";
+        }
+        saveItem(nextItem);
+        return;
+      }
+
+      if (field === "selectedMaterialId") {
+        nextItem.selectedMaterialId = value;
+        const material = rawsMaterialData.find((mp) => mp._id === value);
+        if (material) {
+          nextItem.categoriaMP = material.categoria || nextItem.categoriaMP;
+          nextItem.tipoMP = material.type || nextItem.tipoMP;
+          nextItem.medidaMP = material.medida || "";
+          nextItem.espesorMP = material.espesor || "";
+          nextItem.valor = material.precio?.toString() || "";
+          nextItem.isPriceAuto = true;
+          if (categoria === "carpinteria") {
+            nextItem.nombreMadera =
+              material.nombreMadera?.trim() || nextItem.nombreMadera || "";
+          }
+        }
+        saveItem(nextItem);
+        return;
+      }
+
+      if (field === "valor") {
+        nextItem.valor = unformatCurrency(value);
+        nextItem.isPriceAuto = false;
+        saveItem(nextItem);
+        return;
+      }
+
+      nextItem[field] = value;
+      saveItem(nextItem);
     },
-    [herreria, carpinteria, pintura, getEspesorOptions, getPrecioMaterial]
+    [
+      herreria,
+      carpinteria,
+      pintura,
+      getEspesorOptions,
+      getMaterialMatch,
+      rawsMaterialData,
+    ]
   );
 
   // Funciones para manejar la sección extras
@@ -1076,39 +1016,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     setModoPersonalizado(false);
 
     // Resetear arrays de materiales
-    setHerreria([
-      {
-        categoriaMP: "",
-        tipoMP: "",
-        medidaMP: "",
-        espesorMP: "",
-        valor: "",
-        cantidad: "",
-        isPriceAuto: false,
-      },
-    ]);
-    setCarpinteria([
-      {
-        categoriaMP: "",
-        tipoMP: "",
-        medidaMP: "",
-        espesorMP: "",
-        valor: "",
-        cantidad: "",
-        isPriceAuto: false,
-      },
-    ]);
-    setPintura([
-      {
-        categoriaMP: "",
-        tipoMP: "",
-        medidaMP: "",
-        espesorMP: "",
-        valor: "",
-        cantidad: "",
-        isPriceAuto: false,
-      },
-    ]);
+    setHerreria([createEmptyItem()]);
+    setCarpinteria([createEmptyItem()]);
+    setPintura([createEmptyItem()]);
 
     // Resetear consumibles
     setConsumibles({
@@ -1128,9 +1038,23 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   };
 
   // Funciones auxiliares para obtener opciones en cascada
-  const getCategoriaOptions = () => {
-    const categorias = [...new Set(rawsMaterialData.map((mp) => mp.categoria))];
-    return categorias.sort();
+  const getCategoriaOptions = (categoriaSeccion) => {
+    const categorias = [
+      ...new Set((rawsMaterialData || []).map((mp) => mp.categoria).filter(Boolean)),
+    ];
+
+    const filtradas = categorias
+      .filter((categoria) => shouldIncludeCategoria(categoriaSeccion, categoria))
+      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+    if (filtradas.length > 0) return filtradas;
+
+    const includes = categoriaRules[categoriaSeccion]?.include;
+    if (includes?.length) {
+      return includes.map((value) => formatCategoriaLabel(value));
+    }
+
+    return categorias;
   };
 
   const getTipoOptions = (categoriaSeleccionada) => {
@@ -1166,6 +1090,60 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     return medidas.sort();
   };
 
+  const getMaterialOptions = (categoriaSeleccionada, tipoSeleccionado) => {
+    if (!categoriaSeleccionada || !tipoSeleccionado) return [];
+    const categoriaNormalized = normalizeText(categoriaSeleccionada);
+    const tipoNormalized = normalizeText(tipoSeleccionado);
+
+    const options = rawsMaterialData
+      .filter((mp) => {
+        const categoriaMP = normalizeText(mp.categoria);
+        const tipoMP = normalizeText(mp.type);
+        return categoriaMP === categoriaNormalized && tipoMP === tipoNormalized;
+      })
+      .map((mp) => {
+        const labelBase = mp.nombre || mp.type || "Material";
+        const detalles = [mp.medida, mp.espesor].filter(Boolean).join(" - ");
+        const label = detalles ? `${labelBase} (${detalles})` : labelBase;
+        return {
+          value: mp._id,
+          label,
+        };
+      });
+
+    return options.sort((a, b) =>
+      a.label.localeCompare(b.label, "es", { sensitivity: "base" })
+    );
+  };
+
+  const getNombreMaderaOptions = (categoriaSeleccionada, tipoSeleccionado) => {
+    if (!categoriaSeleccionada || !tipoSeleccionado) return [];
+
+    const categoriaNormalized = normalizeText(categoriaSeleccionada);
+    const tipoNormalized = normalizeText(tipoSeleccionado);
+
+    const nombres = [
+      ...new Set(
+        rawsMaterialData
+          .filter((mp) => {
+            const categoriaMP = normalizeText(mp.categoria);
+            const tipoMP = normalizeText(mp.type);
+            return (
+              categoriaMP === categoriaNormalized &&
+              tipoMP === tipoNormalized &&
+              Boolean(mp.nombreMadera)
+            );
+          })
+          .map((mp) => mp.nombreMadera?.trim())
+          .filter(Boolean)
+      ),
+    ];
+
+    return nombres.sort((a, b) =>
+      a.localeCompare(b, "es", { sensitivity: "base" })
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -1191,7 +1169,50 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
     // Función para limpiar y validar un item
     const limpiarItem = (item, categoria) => {
-      // Buscar el ObjectId real de la materia prima
+      const cantidad = parseFloat(item.cantidad) || 0;
+      if (cantidad <= 0) return null;
+
+      if (item.isCustomMaterial) {
+        const valorPersonalizado = parseFloat(item.valor) || 0;
+        if (valorPersonalizado <= 0) return null;
+
+        const descripcion =
+          item.descripcionPersonalizada?.trim() ||
+          [
+            item.categoriaMP,
+            item.tipoMP,
+            item.nombreMadera,
+            item.medidaMP,
+            item.espesorMP,
+          ]
+            .filter(Boolean)
+            .join(" - ");
+
+        if (!descripcion) return null;
+
+        return {
+          categoria,
+          cantidad,
+          valor: valorPersonalizado,
+          esPersonalizado: true,
+          descripcionPersonalizada: descripcion,
+          categoriaMP:
+            item.categoriaMP || seccionLabels[categoria] || formatCategoriaLabel(categoria),
+          tipoMP: item.tipoMP || "",
+          medidaMP: item.medidaMP || "",
+          espesorMP: item.espesorMP || "",
+          nombreMadera: item.nombreMadera || "",
+        };
+      }
+
+      if (
+        !item.categoriaMP ||
+        !item.tipoMP ||
+        !item.medidaMP
+      ) {
+        return null;
+      }
+
       const materiaPrimaId = encontrarMateriaPrimaId(
         item.categoriaMP,
         item.tipoMP,
@@ -1200,57 +1221,30 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       );
 
       if (!materiaPrimaId) {
-        return null; // Retornar null para filtrar después
+        return null;
       }
 
       return {
-        categoria: categoria,
-        materiaPrima: materiaPrimaId, // Usar ObjectId en lugar de string concatenado
-        cantidad: parseFloat(item.cantidad) || 0,
+        categoria,
+        materiaPrima: materiaPrimaId,
+        cantidad,
         valor: parseFloat(item.valor) || 0,
-        // Mantener campos de cascada para futuras referencias
         categoriaMP: item.categoriaMP || "",
         tipoMP: item.tipoMP || "",
         medidaMP: item.medidaMP || "",
         espesorMP: item.espesorMP || "",
+        nombreMadera: item.nombreMadera || "",
       };
     };
 
+    const mapItemsByCategoria = (items, categoria) =>
+      items.map((item) => limpiarItem(item, categoria)).filter(Boolean);
+
     // Combinar todos los items con su categoría
     const allItems = [
-      ...herreria
-        .filter(
-          (item) =>
-            item.categoriaMP &&
-            item.tipoMP &&
-            item.medidaMP &&
-            item.cantidad &&
-            parseFloat(item.cantidad) > 0
-        )
-        .map((item) => limpiarItem(item, "herreria"))
-        .filter(Boolean), // Filtrar items que no pudieron convertirse (sin ObjectId)
-      ...carpinteria
-        .filter(
-          (item) =>
-            item.categoriaMP &&
-            item.tipoMP &&
-            item.medidaMP &&
-            item.cantidad &&
-            parseFloat(item.cantidad) > 0
-        )
-        .map((item) => limpiarItem(item, "carpinteria"))
-        .filter(Boolean), // Filtrar items que no pudieron convertirse
-      ...pintura
-        .filter(
-          (item) =>
-            item.categoriaMP &&
-            item.tipoMP &&
-            item.medidaMP &&
-            item.cantidad &&
-            parseFloat(item.cantidad) > 0
-        )
-        .map((item) => limpiarItem(item, "pintura"))
-        .filter(Boolean), // Filtrar items que no pudieron convertirse
+      ...mapItemsByCategoria(herreria, "herreria"),
+      ...mapItemsByCategoria(carpinteria, "carpinteria"),
+      ...mapItemsByCategoria(pintura, "pintura"),
     ];
 
     // Validar que hay datos mínimos
@@ -1329,6 +1323,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     } catch (error) {
       console.error("=== ERROR COMPLETO ===");
       console.error("Error:", error);
+                  nombreMadera: item.nombreMadera || "",
       console.error("Response:", error.response);
       console.error("Response data:", error.response?.data);
       console.error("Status:", error.response?.status);
@@ -1482,179 +1477,474 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
       <CardBody>
         <VStack spacing={4} align="stretch">
-          {items.map((item, index) => (
-            <HStack
-              key={index}
-              spacing={2}
-              p={3}
-              border="1px"
-              borderColor="gray.200"
-              borderRadius="md"
-              w="100%"
-            >
-              {/* Categoría */}
-              <FormControl flex="3">
-                <FormLabel fontSize="xs">Categoría</FormLabel>
-                <Select
-                  size="sm"
-                  placeholder="Categoría"
-                  value={item.categoriaMP}
-                  onChange={(e) =>
-                    handleItemChange(
-                      categoria,
-                      index,
-                      "categoriaMP",
-                      e.target.value
-                    )
-                  }
-                >
-                  {getCategoriaOptions().map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* Tipo */}
-              <FormControl flex="2">
-                <FormLabel fontSize="xs">Tipo</FormLabel>
-                <Select
-                  size="sm"
-                  placeholder="Tipo"
-                  value={item.tipoMP}
-                  isDisabled={!item.categoriaMP}
-                  onChange={(e) =>
-                    handleItemChange(categoria, index, "tipoMP", e.target.value)
-                  }
-                >
-                  {getTipoOptions(item.categoriaMP).map((tipo) => (
-                    <option key={tipo.value} value={tipo.value}>
-                      {tipo.label}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-
-              {/* Medida */}
-              <FormControl flex="2">
-                <FormLabel fontSize="xs">Medida</FormLabel>
-                <Select
-                  size="sm"
-                  placeholder="Medida"
-                  value={item.medidaMP}
-                  isDisabled={!item.tipoMP}
-                  onChange={(e) =>
-                    handleItemChange(
-                      categoria,
-                      index,
-                      "medidaMP",
-                      e.target.value
-                    )
-                  }
-                >
-                  {getMedidaOptions(item.categoriaMP, item.tipoMP).map(
-                    (medida) => (
-                      <option key={medida} value={medida}>
-                        {medida}
-                      </option>
-                    )
-                  )}
-                </Select>
-              </FormControl>
-
-              {/* Espesor */}
-              <FormControl flex="1.5">
-                <FormLabel fontSize="xs">Espesor</FormLabel>
-                <Select
-                  size="sm"
-                  placeholder="Espesor"
-                  value={item.espesorMP}
-                  isDisabled={!item.medidaMP}
-                  onChange={(e) =>
-                    handleItemChange(
-                      categoria,
-                      index,
-                      "espesorMP",
-                      e.target.value
-                    )
-                  }
-                >
-                  {getEspesorOptions(
+          {items.map((item, index) => {
+              const isCarpinteria = categoria === "carpinteria";
+              const isPintura = categoria === "pintura";
+              const isHerreria = categoria === "herreria";
+              const showSubtotalColumn = isCarpinteria || isPintura || isHerreria;
+              const fieldSize = "md";
+              const labelFontSize = "sm";
+              const baseColumns = showSubtotalColumn ? 8 : 6;
+              const totalColumns =
+                isPintura && !item.isCustomMaterial ? baseColumns + 1 : baseColumns;
+              const mdColumns = Math.min(totalColumns, 3);
+              const gridTemplateColumns = {
+                base: "repeat(1, minmax(0, 1fr))",
+                md: `repeat(${mdColumns}, minmax(0, 1fr))`,
+                lg: `repeat(${totalColumns}, minmax(0, 1fr))`,
+              };
+              const valorColumnStart = {
+                base: "auto",
+                md: mdColumns,
+                lg: showSubtotalColumn ? totalColumns - 1 : totalColumns,
+              };
+            const matchedMaterial =
+              isCarpinteria && !item.isCustomMaterial
+                ? getMaterialMatch(
                     item.categoriaMP,
                     item.tipoMP,
-                    item.medidaMP
-                  ).map((espesor) => (
-                    <option key={espesor} value={espesor}>
-                      {espesor}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
+                    item.medidaMP,
+                    item.espesorMP || null
+                  )
+                : null;
+            const rawNombreMadera = isCarpinteria
+              ? item.isCustomMaterial
+                ? item.nombreMadera
+                : item.nombreMadera || matchedMaterial?.nombreMadera || ""
+              : "";
+            const nombreMaderaValue = isCarpinteria
+              ? rawNombreMadera?.trim() || ""
+              : "";
+              const materialOptions =
+                isPintura && !item.isCustomMaterial
+                  ? getMaterialOptions(item.categoriaMP, item.tipoMP)
+                  : [];
+              const nombreMaterialColSpan =
+                isPintura && !item.isCustomMaterial
+                  ? { base: 1, md: 2, lg: 3 }
+                  : 1;
+              const cantidadFieldProps =
+                isPintura && !item.isCustomMaterial
+                  ? {
+                      maxW: { base: "100%", lg: "140px" },
+                      justifySelf: { base: "stretch", lg: "center" },
+                    }
+                  : {};
+            const valorNumerico = parseFloat(item.valor) || 0;
+            const cantidadNumerica = parseFloat(item.cantidad) || 0;
+            const subtotalMaterial = valorNumerico * cantidadNumerica;
 
-              {/* Valor */}
-              <FormControl flex="2">
-                <FormLabel fontSize="xs">
-                  Valor
-                  {item.isPriceAuto && (
-                    <Text as="span" color="green.500" fontSize="xs" ml={1}>
-                      (Auto)
+            return (
+              <Box
+                key={index}
+                p={3}
+                border="1px"
+                borderColor="gray.200"
+                borderRadius="md"
+                w="100%"
+              >
+                <VStack spacing={3} align="stretch">
+                  <HStack justify="space-between" align="center">
+                    <Text fontSize="sm" fontWeight="semibold">
+                      Material {index + 1}
                     </Text>
-                  )}
-                </FormLabel>
-                <Input
-                  size="sm"
-                  type="text"
-                  placeholder="$1.000"
-                  value={formatCurrency(item.valor)}
-                  borderColor={item.isPriceAuto ? "green.300" : undefined}
-                  _focus={{
-                    borderColor: item.isPriceAuto ? "green.400" : "blue.400",
-                    boxShadow: item.isPriceAuto
-                      ? "0 0 0 1px var(--chakra-colors-green-400)"
-                      : "0 0 0 1px var(--chakra-colors-blue-400)",
-                  }}
-                  bg={
-                    item.isPriceAuto
-                      ? { base: "green.50", _dark: "green.900" }
-                      : undefined
-                  }
-                  onChange={(e) =>
-                    handleItemChange(categoria, index, "valor", e.target.value)
-                  }
-                />
-              </FormControl>
+                    <HStack spacing={3} align="center">
+                      <Checkbox
+                        size="sm"
+                        colorScheme="purple"
+                        isChecked={item.isCustomMaterial}
+                        onChange={(e) =>
+                          handleItemChange(
+                            categoria,
+                            index,
+                            "isCustomMaterial",
+                            e.target.checked
+                          )
+                        }
+                      >
+                        Fuera de catálogo
+                      </Checkbox>
+                      <IconButton
+                        icon={<FiMinus />}
+                        colorScheme="red"
+                        size="sm"
+                        onClick={() => removeItem(categoria, index)}
+                        isDisabled={items.length === 1}
+                        aria-label="Eliminar material"
+                      />
+                    </HStack>
+                  </HStack>
 
-              {/* Cantidad */}
-              <FormControl flex="1.5">
-                <FormLabel fontSize="xs">Cantidad</FormLabel>
-                <Input
-                  size="sm"
-                  type="number"
-                  placeholder="0"
-                  value={item.cantidad}
-                  onChange={(e) =>
-                    handleItemChange(
-                      categoria,
-                      index,
-                      "cantidad",
-                      e.target.value
-                    )
-                  }
-                />
-              </FormControl>
+                  <Grid
+                    templateColumns={gridTemplateColumns}
+                    gap={3}
+                    w="100%"
+                    alignItems="end"
+                  >
+                    <GridItem minW="0">
+                      <FormControl>
+                        <FormLabel fontSize={labelFontSize}>Categoría</FormLabel>
+                        {item.isCustomMaterial ? (
+                          <Input
+                            size={fieldSize}
+                            placeholder="Ej: Vidrio"
+                            value={item.categoriaMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "categoriaMP",
+                                e.target.value
+                              )
+                            }
+                          />
+                        ) : (
+                          <Select
+                            size={fieldSize}
+                            placeholder="Categoría"
+                            value={item.categoriaMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "categoriaMP",
+                                e.target.value
+                              )
+                            }
+                          >
+                            {getCategoriaOptions(categoria).map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat.toUpperCase()}
+                              </option>
+                            ))}
+                          </Select>
+                        )}
+                      </FormControl>
+                    </GridItem>
 
-              {/* Botón eliminar */}
-              <IconButton
-                icon={<FiMinus />}
-                colorScheme="red"
-                size="sm"
-                onClick={() => removeItem(categoria, index)}
-                isDisabled={items.length === 1}
-                alignSelf="end"
-              />
-            </HStack>
-          ))}
+                    <GridItem minW="0">
+                      <FormControl>
+                        <FormLabel fontSize={labelFontSize}>Tipo</FormLabel>
+                        {item.isCustomMaterial ? (
+                          <Input
+                            size={fieldSize}
+                            placeholder="Ej: Perfil T"
+                            value={item.tipoMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "tipoMP",
+                                e.target.value
+                              )
+                            }
+                          />
+                        ) : (
+                          <Select
+                            size={fieldSize}
+                            placeholder="Tipo"
+                            value={item.tipoMP}
+                            isDisabled={!item.categoriaMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "tipoMP",
+                                e.target.value
+                              )
+                            }
+                          >
+                            {getTipoOptions(item.categoriaMP).map((tipo) => (
+                              <option key={tipo.value} value={tipo.value}>
+                                {tipo.label}
+                              </option>
+                            ))}
+                          </Select>
+                        )}
+                      </FormControl>
+                    </GridItem>
+
+                    {isCarpinteria && (
+                      <GridItem minW="0">
+                        <FormControl>
+                          <FormLabel fontSize={labelFontSize}>Nombre de la madera</FormLabel>
+                          {item.isCustomMaterial ? (
+                            <Input
+                              size={fieldSize}
+                              placeholder="Ej: Paraíso, Petiribí"
+                              value={nombreMaderaValue}
+                              onChange={(e) =>
+                                handleItemChange(
+                                  categoria,
+                                  index,
+                                  "nombreMadera",
+                                  e.target.value
+                                )
+                              }
+                            />
+                          ) : (
+                            <Select
+                              size={fieldSize}
+                              placeholder={
+                                item.tipoMP
+                                  ? "Seleccioná un nombre"
+                                  : "Elegí primero el tipo"
+                              }
+                              value={nombreMaderaValue}
+                              isDisabled={!item.tipoMP}
+                              onChange={(e) =>
+                                handleItemChange(
+                                  categoria,
+                                  index,
+                                  "nombreMadera",
+                                  e.target.value
+                                )
+                              }
+                            >
+                              {getNombreMaderaOptions(
+                                item.categoriaMP,
+                                item.tipoMP
+                              ).map((nombre) => (
+                                <option key={nombre} value={nombre}>
+                                  {nombre}
+                                </option>
+                              ))}
+                            </Select>
+                          )}
+                        </FormControl>
+                      </GridItem>
+                    )}
+
+                    <GridItem minW="0">
+                      <FormControl>
+                        <FormLabel fontSize={labelFontSize}>Medida</FormLabel>
+                        {item.isCustomMaterial ? (
+                          <Input
+                            size={fieldSize}
+                            placeholder="Ej: 2 x 1 mt"
+                            value={item.medidaMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "medidaMP",
+                                e.target.value
+                              )
+                            }
+                          />
+                        ) : (
+                          <Select
+                            size={fieldSize}
+                            placeholder="Medida"
+                            value={item.medidaMP}
+                            isDisabled={!item.tipoMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "medidaMP",
+                                e.target.value
+                              )
+                            }
+                          >
+                            {getMedidaOptions(item.categoriaMP, item.tipoMP).map(
+                              (medida) => (
+                                <option key={medida} value={medida}>
+                                  {medida}
+                                </option>
+                              )
+                            )}
+                          </Select>
+                        )}
+                      </FormControl>
+                    </GridItem>
+
+                    <GridItem minW="0" colSpan={nombreMaterialColSpan}>
+                      <FormControl>
+                        <FormLabel fontSize={labelFontSize}>
+                          {isPintura && !item.isCustomMaterial
+                            ? "Nombre del material"
+                            : "Espesor"}
+                        </FormLabel>
+                        {item.isCustomMaterial ? (
+                          <Input
+                            size={fieldSize}
+                            placeholder={
+                              isPintura ? "Ej: Base poliuretánica" : "Ej: 1.6 mm"
+                            }
+                            value={item.espesorMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "espesorMP",
+                                e.target.value
+                              )
+                            }
+                          />
+                        ) : isPintura ? (
+                          <Select
+                            size={fieldSize}
+                            placeholder={
+                              item.tipoMP
+                                ? "Seleccioná un material"
+                                : "Elegí primero el tipo"
+                            }
+                            value={item.selectedMaterialId || ""}
+                            isDisabled={!item.tipoMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "selectedMaterialId",
+                                e.target.value
+                              )
+                            }
+                          >
+                            {materialOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </Select>
+                        ) : (
+                          <Select
+                            size={fieldSize}
+                            placeholder="Espesor"
+                            value={item.espesorMP}
+                            isDisabled={!item.medidaMP}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "espesorMP",
+                                e.target.value
+                              )
+                            }
+                          >
+                            {getEspesorOptions(
+                              item.categoriaMP,
+                              item.tipoMP,
+                              item.medidaMP
+                            ).map((espesor) => (
+                              <option key={espesor} value={espesor}>
+                                {espesor}
+                              </option>
+                            ))}
+                          </Select>
+                        )}
+                      </FormControl>
+                    </GridItem>
+
+                    <GridItem minW="0" {...cantidadFieldProps}>
+                      <FormControl>
+                        <FormLabel fontSize={labelFontSize}>Cantidad</FormLabel>
+                        <Input
+                          size={fieldSize}
+                          type="number"
+                          placeholder="0"
+                          value={item.cantidad}
+                          onChange={(e) =>
+                            handleItemChange(
+                              categoria,
+                              index,
+                              "cantidad",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </FormControl>
+                    </GridItem>
+
+                    <GridItem
+                      minW="0"
+                      colStart={valorColumnStart}
+                      justifySelf={{ base: "stretch", lg: "end" }}
+                    >
+                      <FormControl>
+                        <FormLabel fontSize={labelFontSize}>
+                          Valor
+                          {item.isPriceAuto && !item.isCustomMaterial && (
+                            <Text as="span" color="green.500" fontSize="xs" ml={1}>
+                              (Auto)
+                            </Text>
+                          )}
+                        </FormLabel>
+                        <Input
+                          size={fieldSize}
+                          type="text"
+                          placeholder="$1.000"
+                          value={formatCurrency(item.valor)}
+                          borderColor={
+                            item.isPriceAuto && !item.isCustomMaterial
+                              ? "green.300"
+                              : undefined
+                          }
+                          _focus={{
+                            borderColor:
+                              item.isPriceAuto && !item.isCustomMaterial
+                                ? "green.400"
+                                : "blue.400",
+                            boxShadow:
+                              item.isPriceAuto && !item.isCustomMaterial
+                                ? "0 0 0 1px var(--chakra-colors-green-400)"
+                                : "0 0 0 1px var(--chakra-colors-blue-400)",
+                          }}
+                          bg={
+                            item.isPriceAuto && !item.isCustomMaterial
+                              ? { base: "green.50", _dark: "green.900" }
+                              : undefined
+                          }
+                          onChange={(e) =>
+                            handleItemChange(
+                              categoria,
+                              index,
+                              "valor",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </FormControl>
+                    </GridItem>
+
+                    {showSubtotalColumn && (
+                      <GridItem minW="0">
+                        <FormControl isReadOnly>
+                          <FormLabel fontSize={labelFontSize}>Sub-total</FormLabel>
+                          <Input
+                            size={fieldSize}
+                            type="text"
+                            value={formatCurrency(subtotalMaterial)}
+                            placeholder="$0"
+                            readOnly
+                          />
+                        </FormControl>
+                      </GridItem>
+                    )}
+                  </Grid>
+
+                {item.isCustomMaterial && (
+                  <FormControl>
+                    <FormLabel fontSize={labelFontSize}>Descripción del material</FormLabel>
+                    <Input
+                      size={fieldSize}
+                      placeholder="Ej: Vidrio templado importado"
+                      value={item.descripcionPersonalizada}
+                      onChange={(e) =>
+                        handleItemChange(
+                          categoria,
+                          index,
+                          "descripcionPersonalizada",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </FormControl>
+                )}
+              </VStack>
+            </Box>
+            );
+          })}
 
           {/* Campos de consumibles y porcentaje en la misma fila */}
           <HStack spacing={4} align="end">
@@ -1730,7 +2020,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   );
 
   return (
-    <Box maxW="4xl" mx="auto" p={6}>
+    <Box maxW="7xl" w="100%" mx="auto" p={6}>
       <form onSubmit={handleSubmit}>
         <VStack spacing={8} align="stretch">
           {/* Botón de Reset */}
@@ -1739,7 +2029,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               size="lg"
               color={useColorModeValue("gray.700", "gray.200")}
             >
-              {PlantillasId ? "Editar Plantilla" : "Nueva Plantilla"}
+              {PlantillasId ? "Editar Planilla Presupuesto" : "Nueva Planilla Presupuesto"}
             </Heading>
             <Button
               leftIcon={<FiRefreshCw />}
@@ -1760,10 +2050,10 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
           <Divider />
 
-          {/* Nombre de la plantilla */}
+          {/* Nombre de la planilla */}
           <FormControl>
             <FormLabel fontSize="lg" fontWeight="bold">
-              Nombre de la Plantilla
+              Nombre de la Planilla
             </FormLabel>
             <Input
               name="nombre"

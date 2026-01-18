@@ -10,6 +10,7 @@ import {
   Heading,
   HStack,
   Icon,
+  IconButton,
   Input,
   SimpleGrid,
   Stack,
@@ -18,6 +19,7 @@ import {
   StatLabel,
   StatNumber,
   Text,
+  Tooltip,
   VStack,
   useColorModeValue,
 } from "@chakra-ui/react";
@@ -33,6 +35,7 @@ import {
   FaShoppingBag,
   FaWarehouse,
 } from "react-icons/fa";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { Loader } from "../components";
 import {
   useGetAllPlantillas,
@@ -59,6 +62,11 @@ const salesChannelLabels = {
   whatsapp: "WhatsApp",
   otro: "Otro",
 };
+
+const weekDayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+const capitalizeLabel = (value = "") =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
 
 const StatCard = ({
   label,
@@ -179,6 +187,28 @@ export const Home = () => {
 
   const [dateFilterMode, setDateFilterMode] = useState("last30");
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
+  const [calendarDate, setCalendarDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
+  const today = useMemo(() => {
+    const now = new Date();
+    return {
+      day: now.getDate(),
+      month: now.getMonth(),
+      year: now.getFullYear(),
+    };
+  }, []);
+
+  const todayLabel = useMemo(() => {
+    const label = new Date().toLocaleDateString("es-AR", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    });
+    return capitalizeLabel(label);
+  }, []);
 
   const gradientBg = useColorModeValue(
     "linear-gradient(135deg, #fbf9f3 0%, #daf5f0 100%)",
@@ -202,8 +232,99 @@ export const Home = () => {
   const channelRankBg = useColorModeValue("gray.100", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
   const innerCardBg = useColorModeValue("white", "gray.900");
+  const deliveryAccentBg = useColorModeValue("red.50", "rgba(185, 28, 28, 0.3)");
+  const deliveryAccentBorder = useColorModeValue("red.200", "red.400");
+  const deliveryAccentDot = useColorModeValue("red.500", "red.200");
+  const deliveryText = useColorModeValue("red.600", "red.200");
+
+  const calendarMonthLabel = useMemo(
+    () =>
+      capitalizeLabel(
+        calendarDate.toLocaleDateString("es-AR", {
+          month: "long",
+          year: "numeric",
+        })
+      ),
+    [calendarDate]
+  );
+
+  const handlePrevMonth = () =>
+    setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  const handleNextMonth = () =>
+    setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
 
   const ventas = useMemo(() => (Array.isArray(ventasData) ? ventasData : []), [ventasData]);
+
+  const deliveryEventsByDay = useMemo(() => {
+    if (!ventas.length) return new Map();
+
+    const map = new Map();
+
+    ventas.forEach((venta) => {
+      if (venta?.estado === "despachada") return;
+      const entregaRaw = venta?.fechaEntrega || venta?.fechaLimite;
+      if (!entregaRaw) return;
+
+      const entregaDate = new Date(entregaRaw);
+      if (Number.isNaN(entregaDate.getTime())) return;
+
+      const key = `${entregaDate.getFullYear()}-${entregaDate.getMonth()}-${entregaDate.getDate()}`;
+      const clienteNombre =
+        venta?.cliente?.nombre ||
+        venta?.clienteNombre ||
+        (typeof venta?.cliente === "string" ? venta.cliente : "");
+      const estadoLabel =
+        typeof venta?.estado === "string"
+          ? capitalizeLabel(venta.estado.replace(/_/g, " "))
+          : "";
+
+      const entry = {
+        id: venta?._id || `${key}-${map.get(key)?.length || 0}`,
+        producto: getProductLabel(venta),
+        cliente: clienteNombre,
+        estado: estadoLabel,
+      };
+
+      const existing = map.get(key) || [];
+      existing.push(entry);
+      map.set(key, existing);
+    });
+
+    return map;
+  }, [ventas]);
+
+  const calendarDays = useMemo(() => {
+    const startOfMonth = new Date(
+      calendarDate.getFullYear(),
+      calendarDate.getMonth(),
+      1
+    );
+    const firstWeekday = (startOfMonth.getDay() + 6) % 7;
+    const totalCells = 42;
+    const cells = [];
+
+    for (let i = 0; i < totalCells; i += 1) {
+      const cellDate = new Date(
+        calendarDate.getFullYear(),
+        calendarDate.getMonth(),
+        i - firstWeekday + 1
+      );
+      const key = `${cellDate.getFullYear()}-${cellDate.getMonth()}-${cellDate.getDate()}`;
+
+      cells.push({
+        key,
+        day: cellDate.getDate(),
+        isCurrentMonth: cellDate.getMonth() === calendarDate.getMonth(),
+        isToday:
+          cellDate.getFullYear() === today.year &&
+          cellDate.getMonth() === today.month &&
+          cellDate.getDate() === today.day,
+        deliveries: deliveryEventsByDay.get(key) || [],
+      });
+    }
+
+    return cells;
+  }, [calendarDate, today, deliveryEventsByDay]);
 
   const currencyFormatter = useMemo(
     () =>
@@ -530,100 +651,273 @@ export const Home = () => {
       bgGradient={gradientBg}
     >
       <Stack spacing={8} maxW="1200px" mx="auto">
-        <Stack spacing={3}>
-          <Badge
-            alignSelf="flex-start"
-            colorScheme="teal"
-            px={3}
-            py={1}
-            borderRadius="full"
-            fontSize="0.7rem"
-          >
-            Tablero operativo
-          </Badge>
-          <Heading
-            fontSize={{ base: "2xl", md: "4xl" }}
-            fontFamily="'Space Grotesk', 'DM Sans', sans-serif"
-          >
-            Dashboard Costify
-          </Heading>
-          <Text fontSize="lg" color={mutedText} maxW="720px">
-            Controlá el pulso de ventas, márgenes y capacidad productiva desde una
-            sola pantalla. Los indicadores se recalculan automáticamente con cada
-            registro nuevo.
-          </Text>
-          <Text fontSize="sm" color={mutedText}>
-            Última sincronización: <strong>{lastUpdateText}</strong>
-          </Text>
-          <Text fontSize="sm" color={mutedText}>
-            Período analizado: <strong>{rangeDescription}</strong>
-          </Text>
-        </Stack>
-
-        <Box
-          p={5}
-          borderRadius="xl"
-          bg={cardBg}
-          borderWidth="1px"
-          borderColor={borderColor}
-          boxShadow="md"
+        <Flex
+          direction={{ base: "column", xl: "row" }}
+          gap={6}
+          align={{ base: "stretch", xl: "flex-start" }}
         >
-          <Stack spacing={4}>
-            <Flex direction={{ base: "column", md: "row" }} justify="space-between" gap={3}>
+          <Stack spacing={3} flex="1">
+            <Badge
+              alignSelf="flex-start"
+              colorScheme="teal"
+              px={3}
+              py={1}
+              borderRadius="full"
+              fontSize="0.7rem"
+            >
+              Tablero operativo
+            </Badge>
+            <Heading
+              fontSize={{ base: "2xl", md: "4xl" }}
+              fontFamily="'Space Grotesk', 'DM Sans', sans-serif"
+            >
+              Dashboard Costify
+            </Heading>
+            <Text fontSize="lg" color={mutedText} maxW="720px">
+              Monitoreá ventas, márgenes y capacidad en un solo lugar, con métricas que se
+              actualizan al instante.
+            </Text>
+            
+            <Flex
+              mt={2}
+              p={4}
+              borderRadius="xl"
+              borderWidth="1px"
+              borderColor={borderColor}
+              bg={cardBg}
+              direction={{ base: "column", md: "row" }}
+              align={{ base: "flex-start", md: "center" }}
+              justify="space-between"
+              gap={4}
+            >
               <Box>
-                <Heading size="sm" fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
-                  Ajustar período
-                </Heading>
                 <Text fontSize="sm" color={mutedText}>
-                  Filtra los indicadores por último mes o definí manualmente el rango.
+                  Última sincronización: <strong>{lastUpdateText}</strong>
+                </Text>
+                <Text fontSize="sm" color={mutedText}>
+                  Período analizado: <strong>{rangeDescription}</strong>
                 </Text>
               </Box>
-              <ButtonGroup size="sm" variant="ghost" colorScheme="teal">
+              <ButtonGroup size="sm" variant="solid" colorScheme="teal">
                 <Button
-                  variant={dateFilterMode === "last30" ? "solid" : "ghost"}
+                  variant={dateFilterMode === "last30" ? "solid" : "outline"}
                   onClick={() => setDateFilterMode("last30")}
                 >
                   Últimos 30 días
                 </Button>
                 <Button
-                  variant={dateFilterMode === "custom" ? "solid" : "ghost"}
+                  variant={dateFilterMode === "custom" ? "solid" : "outline"}
                   onClick={() => setDateFilterMode("custom")}
                 >
                   Rango personalizado
                 </Button>
               </ButtonGroup>
             </Flex>
-            {dateFilterMode === "custom" && (
-              <HStack spacing={4} flexWrap="wrap">
-                <FormControl maxW="220px">
-                  <FormLabel fontSize="sm">Desde</FormLabel>
-                  <Input
-                    type="date"
-                    value={customRange.start}
-                    onChange={(e) =>
-                      setCustomRange((prev) => ({ ...prev, start: e.target.value }))
-                    }
-                  />
-                </FormControl>
-                <FormControl maxW="220px">
-                  <FormLabel fontSize="sm">Hasta</FormLabel>
-                  <Input
-                    type="date"
-                    value={customRange.end}
-                    onChange={(e) =>
-                      setCustomRange((prev) => ({ ...prev, end: e.target.value }))
-                    }
-                  />
-                </FormControl>
-                <Box fontSize="sm" color={mutedText}>
-                  {customRange.start && customRange.end
-                    ? "Usando las fechas seleccionadas"
-                    : "Seleccioná fecha inicial y final para aplicar el filtro"}
-                </Box>
-              </HStack>
-            )}
           </Stack>
-        </Box>
+
+          <Box
+            w="100%"
+            maxW={{ base: "100%", xl: "340px" }}
+            p={5}
+            borderRadius="xl"
+            bg={cardBg}
+            borderWidth="1px"
+            borderColor={borderColor}
+            boxShadow="lg"
+          >
+            <Flex justify="space-between" align="center" mb={4}>
+              <Box>
+                <Text
+                  fontSize="xs"
+                  textTransform="uppercase"
+                  letterSpacing="0.2em"
+                  color={mutedText}
+                >
+                  Calendario
+                </Text>
+                <Heading size="md" fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+                  {calendarMonthLabel}
+                </Heading>
+              </Box>
+              <HStack spacing={1}>
+                <IconButton
+                  aria-label="Mes anterior"
+                  icon={<FiChevronLeft />}
+                  size="sm"
+                  variant="ghost"
+                  colorScheme="teal"
+                  onClick={handlePrevMonth}
+                />
+                <IconButton
+                  aria-label="Mes siguiente"
+                  icon={<FiChevronRight />}
+                  size="sm"
+                  variant="ghost"
+                  colorScheme="teal"
+                  onClick={handleNextMonth}
+                />
+              </HStack>
+            </Flex>
+            <SimpleGrid columns={7} spacing={1} mb={2}>
+              {weekDayLabels.map((day) => (
+                <Text
+                  key={day}
+                  textAlign="center"
+                  fontSize="xs"
+                  fontWeight="bold"
+                  color={mutedText}
+                >
+                  {day}
+                </Text>
+              ))}
+            </SimpleGrid>
+            <SimpleGrid columns={7} spacing={1}>
+              {calendarDays.map((cell) => {
+                const hasDelivery = cell.deliveries.length > 0;
+                const isInactive = !cell.isCurrentMonth;
+                const bg = cell.isToday
+                  ? accentTealBg
+                  : hasDelivery
+                    ? deliveryAccentBg
+                    : isInactive
+                      ? channelRankBg
+                      : "transparent";
+                const borderColorValue = cell.isToday
+                  ? accentTeal
+                  : hasDelivery
+                    ? deliveryAccentBorder
+                    : "transparent";
+                const borderWidthValue = borderColorValue === "transparent" ? "0px" : "1px";
+                const colorValue = isInactive
+                  ? mutedText
+                  : hasDelivery
+                    ? deliveryText
+                    : primaryText;
+
+                const renderDayBox = (additionalProps = {}) => (
+                  <Box
+                    textAlign="center"
+                    py={2}
+                    borderRadius="md"
+                    fontSize="sm"
+                    fontWeight={cell.isToday ? "bold" : "medium"}
+                    color={colorValue}
+                    bg={bg}
+                    borderWidth={borderWidthValue}
+                    borderColor={borderColorValue}
+                    opacity={isInactive ? 0.6 : 1}
+                    position="relative"
+                    {...additionalProps}
+                  >
+                    {cell.day}
+                    {hasDelivery && (
+                      <Box
+                        position="absolute"
+                        bottom={1}
+                        left="50%"
+                        transform="translateX(-50%)"
+                        w={1.5}
+                        h={1.5}
+                        borderRadius="full"
+                        bg={deliveryAccentDot}
+                      />
+                    )}
+                  </Box>
+                );
+
+                if (!hasDelivery) {
+                  return renderDayBox({ key: cell.key });
+                }
+
+                const tooltipContent = (
+                  <Box color="gray.900">
+                    <Text fontWeight="bold" fontSize="sm" mb={2}>
+                      {cell.deliveries.length} entrega{cell.deliveries.length > 1 ? "s" : ""} programada{cell.deliveries.length > 1 ? "s" : ""}
+                    </Text>
+                    <Stack spacing={2} maxW="220px">
+                      {cell.deliveries.map((delivery) => (
+                        <Box
+                          key={delivery.id}
+                          borderBottom="1px"
+                          borderColor="gray.200"
+                          pb={1}
+                        >
+                          <Text fontWeight="semibold" fontSize="sm">
+                            {delivery.producto}
+                          </Text>
+                          {delivery.cliente && (
+                            <Text fontSize="xs" color="gray.600">
+                              Cliente: {delivery.cliente}
+                            </Text>
+                          )}
+                          {delivery.estado && (
+                            <Text fontSize="xs" color="gray.600">
+                              Estado: {delivery.estado}
+                            </Text>
+                          )}
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                );
+
+                return (
+                  <Tooltip
+                    key={cell.key}
+                    label={tooltipContent}
+                    hasArrow
+                    placement="top"
+                    openDelay={150}
+                    closeOnClick
+                  >
+                    {renderDayBox({ cursor: "pointer", tabIndex: 0 })}
+                  </Tooltip>
+                );
+              })}
+            </SimpleGrid>
+            <Text fontSize="xs" color={mutedText} mt={3} fontStyle="italic">
+              Hoy: {todayLabel}
+            </Text>
+          </Box>
+        </Flex>
+
+        {dateFilterMode === "custom" && (
+          <Box
+            p={4}
+            borderRadius="xl"
+            bg={cardBg}
+            borderWidth="1px"
+            borderColor={borderColor}
+          >
+            <HStack spacing={4} flexWrap="wrap">
+              <FormControl maxW="220px">
+                <FormLabel fontSize="sm">Desde</FormLabel>
+                <Input
+                  type="date"
+                  value={customRange.start}
+                  onChange={(e) =>
+                    setCustomRange((prev) => ({ ...prev, start: e.target.value }))
+                  }
+                />
+              </FormControl>
+              <FormControl maxW="220px">
+                <FormLabel fontSize="sm">Hasta</FormLabel>
+                <Input
+                  type="date"
+                  value={customRange.end}
+                  onChange={(e) =>
+                    setCustomRange((prev) => ({ ...prev, end: e.target.value }))
+                  }
+                />
+              </FormControl>
+              <Box fontSize="sm" color={mutedText}>
+                {customRange.start && customRange.end
+                  ? "Usando las fechas seleccionadas"
+                  : "Seleccioná fecha inicial y final para aplicar el filtro"}
+              </Box>
+            </HStack>
+          </Box>
+        )}
 
         <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} gap={6}>
           {statCards.map((card) => (

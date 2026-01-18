@@ -20,6 +20,7 @@ import { getRawMaterialById } from "../../services/rawMaterials.service.js";
 export const ItemAddRawMaterials = ({ RawMaterialId }) => {
   const [form, setForm] = useState({
     nombre: "",
+    nombreMadera: "",
     categoria: "",
     type: "",
     medida: "",
@@ -99,6 +100,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
           const materiaPrima = res.data.materiaPrima || res.data;
           setForm({
             nombre: materiaPrima.nombre || "",
+            nombreMadera: materiaPrima.nombreMadera || "",
             categoria: materiaPrima.categoria || "",
             type: materiaPrima.type || "",
             medida: materiaPrima.medida || "",
@@ -131,6 +133,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "unidad",
       "precio",
       "stock",
+      ...(form.categoria === "Madera" ? ["nombreMadera"] : []),
     ];
 
     const missingFields = requiredFields.filter((field) => {
@@ -185,6 +188,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       }, 1000);
       setForm({
         nombre: "",
+        nombreMadera: "",
         categoria: "",
         type: "",
         medida: "",
@@ -215,6 +219,8 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
         categoria: value,
         type: "",
         nombre: isAuto ? "" : form.nombre,
+        nombreMadera: value === "Madera" ? form.nombreMadera : "",
+        espesor: "",
       });
       return;
     }
@@ -309,6 +315,20 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
               required
             />
           </FormControl>
+
+          {form.categoria === "Madera" && (
+            <FormControl>
+              <FormLabel>Nombre de la madera</FormLabel>
+              <Input
+                type="text"
+                name="nombreMadera"
+                placeholder="Ej.: Guatambu"
+                value={form.nombreMadera}
+                onChange={handleChange}
+                required
+              />
+            </FormControl>
+          )}
           
           <HStack spacing={4}>
             <FormControl>
@@ -327,8 +347,16 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
                 type="text"
                 name="espesor"
                 placeholder="1.2mm"
-                value={form.espesor}
-                onChange={handleChange}
+                value={form.categoria === "Proteccion" ? "" : form.espesor}
+                isDisabled={form.categoria === "Proteccion"}
+                readOnly={form.categoria === "Proteccion"}
+                placeholder={
+                  form.categoria === "Proteccion" ? "No aplica" : "1.2mm"
+                }
+                onChange={(e) => {
+                  if (form.categoria === "Proteccion") return;
+                  handleChange(e);
+                }}
               />
             </FormControl>
             <FormControl>
