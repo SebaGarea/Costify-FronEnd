@@ -33,6 +33,13 @@ const normalizeText = (value = "") =>
     .toLowerCase()
     .trim();
 
+const getMedidaSortKey = (value = "") => {
+  const match = value.match(/^(\s*)(\d+[.,]?\d*)/);
+  if (!match) return Number.POSITIVE_INFINITY;
+  const numeric = parseFloat(match[2].replace(",", "."));
+  return Number.isFinite(numeric) ? numeric : Number.POSITIVE_INFINITY;
+};
+
 const buildId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 const getMaterialDisplayName = (material) =>

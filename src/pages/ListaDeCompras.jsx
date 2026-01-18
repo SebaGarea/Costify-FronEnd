@@ -11,7 +11,12 @@ import {
   NumberInput,
   NumberInputField,
   useColorModeValue,
+  Button,
+  useToast,
 } from "@chakra-ui/react";
+import { DownloadIcon } from "@chakra-ui/icons";
+import * as XLSX from "xlsx-js-style";
+import { getMaterialTypeLabel } from "../constants/materialTypes";
 import { Loader } from "../components";
 import ListaCompraSeccion from "../components/ListaCompraSeccion";
 import { useItemsMateriasPrimas } from "../hooks";
@@ -105,6 +110,17 @@ export const ListaDeCompras = () => {
     loading,
     error,
   } = useItemsMateriasPrimas(100, { fetchAll: true });
+  const toast = useToast();
+
+  const materialsById = useMemo(() => {
+    const map = new Map();
+    rawsMaterialData.forEach((material) => {
+      if (material?._id) {
+        map.set(material._id, material);
+      }
+    });
+    return map;
+  }, [rawsMaterialData]);
 
   const [efectivoDisponible, setEfectivoDisponible] = useState(() => {
     if (typeof window === "undefined") return 0;
@@ -209,6 +225,247 @@ export const ListaDeCompras = () => {
   const summaryBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
+
+  const getMaterialName = useCallback(
+    (item) => {
+      if (!item) return "";
+      if (item.esPersonalizado) {
+        return item.nombrePersonalizado || item.descripcion || "Ítem manual";
+      }
+      if (item.nombreMadera) return item.nombreMadera;
+      const onRecord = materialsById.get(item.materiaId);
+      return (
+        onRecord?.nombreMadera ||
+        onRecord?.nombre ||
+        onRecord?.codigo ||
+        "Material"
+      );
+    },
+    [materialsById]
+  );
+
+  const getUnitPrice = useCallback(
+    (item) => {
+      if (!item) return 0;
+      if (item.esPersonalizado) {
+        const manualValue = Number(item.valorPersonalizado);
+        return Number.isFinite(manualValue) ? manualValue : 0;
+      }
+      const material = materialsById.get(item.materiaId);
+      const parsed = Number(material?.precio ?? 0);
+      return Number.isFinite(parsed) ? parsed : 0;
+    },
+    [materialsById]
+  );
+
+  const getLineTotal = useCallback(
+    (item) => {
+      if (!item) return 0;
+      const quantity = Number(item.cantidad) || 0;
+      return getUnitPrice(item) * quantity;
+    },
+    [getUnitPrice]
+  );
+
+  const handleExport = useCallback(() => {
+    if (typeof window === "undefined") return;
+
+    const header = [
+      "Sección",
+      "Material",
+      "Categoría",
+      "Tipo",
+      "Medida",
+      "Espesor",
+      "Cantidad",
+      "Valor unitario",
+      "Sub-total",
+      "Notas",
+    ];
+
+    const rows = [header];
+    let hasData = false;
+
+    const makeEmptyRow = () => new Array(header.length).fill("");
+
+    SECTIONS.forEach((section) => {
+      const sectionList = sectionItems[section.key] ?? [];
+      if (!sectionList.length) return;
+      hasData = true;
+      sectionList.forEach((item) => {
+        const displayTipo = section.key === "herreria"
+          ? getMaterialTypeLabel(item.tipo) || item.tipo || ""
+          : item.tipo || "";
+        rows.push([
+          section.title,
+          getMaterialName(item),
+          item.categoria || "",
+          displayTipo,
+          item.medida || "",
+          item.espesor || "",
+          Number(item.cantidad) || 0,
+          getUnitPrice(item) || 0,
+          getLineTotal(item) || 0,
+          item.descripcion || "",
+        ]);
+      });
+    });
+
+    if (!hasData) {
+      toast({
+        title: "No hay datos para exportar",
+        description: "Agregá ítems a la lista antes de generar el archivo.",
+        status: "info",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    rows.push(makeEmptyRow());
+    rows.push([
+      "",
+      "Total general",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      totalGeneral,
+      "",
+    ]);
+    rows.push([
+      "",
+      "Disponible total",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      totalDisponible,
+      "",
+    ]);
+    rows.push([
+      "",
+      "Diferencia",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      diferencia,
+      "",
+    ]);
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+    worksheet["!cols"] = [
+      { wch: 16 },
+      { wch: 28 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 16 },
+      { wch: 16 },
+      { wch: 24 },
+    ];
+
+    worksheet["!rows"] = rows.map((_, index) =>
+      index === 0 ? { hpt: 28 } : { hpt: 20 }
+    );
+
+    const range = XLSX.utils.decode_range(worksheet["!ref"]);
+    const headerBorder = { style: "thin", color: { rgb: "CBD5E0" } };
+    const bodyBorder = { style: "thin", color: { rgb: "E2E8F0" } };
+
+    const applyHeaderStyle = () => {
+      const headerStyle = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        alignment: { horizontal: "center", vertical: "center" },
+        fill: { fgColor: { rgb: "1A202C" } },
+        border: {
+          top: headerBorder,
+          bottom: headerBorder,
+          left: headerBorder,
+          right: headerBorder,
+        },
+      };
+      for (let c = range.s.c; c <= range.e.c; c += 1) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c });
+        const cell = worksheet[cellAddress];
+        if (cell) {
+          cell.s = headerStyle;
+        }
+      }
+    };
+
+    const buildBodyStyle = (overrides = {}) => ({
+      font: { color: { rgb: "1A202C" }, ...(overrides.font || {}) },
+      alignment: {
+        horizontal: "left",
+        vertical: "center",
+        ...(overrides.alignment || {}),
+      },
+      border: {
+        top: bodyBorder,
+        bottom: bodyBorder,
+        left: bodyBorder,
+        right: bodyBorder,
+      },
+      ...(overrides.fill ? { fill: overrides.fill } : {}),
+    });
+
+    const applyBodyStyles = () => {
+      for (let r = 1; r <= range.e.r; r += 1) {
+        for (let c = range.s.c; c <= range.e.c; c += 1) {
+          const cellAddress = XLSX.utils.encode_cell({ r, c });
+          const cell = worksheet[cellAddress];
+          if (cell) {
+            cell.s = buildBodyStyle();
+          }
+        }
+      }
+    };
+
+    const applyColumnStyle = (columnIndex, overrides = {}, numFmt) => {
+      for (let r = 1; r <= range.e.r; r += 1) {
+        const cellAddress = XLSX.utils.encode_cell({ r, c: columnIndex });
+        const cell = worksheet[cellAddress];
+        if (!cell) continue;
+        cell.s = buildBodyStyle(overrides);
+        if (numFmt && typeof cell.v === "number") {
+          cell.z = numFmt;
+        }
+      }
+    };
+
+    applyHeaderStyle();
+    applyBodyStyles();
+    applyColumnStyle(4, { alignment: { horizontal: "center" } });
+    applyColumnStyle(6, { alignment: { horizontal: "center" } });
+    const currencyFormat = '"$"#,##0';
+    applyColumnStyle(7, { alignment: { horizontal: "center" } }, currencyFormat);
+    applyColumnStyle(8, { alignment: { horizontal: "center" } }, currencyFormat);
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Lista de Compras");
+    const timestamp = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(workbook, `lista-compras-${timestamp}.xlsx`);
+  }, [
+    diferencia,
+    getLineTotal,
+    getMaterialName,
+    getUnitPrice,
+    sectionItems,
+    toast,
+    totalDisponible,
+    totalGeneral,
+  ]);
 
   if (loading && rawsMaterialData.length === 0) {
     return <Loader />;
@@ -323,6 +580,15 @@ export const ListaDeCompras = () => {
               </Text>
             </Flex>
           </Stack>
+          <Button
+            leftIcon={<DownloadIcon />}
+            colorScheme="teal"
+            mt={6}
+            onClick={handleExport}
+            width={{ base: "100%", sm: "auto" }}
+          >
+            Exportar a Excel
+          </Button>
         </Box>
       </Stack>
     </Box>
