@@ -88,6 +88,21 @@ export const ItemListContainerRawMaterials = ({
     return `$${formatted}`;
   };
 
+  const formatUpdatedAt = (value) => {
+    if (!value) return "Sin registro";
+    try {
+      return new Date(value).toLocaleString("es-AR", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Sin registro";
+    }
+  };
+
   const handleCategoryChange = (category) => {
     onFiltersChange?.({ category, type: null, medida: null });
   };
@@ -233,6 +248,9 @@ export const ItemListContainerRawMaterials = ({
                     <Text>Espesor: {mp.espesor || "N/A"}</Text>
                     <Text>Celda Excel: {mp.celdaExcel || "-"}</Text>
                     <Text color="gray.200">Precio: {formatPrice(mp.precio)}</Text>
+                    <Text fontSize="xs" color="gray.500">
+                      Última actualización: {formatUpdatedAt(mp.updatedAt)}
+                    </Text>
                     <Text>ID Mongo: {mp._id}</Text>
                   </Stack>
                   <Button as={Link} to={`/materias-primas/${mp._id}`} variant="outline" colorScheme="teal" rightIcon={<RiArrowRightLine />}>

@@ -64,6 +64,7 @@ const getProductoLabel = (venta = {}) => {
 };
 
 const ALERT_THRESHOLD_DAYS = 5;
+const DESPACHADA_WINDOW_DAYS = 30;
 
 const formatDueDiffText = (diffDays) => {
   if (typeof diffDays !== "number" || Number.isNaN(diffDays)) return "";
@@ -150,10 +151,31 @@ export const ItemListVentas = () => {
       despachada: 0,
     };
 
+    const now = Date.now();
+    const windowStart =
+      now - DESPACHADA_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
     ventasOrdenadas.forEach((venta) => {
-      if (venta && typeof counters[venta.estado] === "number") {
-        counters[venta.estado] += 1;
+      if (!venta || typeof counters[venta.estado] !== "number") return;
+
+      if (venta.estado === "despachada") {
+        const fechaDespacho =
+          new Date(
+            venta.fechaDespacho ||
+              venta.fechaEntrega ||
+              venta.updatedAt ||
+              venta.fecha ||
+              venta.createdAt ||
+              0
+          ).getTime();
+
+        if (!Number.isNaN(fechaDespacho) && fechaDespacho >= windowStart) {
+          counters.despachada += 1;
+        }
+        return;
       }
+
+      counters[venta.estado] += 1;
     });
     return counters;
   }, [ventasOrdenadas]);
@@ -181,6 +203,10 @@ export const ItemListVentas = () => {
       const restanValue = Number(venta?.restan ?? 0);
       if (!Number.isNaN(restanValue) && restanValue > 0) {
         pending += restanValue;
+      }
+
+      if (venta && ["finalizada", "despachada"].includes(venta.estado)) {
+        return;
       }
 
       if (venta?.fechaLimite) {
@@ -242,7 +268,7 @@ export const ItemListVentas = () => {
       key: "despachada",
       label: "Despachadas",
       value: statusMetrics.despachada ?? 0,
-      helper: "Entregas enviadas",
+      helper: "Entregas últimos 30 días",
       icon: FaTruck,
       accent: "blue.400",
     },
