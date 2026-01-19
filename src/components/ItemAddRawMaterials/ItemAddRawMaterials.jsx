@@ -346,7 +346,6 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
               <Input
                 type="text"
                 name="espesor"
-                placeholder="1.2mm"
                 value={form.categoria === "Proteccion" ? "" : form.espesor}
                 isDisabled={form.categoria === "Proteccion"}
                 readOnly={form.categoria === "Proteccion"}
