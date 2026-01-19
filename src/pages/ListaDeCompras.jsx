@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   Box,
   Heading,
@@ -8,18 +8,17 @@ import {
   Flex,
   FormControl,
   FormLabel,
-  NumberInput,
-  NumberInputField,
+  Input,
   useColorModeValue,
   Button,
   useToast,
 } from "@chakra-ui/react";
 import { DownloadIcon } from "@chakra-ui/icons";
-import * as XLSX from "xlsx-js-style";
 import { getMaterialTypeLabel } from "../constants/materialTypes";
 import { Loader } from "../components";
 import ListaCompraSeccion from "../components/ListaCompraSeccion";
 import { useItemsMateriasPrimas } from "../hooks";
+import { getShoppingList, saveShoppingList } from "../services/shoppingList.service.js";
 
 const SECTIONS = [
   {
@@ -67,6 +66,7 @@ const SECTIONS = [
 const STORAGE_KEY = "costify:lista-de-compras";
 const STORAGE_KEY_EFECTIVO = `${STORAGE_KEY}:efectivo`;
 const STORAGE_KEY_DIGITAL = `${STORAGE_KEY}:digital`;
+const SHOPPING_LIST_DEBOUNCE_MS = 1200;
 
 const parseStoredNumber = (value) => {
   const parsed = Number(value);
@@ -78,6 +78,21 @@ const buildEmptySectionItems = () =>
     acc[section.key] = [];
     return acc;
   }, {});
+
+const normalizeSectionItemsShape = (value = {}) => {
+  const empty = buildEmptySectionItems();
+  if (!value || typeof value !== "object") {
+    return empty;
+  }
+  return Object.keys(empty).reduce((acc, key) => {
+    const candidate = value[key];
+    acc[key] = Array.isArray(candidate) ? candidate : [];
+    return acc;
+  }, {});
+};
+
+const serializeShoppingListPayload = ({ sectionItems, efectivoDisponible, dineroDigital }) =>
+  JSON.stringify({ sectionItems, efectivoDisponible, dineroDigital });
 
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -155,6 +170,191 @@ export const ListaDeCompras = () => {
     return buildEmptySectionItems();
   });
 
+  const [isShoppingListLoading, setIsShoppingListLoading] = useState(true);
+  const [isSyncReady, setIsSyncReady] = useState(false);
+  const [hasPendingSave, setHasPendingSave] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  const lastSnapshotRef = useRef(null);
+  const isMountedRef = useRef(false);
+  const lastSaveErrorMessageRef = useRef(null);
+  const sectionItemsRef = useRef(sectionItems);
+  const efectivoRef = useRef(efectivoDisponible);
+  const digitalRef = useRef(dineroDigital);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    sectionItemsRef.current = sectionItems;
+  }, [sectionItems]);
+
+  useEffect(() => {
+    efectivoRef.current = efectivoDisponible;
+  }, [efectivoDisponible]);
+
+  useEffect(() => {
+    digitalRef.current = dineroDigital;
+  }, [dineroDigital]);
+
+  const loadShoppingList = useCallback(async () => {
+    setIsShoppingListLoading(true);
+    try {
+      const response = await getShoppingList();
+      if (!isMountedRef.current) {
+        return;
+      }
+      const remote = response?.data?.listaCompra;
+      if (remote) {
+        const normalizedSections = normalizeSectionItemsShape(remote.sectionItems);
+        const efectivo = Number(remote.efectivoDisponible ?? 0);
+        const digital = Number(remote.dineroDigital ?? 0);
+        const remoteHasItems = Object.values(normalizedSections).some(
+          (items) => Array.isArray(items) && items.length > 0
+        );
+        const remoteHasBalances = efectivo > 0 || digital > 0;
+        const remoteHasContent = remoteHasItems || remoteHasBalances;
+
+        const localSnapshot = normalizeSectionItemsShape(sectionItemsRef.current);
+        const localHasItems = Object.values(localSnapshot).some(
+          (items) => Array.isArray(items) && items.length > 0
+        );
+        const localHasBalances =
+          Number(efectivoRef.current || 0) > 0 || Number(digitalRef.current || 0) > 0;
+        const localHasContent = localHasItems || localHasBalances;
+
+        if (remoteHasContent || !localHasContent) {
+          setSectionItems(normalizedSections);
+          setEfectivoDisponible(efectivo);
+          setDineroDigital(digital);
+          lastSnapshotRef.current = serializeShoppingListPayload({
+            sectionItems: normalizedSections,
+            efectivoDisponible: efectivo,
+            dineroDigital: digital,
+          });
+          setLastSyncedAt(remote.updatedAt || new Date().toISOString());
+          setHasPendingSave(false);
+          lastSaveErrorMessageRef.current = null;
+        } else {
+          lastSnapshotRef.current = null;
+        }
+      } else {
+        lastSnapshotRef.current = serializeShoppingListPayload({
+          sectionItems: buildEmptySectionItems(),
+          efectivoDisponible: 0,
+          dineroDigital: 0,
+        });
+        setHasPendingSave(false);
+        lastSaveErrorMessageRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error al cargar la lista de compras", error);
+      if (isMountedRef.current) {
+        toast({
+          title: "No pudimos cargar la lista de compras",
+          description:
+            error?.response?.data?.message || "Intentá nuevamente en unos segundos.",
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } finally {
+      if (isMountedRef.current) {
+        setIsShoppingListLoading(false);
+        setIsSyncReady(true);
+      }
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadShoppingList();
+  }, [loadShoppingList]);
+
+  const persistShoppingList = useCallback(
+    async (payload) => {
+      if (!isMountedRef.current) {
+        return;
+      }
+      setIsSaving(true);
+      try {
+        const response = await saveShoppingList(payload);
+        if (!isMountedRef.current) {
+          return;
+        }
+        const updated = response?.data?.listaCompra;
+        const normalizedSections = normalizeSectionItemsShape(
+          updated?.sectionItems ?? payload.sectionItems
+        );
+        const efectivo = Number(updated?.efectivoDisponible ?? payload.efectivoDisponible ?? 0);
+        const digital = Number(updated?.dineroDigital ?? payload.dineroDigital ?? 0);
+        const serialized = serializeShoppingListPayload({
+          sectionItems: normalizedSections,
+          efectivoDisponible: efectivo,
+          dineroDigital: digital,
+        });
+        setSectionItems(normalizedSections);
+        setEfectivoDisponible(efectivo);
+        setDineroDigital(digital);
+        lastSnapshotRef.current = serialized;
+        setHasPendingSave(false);
+        setLastSyncedAt(updated?.updatedAt || new Date().toISOString());
+        lastSaveErrorMessageRef.current = null;
+      } catch (error) {
+        console.error("Error al guardar la lista de compras", error);
+        if (isMountedRef.current) {
+          const message =
+            error?.response?.data?.message || "Intentá nuevamente en unos segundos.";
+          if (lastSaveErrorMessageRef.current !== message) {
+            toast({
+              title: "No pudimos guardar la lista",
+              description: message,
+              status: "error",
+              duration: 5000,
+              isClosable: true,
+            });
+            lastSaveErrorMessageRef.current = message;
+          }
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setIsSaving(false);
+        }
+      }
+    },
+    [toast]
+  );
+
+  useEffect(() => {
+    if (!isSyncReady) {
+      return undefined;
+    }
+    const payload = {
+      sectionItems: normalizeSectionItemsShape(sectionItems),
+      efectivoDisponible,
+      dineroDigital,
+    };
+    const serialized = serializeShoppingListPayload(payload);
+    if (serialized === lastSnapshotRef.current) {
+      return undefined;
+    }
+    setHasPendingSave(true);
+    const timeoutId = setTimeout(() => {
+      persistShoppingList(payload);
+    }, SHOPPING_LIST_DEBOUNCE_MS);
+    return () => clearTimeout(timeoutId);
+  }, [
+    efectivoDisponible,
+    dineroDigital,
+    isSyncReady,
+    persistShoppingList,
+    sectionItems,
+  ]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -221,6 +421,19 @@ export const ListaDeCompras = () => {
     [totalDisponible, totalGeneral]
   );
 
+  const syncStatusMessage = useMemo(() => {
+    if (isSaving) return "Guardando cambios...";
+    if (hasPendingSave) return "Cambios pendientes de guardado";
+    if (lastSyncedAt) {
+      try {
+        return `Última sincronización: ${new Date(lastSyncedAt).toLocaleString("es-AR")}`;
+      } catch (dateError) {
+        console.error("No se pudo formatear la fecha de sincronización", dateError);
+      }
+    }
+    return "Sincronización pendiente";
+  }, [hasPendingSave, isSaving, lastSyncedAt]);
+
   const pageBg = useColorModeValue("gray.50", "gray.900");
   const summaryBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -267,8 +480,23 @@ export const ListaDeCompras = () => {
     [getUnitPrice]
   );
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     if (typeof window === "undefined") return;
+
+    let XLSX;
+    try {
+      XLSX = await import("xlsx-js-style");
+    } catch (importError) {
+      console.error("No se pudo cargar la librería de exportación", importError);
+      toast({
+        title: "Error al preparar la exportación",
+        description: "Intentá nuevamente en unos segundos.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
 
     const header = [
       "Sección",
@@ -467,7 +695,10 @@ export const ListaDeCompras = () => {
     totalGeneral,
   ]);
 
-  if (loading && rawsMaterialData.length === 0) {
+  const isPageLoading =
+    (loading && rawsMaterialData.length === 0) || isShoppingListLoading;
+
+  if (isPageLoading) {
     return <Loader />;
   }
 
@@ -488,6 +719,9 @@ export const ListaDeCompras = () => {
           </Heading>
           <Text fontSize="lg" color={mutedText} maxW="720px">
             Organizá las compras por área, calculá cantidades.
+          </Text>
+          <Text fontSize="sm" color={mutedText} mt={1}>
+            {syncStatusMessage}
           </Text>
         </Box>
 
@@ -543,29 +777,27 @@ export const ListaDeCompras = () => {
           <Stack spacing={3} mt={6}>
             <FormControl>
               <FormLabel fontSize="sm">Efectivo disponible</FormLabel>
-              <NumberInput
+              <Input
                 value={formatInputCurrency(efectivoDisponible)}
-                min={0}
-                onChange={(valueString) =>
-                  setEfectivoDisponible(parseInputCurrency(valueString))
+                onChange={(event) =>
+                  setEfectivoDisponible(parseInputCurrency(event.target.value))
                 }
+                placeholder="$0"
                 size="sm"
-              >
-                <NumberInputField placeholder="$0" />
-              </NumberInput>
+                inputMode="decimal"
+              />
             </FormControl>
             <FormControl>
               <FormLabel fontSize="sm">Dinero digital</FormLabel>
-              <NumberInput
+              <Input
                 value={formatInputCurrency(dineroDigital)}
-                min={0}
-                onChange={(valueString) =>
-                  setDineroDigital(parseInputCurrency(valueString))
+                onChange={(event) =>
+                  setDineroDigital(parseInputCurrency(event.target.value))
                 }
+                placeholder="$0"
                 size="sm"
-              >
-                <NumberInputField placeholder="$0" />
-              </NumberInput>
+                inputMode="decimal"
+              />
             </FormControl>
             <Flex justify="space-between" fontSize="md">
               <Text color={mutedText}>Disponible total</Text>
