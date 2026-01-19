@@ -85,7 +85,8 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "Tiradores",
       "Cerraduras",
       "Tornillos",
-      "Tirafondos"
+      "Tirafondos",
+      "Otros",
     ],
     Otros: [
     ]
