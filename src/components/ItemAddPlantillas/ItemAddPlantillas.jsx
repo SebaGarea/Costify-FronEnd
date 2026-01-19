@@ -162,12 +162,14 @@ const categoriaRules = {
   pintura: {
     include: ["proteccion"],
   },
+  otros: {},
 };
 
 const seccionLabels = {
   herreria: "Herrería",
   carpinteria: "Carpintería",
   pintura: "Pintura",
+  otros: "Otros",
 };
 
 const createEmptyItem = () => ({
@@ -183,6 +185,15 @@ const createEmptyItem = () => ({
   nombreMadera: "",
   selectedMaterialId: "",
 });
+
+const createDefaultExtrasState = () => ({
+  creditoCamioneta: { valor: "15000", porcentaje: "0" },
+  envio: { valor: "", porcentaje: "0" },
+  camposPersonalizados: [],
+});
+
+const toInputString = (value, fallback = "") =>
+  value === undefined || value === null ? fallback : value.toString();
 
 const formatCategoriaLabel = (value = "") =>
   value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
@@ -214,6 +225,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       herreria: 100,
       carpinteria: 100,
       pintura: 100,
+      otros: 100,
     },
   });
 
@@ -254,19 +266,17 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const [herreria, setHerreria] = useState([createEmptyItem()]);
   const [carpinteria, setCarpinteria] = useState([createEmptyItem()]);
   const [pintura, setPintura] = useState([createEmptyItem()]);
+  const [otros, setOtros] = useState([createEmptyItem()]);
 
   // Estado para consumibles por categoría
   const [consumibles, setConsumibles] = useState({
     herreria: "",
     carpinteria: "",
     pintura: "",
+    otros: "",
   });
 
-  const [extras, setExtras] = useState({
-    creditoCamioneta: { valor: "15000", porcentaje: 0 },
-    envio: { valor: "", porcentaje: 0 },
-    camposPersonalizados: [], // Array de { nombre: "", valor: "", porcentaje: 0 }
-  });
+  const [extras, setExtras] = useState(createDefaultExtrasState);
 
   // Hook para obtener tipos de proyecto únicos dinámicamente
   const { tiposProyecto, loading: loadingTipos, refetch: refetchTipos } = useGetTiposProyectoUnicos();
@@ -345,6 +355,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const debouncedHerreria = useDebounce(herreria, 300);
   const debouncedCarpinteria = useDebounce(carpinteria, 300);
   const debouncedPintura = useDebounce(pintura, 300);
+  const debouncedOtros = useDebounce(otros, 300);
   const debouncedConsumibles = useDebounce(consumibles, 300);
 
   // Memoizar cálculos pesados de subtotales con valores debounced
@@ -365,6 +376,12 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       calcularSubtotal(debouncedPintura) +
       parseFloat(debouncedConsumibles.pintura || 0),
     [debouncedPintura, debouncedConsumibles.pintura]
+  );
+  const subtotalOtros = useMemo(
+    () =>
+      calcularSubtotal(debouncedOtros) +
+      parseFloat(debouncedConsumibles.otros || 0),
+    [debouncedOtros, debouncedConsumibles.otros]
   );
 
   // Calcular subtotal de extras con porcentajes aplicados
@@ -405,14 +422,27 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       ),
     [subtotalPintura, form.porcentajesPorCategoria.pintura]
   );
+  const precioFinalOtros = useMemo(
+    () =>
+      calcularPrecioFinal(
+        subtotalOtros,
+        form.porcentajesPorCategoria.otros
+      ),
+    [subtotalOtros, form.porcentajesPorCategoria.otros]
+  );
 
   // Total general (incluyendo extras)
   const costoTotal =
-    subtotalHerreria + subtotalCarpinteria + subtotalPintura + subtotalExtras;
+    subtotalHerreria +
+    subtotalCarpinteria +
+    subtotalPintura +
+    subtotalOtros +
+    subtotalExtras;
   const precioFinalTotal =
     precioFinalHerreria +
     precioFinalCarpinteria +
     precioFinalPintura +
+    precioFinalOtros +
     subtotalExtras;
   const gananciaTotal = precioFinalTotal - costoTotal;
 
@@ -431,24 +461,57 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       getPlantillaById(PlantillasId)
         .then((res) => {
           const plantilla = res.data.plantilla || res.data;
+          const porcentajesGuardados = plantilla.porcentajesPorCategoria || {};
           setForm({
             nombre: plantilla.nombre || "",
             tipoProyecto: plantilla.tipoProyecto || "",
             items: plantilla.items || [],
-            porcentajesPorCategoria: plantilla.porcentajesPorCategoria || {
-              herreria: 100,
-              carpinteria: 100,
-              pintura: 100,
+            porcentajesPorCategoria: {
+              herreria: porcentajesGuardados.herreria ?? 100,
+              carpinteria: porcentajesGuardados.carpinteria ?? 100,
+              pintura: porcentajesGuardados.pintura ?? 100,
+              otros: porcentajesGuardados.otros ?? 100,
             },
           });
 
           // Cargar consumibles si existen
-          if (plantilla.consumibles) {
-            setConsumibles({
-              herreria: plantilla.consumibles.herreria || "",
-              carpinteria: plantilla.consumibles.carpinteria || "",
-              pintura: plantilla.consumibles.pintura || "",
+          const consumiblesGuardados = plantilla.consumibles || {};
+          setConsumibles({
+            herreria: consumiblesGuardados.herreria || "",
+            carpinteria: consumiblesGuardados.carpinteria || "",
+            pintura: consumiblesGuardados.pintura || "",
+            otros: consumiblesGuardados.otros || "",
+          });
+
+          if (plantilla.extras) {
+            const extrasServidor = plantilla.extras;
+            setExtras({
+              creditoCamioneta: {
+                valor: toInputString(
+                  extrasServidor.creditoCamioneta?.valor,
+                  "15000"
+                ),
+                porcentaje: toInputString(
+                  extrasServidor.creditoCamioneta?.porcentaje,
+                  "0"
+                ),
+              },
+              envio: {
+                valor: toInputString(extrasServidor.envio?.valor, ""),
+                porcentaje: toInputString(extrasServidor.envio?.porcentaje, "0"),
+              },
+              camposPersonalizados: Array.isArray(
+                extrasServidor.camposPersonalizados
+              )
+                ? extrasServidor.camposPersonalizados.map((campo) => ({
+                    nombre: campo.nombre || "",
+                    valor: toInputString(campo.valor, ""),
+                    porcentaje: toInputString(campo.porcentaje, "0"),
+                  }))
+                : [],
             });
+          } else {
+            setExtras(createDefaultExtrasState());
           }
 
           // Detectar si el tipo de proyecto es personalizado (no está en las opciones predefinidas)
@@ -580,11 +643,17 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               ?.filter((item) => item.categoria === "pintura")
               .map(convertirItemACascada) ?? [createEmptyItem()];
 
+          const otrosItems =
+            plantilla.items
+              ?.filter((item) => item.categoria === "otros")
+              .map(convertirItemACascada) ?? [createEmptyItem()];
+
           setHerreria(herreriaItems.length > 0 ? herreriaItems : [createEmptyItem()]);
           setCarpinteria(
             carpinteriaItems.length > 0 ? carpinteriaItems : [createEmptyItem()]
           );
           setPintura(pinturaItems.length > 0 ? pinturaItems : [createEmptyItem()]);
+          setOtros(otrosItems.length > 0 ? otrosItems : [createEmptyItem()]);
         })
         .catch((error) => {
           console.error("Error al cargar la plantilla:", error);
@@ -629,6 +698,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       setCarpinteria((prev) => [...prev, newItem]);
     } else if (categoria === "pintura") {
       setPintura((prev) => [...prev, newItem]);
+    } else if (categoria === "otros") {
+      setOtros((prev) => [...prev, newItem]);
     }
   }, []);
 
@@ -639,6 +710,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       setCarpinteria(carpinteria.filter((_, i) => i !== index));
     } else if (categoria === "pintura" && pintura.length > 1) {
       setPintura(pintura.filter((_, i) => i !== index));
+    } else if (categoria === "otros" && otros.length > 1) {
+      setOtros(otros.filter((_, i) => i !== index));
     }
   };
 
@@ -697,6 +770,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         herreria: [herreria, setHerreria],
         carpinteria: [carpinteria, setCarpinteria],
         pintura: [pintura, setPintura],
+        otros: [otros, setOtros],
       };
 
       const entry = stateMap[categoria];
@@ -859,6 +933,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       herreria,
       carpinteria,
       pintura,
+      otros,
       getEspesorOptions,
       getMaterialMatch,
       rawsMaterialData,
@@ -1020,6 +1095,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         herreria: 100,
         carpinteria: 100,
         pintura: 100,
+        otros: 100,
       },
     });
 
@@ -1030,20 +1106,18 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     setHerreria([createEmptyItem()]);
     setCarpinteria([createEmptyItem()]);
     setPintura([createEmptyItem()]);
+    setOtros([createEmptyItem()]);
 
     // Resetear consumibles
     setConsumibles({
       herreria: "",
       carpinteria: "",
       pintura: "",
+      otros: "",
     });
 
     // Resetear extras
-    setExtras({
-      creditoCamioneta: { valor: "15000", porcentaje: "" },
-      envio: { valor: "", porcentaje: "" },
-      camposPersonalizados: [],
-    });
+    setExtras(createDefaultExtrasState());
 
     // Las configuraciones de plataformas NO se resetean
   };
@@ -1256,6 +1330,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       ...mapItemsByCategoria(herreria, "herreria"),
       ...mapItemsByCategoria(carpinteria, "carpinteria"),
       ...mapItemsByCategoria(pintura, "pintura"),
+      ...mapItemsByCategoria(otros, "otros"),
     ];
 
     // Validar que hay datos mínimos
@@ -1297,6 +1372,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       herreria: parseFloat(consumibles.herreria) || 0,
       carpinteria: parseFloat(consumibles.carpinteria) || 0,
       pintura: parseFloat(consumibles.pintura) || 0,
+      otros: parseFloat(consumibles.otros) || 0,
     };
 
     // Limpiar porcentajes (asegurar que sean números)
@@ -1304,6 +1380,30 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       herreria: parseFloat(form.porcentajesPorCategoria.herreria) || 0,
       carpinteria: parseFloat(form.porcentajesPorCategoria.carpinteria) || 0,
       pintura: parseFloat(form.porcentajesPorCategoria.pintura) || 0,
+      otros: parseFloat(form.porcentajesPorCategoria.otros) || 0,
+    };
+
+    const parseNumberInput = (value) => {
+      const parsed = parseFloat(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const extrasPayload = {
+      creditoCamioneta: {
+        valor: parseNumberInput(extras.creditoCamioneta?.valor),
+        porcentaje: parseNumberInput(extras.creditoCamioneta?.porcentaje),
+      },
+      envio: {
+        valor: parseNumberInput(extras.envio?.valor),
+        porcentaje: parseNumberInput(extras.envio?.porcentaje),
+      },
+      camposPersonalizados: (extras.camposPersonalizados || [])
+        .map((campo) => ({
+          nombre: campo.nombre?.trim() || "",
+          valor: parseNumberInput(campo.valor),
+          porcentaje: parseNumberInput(campo.porcentaje),
+        }))
+        .filter((campo) => campo.nombre || campo.valor > 0),
     };
 
     // Construir objeto con la estructura exacta que espera el backend
@@ -1313,6 +1413,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       items: allItems, // Array de items con ObjectIds de materiaPrima
       porcentajesPorCategoria: porcentajesLimpios,
       consumibles: consumiblesLimpios,
+      extras: extrasPayload,
       tags: [], // Agregar tags vacío por defecto
     };
 
@@ -1473,7 +1574,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       <CardHeader>
         <HStack justify="space-between">
           <Heading size="md" color={color} textTransform="uppercase">
-            {categoria}
+            {seccionLabels[categoria] || categoria}
           </Heading>
           <Button
             leftIcon={<FiPlus />}
@@ -1492,7 +1593,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               const isCarpinteria = categoria === "carpinteria";
               const isPintura = categoria === "pintura";
               const isHerreria = categoria === "herreria";
-              const showSubtotalColumn = isCarpinteria || isPintura || isHerreria;
+              const isOtros = categoria === "otros";
+              const showSubtotalColumn = isCarpinteria || isPintura || isHerreria || isOtros;
               const fieldSize = "md";
               const labelFontSize = "sm";
               const baseColumns = showSubtotalColumn ? 8 : 6;
@@ -2279,6 +2381,13 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               "blue.400",
               subtotalPintura,
               precioFinalPintura
+            )}
+            {renderCategorySection(
+              "otros",
+              otros,
+              "purple.300",
+              subtotalOtros,
+              precioFinalOtros
             )}
 
             {/* Sección Extras */}

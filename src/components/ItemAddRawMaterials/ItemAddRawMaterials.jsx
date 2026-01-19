@@ -76,6 +76,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
     Madera: [
       "Maciza",
       "Enchapado",
+      "MDF Crudo",
       "Melamina",
     ],
     Herrajes:[
