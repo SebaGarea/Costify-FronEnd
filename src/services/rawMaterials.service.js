@@ -18,6 +18,16 @@ export async function getAllMateriasPrimas({ page = 1, limit = 10, category, typ
   });
 }
 
+export async function getMateriasPrimasMeta({ category, type, medida } = {}) {
+  return await api.get(`${BASE_URL}/api/materiasPrimas/meta`, {
+    params: {
+      category,
+      type,
+      medida,
+    },
+  });
+}
+
 export async function getMpByCategory(category) {
   return await api.get(
     `${BASE_URL}/api/materiasPrimas/category/${category}`

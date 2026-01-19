@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getAllMateriasPrimas } from "../../services/rawMaterials.service.js";
+import { getAllMateriasPrimas, getMateriasPrimasMeta } from "../../services/rawMaterials.service.js";
 import {
   getCodesForMaterialTypeLabel,
   mapCodesToTypeLabels,
@@ -26,6 +26,10 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
     setLoading(true);
     const fetch = async () => {
       try {
+        const categoryParam = filters.category || undefined;
+        const typeParam = buildTypeParam(filters.type);
+        const medidaParam = filters.medida || undefined;
+
         if (fetchAll) {
           const aggregatedItems = [];
           const availableTypeSet = new Set();
@@ -33,14 +37,22 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
           let currentPage = 1;
           let totalPages = 1;
           let lastPagination = null;
+          const metaRequest = getMateriasPrimasMeta({
+            category: categoryParam,
+            type: typeParam,
+            medida: medidaParam,
+          }).catch((metaError) => {
+            console.error("Error al obtener metadatos de materias primas", metaError);
+            return null;
+          });
 
           do {
             const res = await getAllMateriasPrimas({
               page: currentPage,
               limit: pageSize,
-              category: filters.category || undefined,
-              type: buildTypeParam(filters.type),
-              medida: filters.medida || undefined,
+              category: categoryParam,
+              type: typeParam,
+              medida: medidaParam,
             });
             const pageItems = res.data.materiasPrimas || [];
             aggregatedItems.push(...pageItems);
@@ -64,9 +76,15 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
           } else {
             setPagination({ total: aggregatedItems.length, page: 1, limit: aggregatedItems.length, totalPages: 1 });
           }
+          const metaResponse = await metaRequest;
+          const fetchedMeta = metaResponse?.data?.filtersMeta || { availableTypes: [], availableMedidas: [] };
+          const finalMeta = {
+            availableTypes: (fetchedMeta.availableTypes?.length ? fetchedMeta.availableTypes : Array.from(availableTypeSet)) || [],
+            availableMedidas: (fetchedMeta.availableMedidas?.length ? fetchedMeta.availableMedidas : Array.from(availableMedidasSet)) || [],
+          };
           setFiltersMeta({
-            availableTypes: mapCodesToTypeLabels(Array.from(availableTypeSet)),
-            availableMedidas: Array.from(availableMedidasSet),
+            availableTypes: mapCodesToTypeLabels(finalMeta.availableTypes),
+            availableMedidas: finalMeta.availableMedidas,
           });
           return;
         }
@@ -74,9 +92,9 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
         const res = await getAllMateriasPrimas({
           page,
           limit: pageSize,
-          category: filters.category || undefined,
-          type: buildTypeParam(filters.type),
-          medida: filters.medida || undefined,
+          category: categoryParam,
+          type: typeParam,
+          medida: medidaParam,
         });
         setRawsMaterialData(res.data.materiasPrimas || []);
         setPagination(res.data.pagination || { total: 0, page, limit: pageSize, totalPages: 1 });
