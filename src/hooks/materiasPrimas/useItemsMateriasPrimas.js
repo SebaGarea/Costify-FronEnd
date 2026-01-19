@@ -34,8 +34,6 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
           const aggregatedItems = [];
           const availableTypeSet = new Set();
           const availableMedidasSet = new Set();
-          let currentPage = 1;
-          let totalPages = 1;
           let lastPagination = null;
           const metaRequest = getMateriasPrimasMeta({
             category: categoryParam,
@@ -46,23 +44,44 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
             return null;
           });
 
-          do {
-            const res = await getAllMateriasPrimas({
-              page: currentPage,
-              limit: pageSize,
-              category: categoryParam,
-              type: typeParam,
-              medida: medidaParam,
+          const firstResponse = await getAllMateriasPrimas({
+            page: 1,
+            limit: pageSize,
+            category: categoryParam,
+            type: typeParam,
+            medida: medidaParam,
+          });
+          const firstItems = firstResponse.data.materiasPrimas || [];
+          aggregatedItems.push(...firstItems);
+          const firstMeta = firstResponse.data.filtersMeta || { availableTypes: [], availableMedidas: [] };
+          (firstMeta.availableTypes || []).forEach((code) => availableTypeSet.add(code));
+          (firstMeta.availableMedidas || []).forEach((medida) => availableMedidasSet.add(medida));
+          lastPagination = firstResponse.data.pagination || null;
+          const totalPages = lastPagination?.totalPages || 1;
+
+          if (totalPages > 1) {
+            const remainingRequests = [];
+            for (let nextPage = 2; nextPage <= totalPages; nextPage += 1) {
+              remainingRequests.push(
+                getAllMateriasPrimas({
+                  page: nextPage,
+                  limit: pageSize,
+                  category: categoryParam,
+                  type: typeParam,
+                  medida: medidaParam,
+                })
+              );
+            }
+
+            const remainingResponses = await Promise.all(remainingRequests);
+            remainingResponses.forEach((res) => {
+              const pageItems = res.data.materiasPrimas || [];
+              aggregatedItems.push(...pageItems);
+              const rawMeta = res.data.filtersMeta || { availableTypes: [], availableMedidas: [] };
+              (rawMeta.availableTypes || []).forEach((code) => availableTypeSet.add(code));
+              (rawMeta.availableMedidas || []).forEach((medida) => availableMedidasSet.add(medida));
             });
-            const pageItems = res.data.materiasPrimas || [];
-            aggregatedItems.push(...pageItems);
-            const rawMeta = res.data.filtersMeta || { availableTypes: [], availableMedidas: [] };
-            (rawMeta.availableTypes || []).forEach((code) => availableTypeSet.add(code));
-            (rawMeta.availableMedidas || []).forEach((medida) => availableMedidasSet.add(medida));
-            lastPagination = res.data.pagination || null;
-            totalPages = lastPagination?.totalPages || 1;
-            currentPage += 1;
-          } while (currentPage <= totalPages);
+          }
 
           setRawsMaterialData(aggregatedItems);
           if (lastPagination) {
