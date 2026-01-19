@@ -71,6 +71,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "Barniz",
       "Impregnante",
       "Aerosol",
+      "Pintura al Horno",
     ],
     Madera: [
       "Maciza",

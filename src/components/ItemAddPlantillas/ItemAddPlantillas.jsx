@@ -95,36 +95,47 @@ const unformatCurrency = (value) => {
   const raw = value.toString().trim();
   if (!raw) return "";
 
-  const cleaned = raw.replace(/[^0-9.,-]/g, "");
-  if (!cleaned) return "";
+  const compact = raw.replace(/[\s\u00A0]/g, "");
+  if (!compact) return "";
 
-  const lastComma = cleaned.lastIndexOf(",");
-  const lastDot = cleaned.lastIndexOf(".");
-  let decimalSeparatorIndex = -1;
+  const allowed = compact.replace(/[^0-9.,-]/g, "");
+  if (!allowed) return "";
+
+  const lastComma = allowed.lastIndexOf(",");
+  const lastDot = allowed.lastIndexOf(".");
   let decimalSeparator = null;
 
   if (lastComma !== -1 && lastDot !== -1) {
-    decimalSeparatorIndex = Math.max(lastComma, lastDot);
-    decimalSeparator = cleaned[decimalSeparatorIndex];
+    decimalSeparator = lastComma > lastDot ? "," : ".";
   } else if (lastComma !== -1) {
-    decimalSeparatorIndex = lastComma;
     decimalSeparator = ",";
   } else if (lastDot !== -1) {
-    decimalSeparatorIndex = lastDot;
-    decimalSeparator = ".";
+    const fractionalLength = allowed.length - lastDot - 1;
+    if (fractionalLength > 0 && fractionalLength <= 2) {
+      decimalSeparator = ".";
+    }
   }
 
-  if (decimalSeparatorIndex !== -1) {
-    const integerPart = cleaned
-      .slice(0, decimalSeparatorIndex)
-      .replace(/[^0-9-]/g, "");
-    const fractionalPart = cleaned
-      .slice(decimalSeparatorIndex + 1)
-      .replace(/[^0-9]/g, "");
-    return `${integerPart || "0"}.${fractionalPart || "0"}`;
+  let integerPart = allowed;
+  let fractionalPart = "";
+
+  if (decimalSeparator) {
+    const separatorIndex = allowed.lastIndexOf(decimalSeparator);
+    integerPart = allowed.slice(0, separatorIndex);
+    fractionalPart = allowed.slice(separatorIndex + 1);
   }
 
-  return cleaned.replace(/[^0-9-]/g, "");
+  integerPart = integerPart.replace(/[^0-9-]/g, "");
+  fractionalPart = fractionalPart.replace(/[^0-9]/g, "");
+
+  if (!decimalSeparator) {
+    return integerPart;
+  }
+
+  const normalizedInteger = integerPart || "0";
+  const normalizedFractional = fractionalPart || "0";
+
+  return `${normalizedInteger}.${normalizedFractional}`;
 };
 
 // Función para formatear precios mostrados (para badges y totales)
