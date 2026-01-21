@@ -132,14 +132,9 @@ export const ItemListVentas = () => {
     if (!Array.isArray(ventas)) return [];
 
     return [...ventas].sort((a, b) => {
-      const ca = new Date(a.createdAt || a.fecha || 0).getTime();
-      const cb = new Date(b.createdAt || b.fecha || 0).getTime();
-      if (cb !== ca) return cb - ca;
-
       const fa = new Date(a.fecha || 0).getTime();
       const fb = new Date(b.fecha || 0).getTime();
       if (fb !== fa) return fb - fa;
-
       return String(b._id).localeCompare(String(a._id));
     });
   }, [ventas]);
