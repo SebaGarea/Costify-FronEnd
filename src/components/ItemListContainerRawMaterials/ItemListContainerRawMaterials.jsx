@@ -24,7 +24,7 @@ import {
   useColorModeValue,
   useDisclosure,
 } from "@chakra-ui/react";
-import { FiChevronDown, FiPlus, FiUploadCloud } from "react-icons/fi";
+import { FiChevronDown, FiPlus, FiUploadCloud, FiDownload } from "react-icons/fi";
 import { RiArrowRightLine } from "react-icons/ri";
 import { Link } from "react-router-dom";
 import { useCategoryMp } from "../../hooks/materiasPrimas";
@@ -39,6 +39,8 @@ export const ItemListContainerRawMaterials = ({
   onPageChange,
   onFiltersChange,
   isLoading,
+  onExport,
+  isExporting = false,
   onDeleteAll,
   isDeletingAll,
 }) => {
@@ -202,6 +204,15 @@ export const ItemListContainerRawMaterials = ({
             </Button>
             <Button as={Link} to="/materias-primas/import" variant="outline" leftIcon={<FiUploadCloud />}>
               Subir Excel
+            </Button>
+            <Button
+              variant="outline"
+              leftIcon={<FiDownload />}
+              onClick={onExport}
+              isLoading={isExporting}
+              isDisabled={isLoading || typeof onExport !== "function"}
+            >
+              Exportar Excel
             </Button>
             <Button
               colorScheme="red"

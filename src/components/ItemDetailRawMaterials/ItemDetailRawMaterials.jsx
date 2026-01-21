@@ -35,6 +35,25 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
   const navigate = useNavigate();
   const { deleteMp, loading } = useDeleteMp();
 
+  const formatTimestamp = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("es-AR");
+  };
+
+  const detailFields = [
+    { label: "Categoría", value: RawMaterials.categoria },
+    { label: "Tipo", value: RawMaterials.type },
+    { label: "Nombre de madera", value: RawMaterials.nombreMadera },
+    { label: "Medida", value: RawMaterials.medida },
+    { label: "Espesor", value: RawMaterials.espesor },
+    { label: "Precio", value: RawMaterials.precio },
+    { label: "Stock", value: RawMaterials.stock },
+    { label: "Celda Excel", value: RawMaterials.celdaExcel },
+    { label: "Última actualización", value: formatTimestamp(RawMaterials.updatedAt) },
+  ].filter((field) => field.value !== undefined && field.value !== null && field.value !== "");
+
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const handleDelete = async () => {
@@ -127,6 +146,26 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
                       </Text>
                       <FcMoneyTransfer size={40} />
                     </HStack>
+
+                    {detailFields.length > 0 && (
+                      <Grid
+                        templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }}
+                        gap={4}
+                        w="100%"
+                        mb={6}
+                      >
+                        {detailFields.map((field) => (
+                          <Box key={field.label}>
+                            <Text fontSize="sm" color="gray.500" fontWeight="bold" mb={1}>
+                              {field.label.toUpperCase()}
+                            </Text>
+                            <Text fontSize="md" fontWeight={500}>
+                              {field.value}
+                            </Text>
+                          </Box>
+                        ))}
+                      </Grid>
+                    )}
                   </Box>
 
                   <Divider />
@@ -196,21 +235,6 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
               {/* Botones de acción - Lado derecho */}
               <GridItem>
                 <VStack spacing={4} w="100%">
-                  <Button
-                    w="100%"
-                    size="lg"
-                    bg={useColorModeValue("blue.500", "blue.300")}
-                    color="white"
-                    _hover={{
-                      transform: "translateY(-2px)",
-                      boxShadow: "lg",
-                      bg: useColorModeValue("blue.600", "blue.400"),
-                    }}
-                    transition="all 0.2s"
-                  >
-                    Ver Planilla
-                  </Button>
-
                   <Button
                     as={Link}
                     to={`/materias-primas/update/${RawMaterials._id}`}

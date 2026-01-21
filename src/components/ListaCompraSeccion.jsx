@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, memo } from "react";
 import {
   Box,
   Heading,
@@ -77,25 +77,33 @@ const ListaCompraSeccion = ({
   materialFieldLabel = "Materia prima",
 }) => {
   const [items, setItems] = useState(controlledItems);
+  const skipSyncRef = useRef(false);
 
-  const updateItems = useCallback(
-    (updater) => {
-      setItems((prev) => {
-        const next =
-          typeof updater === "function" ? updater(prev) : updater ?? [];
-        if (next === prev) {
-          return prev;
-        }
-        onItemsChange?.(next);
-        return next;
-      });
-    },
-    [onItemsChange]
-  );
+  const updateItems = useCallback((updater) => {
+    setItems((prev) => {
+      const next =
+        typeof updater === "function" ? updater(prev) : updater ?? [];
+      return next === prev ? prev : next;
+    });
+  }, []);
 
   useEffect(() => {
-    setItems(controlledItems);
+    setItems((prev) => {
+      if (prev === controlledItems) {
+        return prev;
+      }
+      skipSyncRef.current = true;
+      return controlledItems;
+    });
   }, [controlledItems]);
+
+  useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
+    onItemsChange?.(items);
+  }, [items, onItemsChange]);
 
   const noteBg = useColorModeValue(
     colorConfig.bg?.light ?? "yellow.50",
@@ -153,42 +161,135 @@ const ListaCompraSeccion = ({
     });
   }, [rawMaterials, categorySlug, filterConfig]);
 
-  const categoryOptions = useMemo(() => {
-    const unique = new Map();
+  const materialIndex = useMemo(() => {
+    const categorias = new Map();
+    const tiposByCategoria = new Map();
+    const medidasByCatTipo = new Map();
+    const espesoresByCatTipoMedida = new Map();
+    const materialesByCatTipoMedida = new Map();
+    const materialesByCatTipoMedidaEspesor = new Map();
+
+    const ensureMap = (map, key, build) => {
+      if (!map.has(key)) {
+        map.set(key, build());
+      }
+      return map.get(key);
+    };
+
     sectionMaterials.forEach((mat) => {
-      const categoria = mat?.categoria;
-      if (!categoria) return;
-      const key = normalizeText(categoria);
-      if (!unique.has(key)) {
-        unique.set(key, categoria);
+      const categoria = mat?.categoria || "";
+      const categoriaKey = normalizeText(categoria);
+      if (!categoriaKey) return;
+      categorias.set(categoriaKey, categoria);
+
+      const typeValue = mat?.type || "";
+      const typeKey = normalizeText(typeValue);
+      if (typeKey) {
+        const tiposMap = ensureMap(tiposByCategoria, categoriaKey, () => new Map());
+        if (!tiposMap.has(typeKey)) {
+          tiposMap.set(typeKey, {
+            value: typeValue,
+            label: getMaterialTypeLabel(typeValue),
+          });
+        }
+      }
+
+      const medidaValue = mat?.medida || "";
+      const medidaKey = normalizeText(medidaValue);
+      const espesorValue = mat?.espesor || "";
+      const espesorKey = normalizeText(espesorValue);
+
+      if (typeKey && medidaKey) {
+        const medidaMap = ensureMap(
+          medidasByCatTipo,
+          `${categoriaKey}||${typeKey}`,
+          () => new Map()
+        );
+        if (!medidaMap.has(medidaKey)) {
+          medidaMap.set(medidaKey, medidaValue);
+        }
+      }
+
+      if (typeKey && medidaKey && espesorKey) {
+        const espesorMap = ensureMap(
+          espesoresByCatTipoMedida,
+          `${categoriaKey}||${typeKey}||${medidaKey}`,
+          () => new Map()
+        );
+        if (!espesorMap.has(espesorKey)) {
+          espesorMap.set(espesorKey, espesorValue);
+        }
+      }
+
+      if (typeKey && medidaKey) {
+        const listKey = `${categoriaKey}||${typeKey}||${medidaKey}`;
+        ensureMap(materialesByCatTipoMedida, listKey, () => []).push(mat);
+        if (espesorKey) {
+          const listKeyEspesor = `${listKey}||${espesorKey}`;
+          ensureMap(materialesByCatTipoMedidaEspesor, listKeyEspesor, () => []).push(mat);
+        }
       }
     });
-    return Array.from(unique.values()).sort((a, b) =>
+
+    const toSortedArray = (map, sorter) =>
+      Array.from(map.values()).sort(sorter);
+
+    const sortedCategorias = Array.from(categorias.values()).sort((a, b) =>
       a.localeCompare(b, "es", { sensitivity: "base" })
     );
+
+    const sortedTiposByCategoria = new Map();
+    tiposByCategoria.forEach((value, key) => {
+      sortedTiposByCategoria.set(
+        key,
+        toSortedArray(value, (a, b) =>
+          a.label.localeCompare(b.label, "es", { sensitivity: "base" })
+        )
+      );
+    });
+
+    const sortedMedidasByCatTipo = new Map();
+    medidasByCatTipo.forEach((value, key) => {
+      sortedMedidasByCatTipo.set(
+        key,
+        toSortedArray(value, (a, b) =>
+          a.localeCompare(b, "es", { sensitivity: "base" })
+        )
+      );
+    });
+
+    const sortedEspesoresByCatTipoMedida = new Map();
+    espesoresByCatTipoMedida.forEach((value, key) => {
+      sortedEspesoresByCatTipoMedida.set(
+        key,
+        toSortedArray(value, (a, b) =>
+          a.localeCompare(b, "es", { sensitivity: "base" })
+        )
+      );
+    });
+
+    return {
+      categorias: sortedCategorias,
+      tiposByCategoria: sortedTiposByCategoria,
+      medidasByCatTipo: sortedMedidasByCatTipo,
+      espesoresByCatTipoMedida: sortedEspesoresByCatTipoMedida,
+      materialesByCatTipoMedida,
+      materialesByCatTipoMedidaEspesor,
+    };
   }, [sectionMaterials]);
+
+  const categoryOptions = useMemo(
+    () => materialIndex.categorias,
+    [materialIndex]
+  );
 
   const getTipoOptions = useCallback(
     (categoriaSeleccionada) => {
       if (!categoriaSeleccionada) return [];
       const categoriaKey = normalizeText(categoriaSeleccionada);
-      const unique = new Map();
-      sectionMaterials.forEach((mat) => {
-        if (normalizeText(mat?.categoria || "") !== categoriaKey) return;
-        if (!mat?.type) return;
-        const typeKey = normalizeText(mat.type);
-        if (!unique.has(typeKey)) {
-          unique.set(typeKey, {
-            value: mat.type,
-            label: getMaterialTypeLabel(mat.type),
-          });
-        }
-      });
-      return Array.from(unique.values()).sort((a, b) =>
-        a.label.localeCompare(b.label, "es", { sensitivity: "base" })
-      );
+      return materialIndex.tiposByCategoria.get(categoriaKey) || [];
     },
-    [sectionMaterials]
+    [materialIndex]
   );
 
   const getMedidaOptions = useCallback(
@@ -196,46 +297,28 @@ const ListaCompraSeccion = ({
       if (!categoriaSeleccionada || !tipoSeleccionado) return [];
       const categoriaKey = normalizeText(categoriaSeleccionada);
       const tipoKey = normalizeText(tipoSeleccionado);
-      const unique = new Map();
-      sectionMaterials.forEach((mat) => {
-        if (normalizeText(mat?.categoria || "") !== categoriaKey) return;
-        if (normalizeText(mat?.type || "") !== tipoKey) return;
-        if (!mat?.medida) return;
-        const medidaKey = normalizeText(mat.medida);
-        if (!unique.has(medidaKey)) {
-          unique.set(medidaKey, mat.medida);
-        }
-      });
-      return Array.from(unique.values()).sort((a, b) =>
-        a.localeCompare(b, "es", { sensitivity: "base" })
+      return (
+        materialIndex.medidasByCatTipo.get(`${categoriaKey}||${tipoKey}`) || []
       );
     },
-    [sectionMaterials]
+    [materialIndex]
   );
 
   const getEspesorOptions = useCallback(
     (categoriaSeleccionada, tipoSeleccionado, medidaSeleccionada) => {
-      if (!categoriaSeleccionada || !tipoSeleccionado || !medidaSeleccionada)
+      if (!categoriaSeleccionada || !tipoSeleccionado || !medidaSeleccionada) {
         return [];
+      }
       const categoriaKey = normalizeText(categoriaSeleccionada);
       const tipoKey = normalizeText(tipoSeleccionado);
       const medidaKey = normalizeText(medidaSeleccionada);
-      const unique = new Map();
-      sectionMaterials.forEach((mat) => {
-        if (normalizeText(mat?.categoria || "") !== categoriaKey) return;
-        if (normalizeText(mat?.type || "") !== tipoKey) return;
-        if (normalizeText(mat?.medida || "") !== medidaKey) return;
-        if (!mat?.espesor) return;
-        const espesorKey = normalizeText(mat.espesor);
-        if (!unique.has(espesorKey)) {
-          unique.set(espesorKey, mat.espesor);
-        }
-      });
-      return Array.from(unique.values()).sort((a, b) =>
-        a.localeCompare(b, "es", { sensitivity: "base" })
+      return (
+        materialIndex.espesoresByCatTipoMedida.get(
+          `${categoriaKey}||${tipoKey}||${medidaKey}`
+        ) || []
       );
     },
-    [sectionMaterials]
+    [materialIndex]
   );
 
   const getMaterialOptions = useCallback(
@@ -245,27 +328,20 @@ const ListaCompraSeccion = ({
       medidaSeleccionada,
       espesorSeleccionado
     ) => {
-      if (!categoriaSeleccionada) return [];
+      if (!categoriaSeleccionada || !tipoSeleccionado || !medidaSeleccionada) return [];
       const categoriaKey = normalizeText(categoriaSeleccionada);
-      const tipoKey = tipoSeleccionado ? normalizeText(tipoSeleccionado) : null;
-      const medidaKey = medidaSeleccionada
-        ? normalizeText(medidaSeleccionada)
-        : null;
-      const espesorKey = espesorSeleccionado
-        ? normalizeText(espesorSeleccionado)
-        : null;
-
-      return sectionMaterials.filter((mat) => {
-        if (normalizeText(mat?.categoria || "") !== categoriaKey) return false;
-        if (tipoKey && normalizeText(mat?.type || "") !== tipoKey) return false;
-        if (medidaKey && normalizeText(mat?.medida || "") !== medidaKey)
-          return false;
-        if (espesorKey && normalizeText(mat?.espesor || "") !== espesorKey)
-          return false;
-        return true;
-      });
+      const tipoKey = normalizeText(tipoSeleccionado);
+      const medidaKey = normalizeText(medidaSeleccionada);
+      const baseKey = `${categoriaKey}||${tipoKey}||${medidaKey}`;
+      if (espesorSeleccionado) {
+        const espesorKey = normalizeText(espesorSeleccionado);
+        return materialIndex.materialesByCatTipoMedidaEspesor.get(
+          `${baseKey}||${espesorKey}`
+        ) || [];
+      }
+      return materialIndex.materialesByCatTipoMedida.get(baseKey) || [];
     },
-    [sectionMaterials]
+    [materialIndex]
   );
 
   const pickFirstMaterial = useCallback(
@@ -283,50 +359,52 @@ const ListaCompraSeccion = ({
   );
 
   useEffect(() => {
-    updateItems((prev) => {
-      let mutated = false;
-      const next = prev.map((item) => {
-        if (!item) return item;
-        if (item.esPersonalizado) return item;
-        if (item.materiaId) {
-          if (!item.nombreMadera) {
-            const mat = materialsById.get(item.materiaId);
-            if (mat) {
-              mutated = true;
-              return {
-                ...item,
-                nombreMadera: getMaterialDisplayName(mat),
-              };
-            }
+    let mutated = false;
+    const next = items.map((item) => {
+      if (!item) return item;
+      if (item.esPersonalizado) return item;
+      if (item.materiaId) {
+        if (!item.nombreMadera) {
+          const mat = materialsById.get(item.materiaId);
+          if (mat) {
+            mutated = true;
+            return {
+              ...item,
+              nombreMadera: getMaterialDisplayName(mat),
+            };
           }
-          return item;
         }
-        if (!item.categoria || !item.tipo || !item.medida) return item;
-        const espOptions = getEspesorOptions(
-          item.categoria,
-          item.tipo,
-          item.medida
-        );
-        if (espOptions.length > 0 && !item.espesor) {
-          return item;
-        }
-        const autoMaterial = pickFirstMaterial(
-          item.categoria,
-          item.tipo,
-          item.medida,
-          item.espesor
-        );
-        if (!autoMaterial) return item;
-        mutated = true;
-        return {
-          ...item,
-          materiaId: autoMaterial._id,
-          nombreMadera: getMaterialDisplayName(autoMaterial),
-        };
-      });
-      return mutated ? next : prev;
+        return item;
+      }
+      if (!item.categoria || !item.tipo || !item.medida) return item;
+      const espOptions = getEspesorOptions(
+        item.categoria,
+        item.tipo,
+        item.medida
+      );
+      if (espOptions.length > 0 && !item.espesor) {
+        return item;
+      }
+      const autoMaterial = pickFirstMaterial(
+        item.categoria,
+        item.tipo,
+        item.medida,
+        item.espesor
+      );
+      if (!autoMaterial) return item;
+      mutated = true;
+      return {
+        ...item,
+        materiaId: autoMaterial._id,
+        nombreMadera: getMaterialDisplayName(autoMaterial),
+      };
     });
-  }, [items, updateItems, getEspesorOptions, pickFirstMaterial, materialsById]);
+
+    if (!mutated) {
+      return;
+    }
+    setItems(next);
+  }, [items, getEspesorOptions, pickFirstMaterial, materialsById]);
 
   const getMaterialPrice = (materiaId) => {
     const material = materialsById.get(materiaId);
@@ -829,4 +907,4 @@ const ListaCompraSeccion = ({
   );
 };
 
-export default ListaCompraSeccion;
+export default memo(ListaCompraSeccion);

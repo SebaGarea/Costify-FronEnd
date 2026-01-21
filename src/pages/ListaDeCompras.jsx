@@ -61,12 +61,24 @@ const SECTIONS = [
     filter: { mode: "include", categories: ["proteccion"] },
     showMaterialField: false,
   },
+  {
+    key: "otros",
+    title: "Otros",
+    colors: {
+      bg: { light: "yellow.50", dark: "yellow.900" },
+      border: { light: "yellow.200", dark: "yellow.600" },
+      heading: { light: "orange.700", dark: "orange.100" },
+      accent: { light: "orange.600", dark: "orange.200" },
+      buttonScheme: "orange",
+    },
+    filter: { mode: "exclude", categories: ["madera", "proteccion", "herreria", "carpinteria"] },
+    showMaterialField: false,
+  },
 ];
 
 const STORAGE_KEY = "costify:lista-de-compras";
 const STORAGE_KEY_EFECTIVO = `${STORAGE_KEY}:efectivo`;
 const STORAGE_KEY_DIGITAL = `${STORAGE_KEY}:digital`;
-const SHOPPING_LIST_DEBOUNCE_MS = 1200;
 
 const parseStoredNumber = (value) => {
   const parsed = Number(value);
@@ -76,6 +88,12 @@ const parseStoredNumber = (value) => {
 const buildEmptySectionItems = () =>
   SECTIONS.reduce((acc, section) => {
     acc[section.key] = [];
+    return acc;
+  }, {});
+
+const buildInitialSubtotals = () =>
+  SECTIONS.reduce((acc, section) => {
+    acc[section.key] = 0;
     return acc;
   }, {});
 
@@ -329,31 +347,31 @@ export const ListaDeCompras = () => {
     [toast]
   );
 
-  useEffect(() => {
-    if (!isSyncReady) {
-      return undefined;
-    }
-    const payload = {
-      sectionItems: normalizeSectionItemsShape(sectionItems),
+  const normalizedSectionItems = useMemo(
+    () => normalizeSectionItemsShape(sectionItems),
+    [sectionItems]
+  );
+
+  const currentPayload = useMemo(
+    () => ({
+      sectionItems: normalizedSectionItems,
       efectivoDisponible,
       dineroDigital,
-    };
-    const serialized = serializeShoppingListPayload(payload);
-    if (serialized === lastSnapshotRef.current) {
-      return undefined;
-    }
-    setHasPendingSave(true);
-    const timeoutId = setTimeout(() => {
-      persistShoppingList(payload);
-    }, SHOPPING_LIST_DEBOUNCE_MS);
-    return () => clearTimeout(timeoutId);
-  }, [
-    efectivoDisponible,
-    dineroDigital,
-    isSyncReady,
-    persistShoppingList,
-    sectionItems,
-  ]);
+    }),
+    [normalizedSectionItems, efectivoDisponible, dineroDigital]
+  );
+
+  useEffect(() => {
+    if (!isSyncReady) return;
+    const serialized = serializeShoppingListPayload(currentPayload);
+    const hasChanges = serialized !== lastSnapshotRef.current;
+    setHasPendingSave(hasChanges);
+  }, [currentPayload, isSyncReady]);
+
+  const handleManualSave = useCallback(() => {
+    if (!hasPendingSave || isSaving) return;
+    persistShoppingList(currentPayload);
+  }, [currentPayload, hasPendingSave, isSaving, persistShoppingList]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -388,19 +406,36 @@ export const ListaDeCompras = () => {
     }
   }, [dineroDigital]);
 
-  const [subtotals, setSubtotals] = useState({
-    herreria: 0,
-    carpinteria: 0,
-    pintura: 0,
-  });
+  const [subtotals, setSubtotals] = useState(() => buildInitialSubtotals());
 
   const handleSubtotalChange = useCallback((sectionKey, amount) => {
     setSubtotals((prev) => ({ ...prev, [sectionKey]: amount }));
   }, []);
 
   const handleItemsChange = useCallback((sectionKey, items) => {
-    setSectionItems((prev) => ({ ...prev, [sectionKey]: items }));
+    setSectionItems((prev) => {
+      if (prev[sectionKey] === items) {
+        return prev;
+      }
+      return { ...prev, [sectionKey]: items };
+    });
   }, []);
+
+  const onItemsChangeBySection = useMemo(() => {
+    const handlers = {};
+    SECTIONS.forEach((section) => {
+      handlers[section.key] = (items) => handleItemsChange(section.key, items);
+    });
+    return handlers;
+  }, [handleItemsChange]);
+
+  const onSubtotalChangeBySection = useMemo(() => {
+    const handlers = {};
+    SECTIONS.forEach((section) => {
+      handlers[section.key] = (value) => handleSubtotalChange(section.key, value);
+    });
+    return handlers;
+  }, [handleSubtotalChange]);
 
   const totalGeneral = useMemo(
     () =>
@@ -423,7 +458,7 @@ export const ListaDeCompras = () => {
 
   const syncStatusMessage = useMemo(() => {
     if (isSaving) return "Guardando cambios...";
-    if (hasPendingSave) return "Cambios pendientes de guardado";
+    if (hasPendingSave) return "Cambios sin guardar";
     if (lastSyncedAt) {
       try {
         return `Última sincronización: ${new Date(lastSyncedAt).toLocaleString("es-AR")}`;
@@ -713,17 +748,33 @@ export const ListaDeCompras = () => {
   return (
     <Box bg={pageBg} minH="100vh" px={{ base: 4, md: 10 }} py={{ base: 6, md: 10 }}>
       <Stack spacing={8} maxW="1200px" mx="auto">
-        <Box>
-          <Heading fontSize={{ base: "2xl", md: "4xl" }} mb={2} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
-            Lista de Compras
-          </Heading>
-          <Text fontSize="lg" color={mutedText} maxW="720px">
-            Organizá las compras por área, calculá cantidades.
-          </Text>
-          <Text fontSize="sm" color={mutedText} mt={1}>
-            {syncStatusMessage}
-          </Text>
-        </Box>
+        <Flex
+          direction={{ base: "column", md: "row" }}
+          align={{ base: "flex-start", md: "center" }}
+          justify="space-between"
+          gap={4}
+        >
+          <Box>
+            <Heading fontSize={{ base: "2xl", md: "4xl" }} mb={2} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+              Lista de Compras
+            </Heading>
+            <Text fontSize="lg" color={mutedText} maxW="720px">
+              Organizá las compras por área, calculá cantidades.
+            </Text>
+            <Text fontSize="sm" color={mutedText} mt={1}>
+              {syncStatusMessage}
+            </Text>
+          </Box>
+          <Button
+            colorScheme="teal"
+            size="md"
+            onClick={handleManualSave}
+            isDisabled={!hasPendingSave || isSaving}
+            isLoading={isSaving}
+          >
+            Guardar cambios
+          </Button>
+        </Flex>
 
         <Stack spacing={6}>
           {SECTIONS.map((section) => (
@@ -735,13 +786,25 @@ export const ListaDeCompras = () => {
               colorConfig={section.colors}
               filterConfig={section.filter}
               items={sectionItems[section.key] ?? []}
-              onItemsChange={(items) => handleItemsChange(section.key, items)}
+              onItemsChange={onItemsChangeBySection[section.key]}
               showMaterialField={section.showMaterialField}
               materialFieldLabel={section.materialFieldLabel}
-              onSubtotalChange={(value) => handleSubtotalChange(section.key, value)}
+              onSubtotalChange={onSubtotalChangeBySection[section.key]}
             />
           ))}
         </Stack>
+
+        <Flex justify="flex-end">
+          <Button
+            colorScheme="teal"
+            size="md"
+            onClick={handleManualSave}
+            isDisabled={!hasPendingSave || isSaving}
+            isLoading={isSaving}
+          >
+            Guardar cambios
+          </Button>
+        </Flex>
 
         <Box
           mt={6}
@@ -822,6 +885,7 @@ export const ListaDeCompras = () => {
             Exportar a Excel
           </Button>
         </Box>
+
       </Stack>
     </Box>
   );

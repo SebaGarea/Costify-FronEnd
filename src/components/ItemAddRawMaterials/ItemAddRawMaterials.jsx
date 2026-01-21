@@ -81,6 +81,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
     ],
     Herrajes:[
       "Bisagras Ocultas",
+      "Bisagras Cazoletas",
       "Bisagras Elevables",
       "Correderas",
       "Tiradores",

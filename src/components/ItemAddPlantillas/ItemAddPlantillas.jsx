@@ -536,17 +536,32 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                 ? item.materiaPrima
                 : "";
 
-            // Si ya tiene la estructura nueva (con campos separados), devolverlo tal como está
-            if (item.categoriaMP && item.tipoMP && item.medidaMP) {
-              return {
-                ...createEmptyItem(),
-                ...item,
-                isPriceAuto: Boolean(item.isPriceAuto),
-                isCustomMaterial: esPersonalizado || Boolean(item.isCustomMaterial),
-                descripcionPersonalizada: item.descripcionPersonalizada || "",
-                nombreMadera: item.nombreMadera || "",
-                selectedMaterialId: item.selectedMaterialId || materiaPrimaId,
-              };
+            const baseItem = {
+              ...createEmptyItem(),
+              ...item,
+              valor: toInputString(item.valor, ""),
+              cantidad: toInputString(item.cantidad, ""),
+              descripcionPersonalizada: item.descripcionPersonalizada || "",
+              nombreMadera: item.nombreMadera || "",
+              selectedMaterialId: item.selectedMaterialId || materiaPrimaId,
+              isCustomMaterial: esPersonalizado || Boolean(item.isCustomMaterial),
+              isPriceAuto: esPersonalizado ? false : Boolean(item.isPriceAuto),
+            };
+
+            const tieneMetadatosCascada = Boolean(
+              item.categoriaMP ||
+                item.tipoMP ||
+                item.medidaMP ||
+                item.espesorMP ||
+                item.nombreMadera
+            );
+
+            if (esPersonalizado && tieneMetadatosCascada) {
+              return baseItem;
+            }
+
+            if (item.categoriaMP && item.tipoMP && item.medidaMP && !esPersonalizado) {
+              return baseItem;
             }
 
             // Si materiaPrima es un OBJETO (populate del backend)
@@ -617,13 +632,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               }
             }
 
-            // Si no tiene ninguna estructura válida, devolver estructura vacía
-            return {
-              ...createEmptyItem(),
-              isCustomMaterial: esPersonalizado,
-              nombreMadera: item.nombreMadera || "",
-              selectedMaterialId: materiaPrimaId,
-            };
+            // Si no tiene ninguna estructura válida, reutilizar baseItem para mantener los datos ingresados
+            return baseItem;
           };
 
           // Separar items por categoría y convertir al formato de cascada
