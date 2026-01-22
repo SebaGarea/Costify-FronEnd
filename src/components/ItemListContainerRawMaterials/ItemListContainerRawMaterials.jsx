@@ -256,7 +256,8 @@ export const ItemListContainerRawMaterials = ({
                     <Text>Stock: {mp.stock}</Text>
                     <Text>Tipo: {getMaterialTypeLabel(mp.type)}</Text>
                     <Text>Medida: {mp.medida}</Text>
-                    <Text>Espesor: {mp.espesor || "N/A"}</Text>
+                    <Text>Espesor: {mp.espesor || "N/A"} {mp.unidad || mp.unidadMedida || "-"}</Text>
+                    
                     <Text>Celda Excel: {mp.celdaExcel || "-"}</Text>
                     <Text color="gray.200">Precio: {formatPrice(mp.precio)}</Text>
                     <Text fontSize="xs" color="gray.500">

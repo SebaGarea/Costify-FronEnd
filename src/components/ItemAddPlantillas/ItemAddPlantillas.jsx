@@ -46,6 +46,7 @@ import {
   GridItem,
   FormControl,
   FormLabel,
+  FormHelperText,
   Input,
   Select,
   Stack,
@@ -75,6 +76,15 @@ import { FiPlus, FiMinus, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router";
 import { getPlantillaById } from "../../services/plantillas.service.js";
 import { getMaterialTypeLabel } from "../../constants/materialTypes.js";
+import {
+  MERCADO_LIBRE_PLANS,
+  buildDefaultPlataformasConfig,
+  computePriceWithCommission,
+  getMercadoLibrePrices,
+  getNubePrices,
+  parseStoredPlataformasConfig,
+  PLATAFORMAS_CONFIG_STORAGE_KEY,
+} from "../../constants/platformPricing.js";
 
 // Función para formatear números con formato peso argentino similar a las cards
 const formatCurrency = (value) => {
@@ -244,17 +254,13 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
   // Función para cargar configuración de plataformas desde localStorage
   const cargarConfiguracionPlataformas = () => {
-    const configGuardada = localStorage.getItem("costify-plataformas-config");
-    if (configGuardada) {
-      return JSON.parse(configGuardada);
+    if (typeof window === "undefined" || !window.localStorage) {
+      return buildDefaultPlataformasConfig();
     }
-    // Valores por defecto iniciales
-    return {
-      mercadoLibre: 16.28,
-      mercadoLibre3Cuotas: 41,
-      valorNubeCuotas: 47,
-      valorNube: 10,
-    };
+    const configGuardada = window.localStorage.getItem(
+      PLATAFORMAS_CONFIG_STORAGE_KEY
+    );
+    return parseStoredPlataformasConfig(configGuardada);
   };
 
   // Estado para porcentajes de plataformas de venta
@@ -326,6 +332,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const cardBorder = useColorModeValue("teal.200", "teal.500");
   const titleColor = useColorModeValue("teal.600", "teal.300");
   const subtotalBg = useColorModeValue("gray.50", "gray.600");
+  const mutedTextColor = useColorModeValue("gray.600", "gray.300");
 
   // Variables de color para la sección del producto
   const productoBg = useColorModeValue("blue.50", "blue.900");
@@ -447,14 +454,21 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const gananciaTotal = precioFinalTotal - costoTotal;
 
   // Cálculos para plataformas de venta
-  const precioMercadoLibre =
-    precioFinalTotal * (1 + porcentajesPlataformas.mercadoLibre / 100);
-  const precioML3Cuotas =
-    precioFinalTotal * (1 + porcentajesPlataformas.mercadoLibre3Cuotas / 100);
-  const valorNubeCuotas =
-    precioFinalTotal * (1 + porcentajesPlataformas.valorNubeCuotas / 100);
-  const valorNube =
-    precioFinalTotal * (1 + porcentajesPlataformas.valorNube / 100);
+  const preciosMercadoLibre = useMemo(
+    () => getMercadoLibrePrices(precioFinalTotal, porcentajesPlataformas),
+    [precioFinalTotal, porcentajesPlataformas]
+  );
+
+  const {
+    basePercent: nubeBasePercent,
+    cuotasExtraPercent: nubeCuotasExtraPercent,
+    totalCuotasPercent: nubeCuotasTotalPercent,
+    valorBase: valorNube,
+    valorCuotas: valorNubeCuotas,
+  } = useMemo(
+    () => getNubePrices(precioFinalTotal, porcentajesPlataformas),
+    [precioFinalTotal, porcentajesPlataformas]
+  );
 
   useEffect(() => {
     if (PlantillasId) {
@@ -1053,20 +1067,16 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
   // Función para guardar configuración de plataformas en localStorage
   const guardarConfiguracionPlataformas = (nuevaConfig) => {
-    localStorage.setItem(
-      "costify-plataformas-config",
+    if (typeof window === "undefined" || !window.localStorage) return;
+    window.localStorage.setItem(
+      PLATAFORMAS_CONFIG_STORAGE_KEY,
       JSON.stringify(nuevaConfig)
     );
   };
 
   // Función para resetear configuración de plataformas a valores originales
   const resetearConfiguracionPlataformas = () => {
-    const valoresOriginales = {
-      mercadoLibre: 16.28,
-      mercadoLibre3Cuotas: 41,
-      valorNubeCuotas: 47,
-      valorNube: 10,
-    };
+    const valoresOriginales = buildDefaultPlataformasConfig();
     setPorcentajesPlataformas(valoresOriginales);
     guardarConfiguracionPlataformas(valoresOriginales);
     toast({
@@ -2670,61 +2680,105 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   </Button>
                 </HStack>
 
-                <HStack spacing={4} wrap="wrap">
-                  <FormControl maxW="200px">
-                    <FormLabel fontSize="sm">MercadoLibre (%)</FormLabel>
-                    <Input
-                      name="plataforma_mercadoLibre"
-                      type="number"
-                      step="0.01"
-                      value={porcentajesPlataformas.mercadoLibre}
-                      onChange={handleChange}
-                      size="sm"
-                      textAlign="center"
-                    />
-                  </FormControl>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1} w="75%">
+                  <Box
+                    borderWidth="1px"
+                    borderRadius="lg"
+                    borderColor={cardBorder}
+                    bg={useColorModeValue("white", "gray.800")}
+                    p={3}
+                  >
+                    <Text fontWeight="bold" fontSize="sm" mb={1} textAlign={"center"}>
+                      Mercado Libre
+                    </Text>
+                    <VStack spacing={2} align="stretch">
+                      <FormControl>
+                        <FormLabel fontSize="xs">Cargo de Venta (%)</FormLabel>
+                        <Input
+                          name="plataforma_mercadoLibreBase"
+                          type="number"
+                          step="0.01"
+                          value={porcentajesPlataformas.mercadoLibreBase ?? ""}
+                          onChange={handleChange}
+                          size="sm"
+                          textAlign="center"
+                          py={1}
+                        />
+                        <FormHelperText fontSize="xs" textAlign="center">
+                          Comisión fija aplicada a todas las ventas
+                        </FormHelperText>
+                      </FormControl>
 
-                  <FormControl maxW="200px">
-                    <FormLabel fontSize="sm">
-                      Mercado Libre 3 Cuotas (%)
-                    </FormLabel>
-                    <Input
-                      name="plataforma_mercadoLibre3Cuotas"
-                      type="number"
-                      step="0.01"
-                      value={porcentajesPlataformas.mercadoLibre3Cuotas}
-                      onChange={handleChange}
-                      size="sm"
-                      textAlign="center"
-                    />
-                  </FormControl>
+                      {MERCADO_LIBRE_PLANS.map((plan) => (
+                        <FormControl key={plan.key}>
+                          <FormLabel fontSize="xs">
+                            {plan.helper || plan.label} (%)
+                          </FormLabel>
+                          <Input
+                            name={`plataforma_${plan.key}`}
+                            type="number"
+                            step="0.01"
+                            value={porcentajesPlataformas[plan.key] ?? ""}
+                            onChange={handleChange}
+                            size="sm"
+                            textAlign="center"
+                            py={1}
+                          />
+                          <FormHelperText fontSize="xs" textAlign={"center"}>
+                            Cargo adicional del plan de cuotas
+                          </FormHelperText>
+                        </FormControl>
+                      ))}
+                    </VStack>
+                  </Box>
 
-                  <FormControl maxW="200px">
-                    <FormLabel fontSize="sm">Valor Nube Cuotas (%)</FormLabel>
-                    <Input
-                      name="plataforma_valorNubeCuotas"
-                      type="number"
-                      step="0.01"
-                      value={porcentajesPlataformas.valorNubeCuotas}
-                      onChange={handleChange}
-                      size="sm"
-                      textAlign="center"
-                    />
-                  </FormControl>
+                  <Box
+                    borderWidth="1px"
+                    borderRadius="lg"
+                    borderColor={cardBorder}
+                    bg={useColorModeValue("white", "gray.800")}
+                    p={3}
+                  >
+                    <Text fontWeight="bold" fontSize="sm" mb={1} textAlign={"center"}>
+                      Tienda Nube
+                    </Text>
+                    <VStack spacing={2} align="stretch">
+                      <FormControl>
+                        <FormLabel fontSize="xs">Cargo de Venta (%)</FormLabel>
+                        <Input
+                          name="plataforma_nubeVentaBase"
+                          type="number"
+                          step="0.01"
+                          value={porcentajesPlataformas.nubeVentaBase ?? ""}
+                          onChange={handleChange}
+                          size="sm"
+                          textAlign="center"
+                          py={1}
+                        />
+                        <FormHelperText fontSize="xs" textAlign={"center"}>
+                          Comisión base aplicada a cada venta
+                        </FormHelperText>
+                      </FormControl>
 
-                  <FormControl maxW="200px">
-                    <FormLabel fontSize="sm">Valor Nube (%)</FormLabel>
-                    <Input
-                      name="plataforma_valorNube"
-                      type="number"
-                      step="0.01"
-                      value={porcentajesPlataformas.valorNube}
-                      onChange={handleChange}
-                      size="sm"
-                      textAlign="center"
-                    />
-                  </FormControl>
-                </HStack>
+                      <FormControl>
+                        <FormLabel fontSize="xs">Cargo por Cuotas (%)</FormLabel>
+                        <Input
+                          name="plataforma_nubeCuotasExtra"
+                          type="number"
+                          step="0.01"
+                          value={porcentajesPlataformas.nubeCuotasExtra ?? ""}
+                          onChange={handleChange}
+                          size="sm"
+                          textAlign="center"
+                          py={1}
+                        />
+                        <FormHelperText fontSize="xs" textAlign={"center"}>
+                          Recargo adicional cuando ofrecés cuotas
+                        </FormHelperText>
+                      </FormControl>
+                    </VStack>
+                  </Box>
+                </SimpleGrid>
 
                 <Divider />
 
@@ -2738,42 +2792,51 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   💰 PRECIOS POR PLATAFORMA
                 </Text>
 
-                <HStack w="100%" justify="space-between" fontSize="lg">
-                  <Text fontWeight="bold">
-                    🛒 Precio MercadoLibre (
-                    {porcentajesPlataformas.mercadoLibre}%):
-                  </Text>
-                  <Badge colorScheme="yellow" fontSize="lg" p={2}>
-                    {formatPrice(precioMercadoLibre)}
-                  </Badge>
-                </HStack>
+                {preciosMercadoLibre.map((plan) => (
+                  <HStack
+                    key={plan.key}
+                    w="80%"
+                    justify="space-between"
+                    fontSize="lg"
+                  >
+                    <Text fontWeight="bold">
+                      {plan.label} ({plan.comisionTotalPercent}%):
+                    </Text>
+                    <VStack spacing={0} align="flex-end">
+                      <Badge
+                        colorScheme={plan.badgeColor}
+                        fontSize="lg"
+                        p={2}
+                      >
+                        {formatPrice(plan.precio)}
+                      </Badge>
+                      <Text fontSize="xs" color={mutedTextColor}>
+                        Base {plan.basePercent}% + Cuotas {plan.extraPercent}%
+                      </Text>
+                    </VStack>
+                  </HStack>
+                ))}
 
-                <HStack w="100%" justify="space-between" fontSize="lg">
+                <HStack w="80%" justify="space-between" fontSize="lg">
                   <Text fontWeight="bold">
-                    💳 Precio ML 3 Cuotas (
-                    {porcentajesPlataformas.mercadoLibre3Cuotas}%):
-                  </Text>
-                  <Badge colorScheme="purple" fontSize="lg" p={2}>
-                    {formatPrice(precioML3Cuotas)}
-                  </Badge>
-                </HStack>
-
-                <HStack w="100%" justify="space-between" fontSize="lg">
-                  <Text fontWeight="bold">
-                    ☁️ Valor Nube Cuotas (
-                    {porcentajesPlataformas.valorNubeCuotas}%):
-                  </Text>
-                  <Badge colorScheme="cyan" fontSize="lg" p={2}>
-                    {formatPrice(valorNubeCuotas)}
-                  </Badge>
-                </HStack>
-
-                <HStack w="100%" justify="space-between" fontSize="lg">
-                  <Text fontWeight="bold">
-                    🌟 Valor Nube ({porcentajesPlataformas.valorNube}%):
+                    🌟 Valor Nube (Base {nubeBasePercent}%):
                   </Text>
                   <Badge colorScheme="teal" fontSize="lg" p={2}>
                     {formatPrice(valorNube)}
+                  </Badge>
+                </HStack>
+
+                <HStack w="80%" justify="space-between" fontSize="lg">
+                  <VStack align="flex-start" spacing={0}>
+                    <Text fontWeight="bold">
+                      ☁️ Valor Nube Cuotas ({nubeCuotasTotalPercent}%):
+                    </Text>
+                    <Text fontSize="xs" color={mutedTextColor}>
+                      Base {nubeBasePercent}% + Cuotas {nubeCuotasExtraPercent}%
+                    </Text>
+                  </VStack>
+                  <Badge colorScheme="cyan" fontSize="lg" p={2}>
+                    {formatPrice(valorNubeCuotas)}
                   </Badge>
                 </HStack>
               </VStack>

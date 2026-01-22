@@ -6,7 +6,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useItems } from "../../hooks/index.js";
+import { useItems, useGetAllPlantillas } from "../../hooks/index.js";
 import { useAddVenta } from "../../hooks/ventas/useAddVenta.js";
 import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
 import api from "../../services/auth.service.js";
@@ -21,6 +21,7 @@ const mediosVenta = [
 
 export const ItemAddVenta = () => {
   const { productsData = [] } = useItems();
+  const { plantillasData = [], loading: plantillasLoading } = useGetAllPlantillas();
   const { addVenta, loading } = useAddVenta();
   const { updateVenta } = useUpdateVentas();
   const navigate = useNavigate();
@@ -37,11 +38,12 @@ export const ItemAddVenta = () => {
     medio: mediosVenta[0].value,
     productoNombre: "",
     productoId: "",
+    plantillaId: "",
     cantidad: 1,
-        precioManual: "",
+    precioManual: "",
     descripcion: "",
-    valorEnvio: 0,
-    seña: 0,
+    valorEnvio: "",
+    seña: "",
     fechaLimite: "",
   });
 
@@ -49,8 +51,13 @@ export const ItemAddVenta = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchProducto, setSearchProducto] = useState("");
 
-  // Calcula el producto seleccionado
-  const selectedProduct = productsData.find(p => p._id === form.productoId);
+  const productOptions = Array.isArray(productsData) ? productsData : [];
+  const selectedProduct = productOptions.find((p) => p._id === form.productoId);
+  const plantillasOptions = Array.isArray(plantillasData) ? plantillasData : [];
+  const selectedPlantilla = plantillasOptions.find((p) => p._id === form.plantillaId);
+  const plantillaCostoBase = selectedPlantilla
+    ? Number(selectedPlantilla.precioFinal ?? selectedPlantilla.costoTotal ?? 0)
+    : null;
   const precioUnit = selectedProduct
     ? Number(selectedProduct?.precioActual ?? selectedProduct?.precio ?? 0)
     : Number(form.precioManual || 0);
@@ -60,7 +67,8 @@ export const ItemAddVenta = () => {
 
   // Handlers
   const onChange = (key, number = false) => (e) => {
-    const value = number ? Number(e.target.value || 0) : e.target.value;
+    const rawValue = e.target.value;
+    const value = number ? (rawValue === "" ? "" : Number(rawValue)) : rawValue;
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
@@ -79,7 +87,7 @@ export const ItemAddVenta = () => {
   const onBlurProducto = () => {
     setTimeout(() => setShowSuggestions(false), 150);
     // Si coincide con un producto, setea el id
-    const productoCoincide = productsData.find(
+    const productoCoincide = productOptions.find(
       (p) => `${p.nombre ?? ""} ${p.modelo ?? ""}`.trim().toLowerCase() === form.productoNombre.trim().toLowerCase()
     );
     setForm(prev => ({
@@ -98,6 +106,32 @@ export const ItemAddVenta = () => {
       precioManual: "",
     }));
     setShowSuggestions(false);
+  };
+
+  const onSelectPlantilla = (e) => {
+    const plantillaId = e.target.value;
+    const plantilla = plantillasOptions.find((p) => p._id === plantillaId);
+    if (!plantilla) {
+      setForm((prev) => ({ ...prev, plantillaId: "" }));
+      return;
+    }
+
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        plantillaId,
+        productoNombre: plantilla.nombre || prev.productoNombre,
+      };
+
+      if (!selectedProduct) {
+        const precioSugerido = Number(plantilla.precioFinal ?? plantilla.costoTotal ?? 0);
+        if (Number.isFinite(precioSugerido) && precioSugerido > 0) {
+          next.precioManual = precioSugerido;
+        }
+      }
+
+      return next;
+    });
   };
 
   const onSubmit = async () => {
@@ -139,6 +173,10 @@ export const ItemAddVenta = () => {
       fechaLimite: form.fechaLimite ? form.fechaLimite : null,
     };
 
+    if (form.plantillaId) {
+      payload.plantillaId = form.plantillaId;
+    }
+
     try {
       if (ventaId) {
         await updateVenta(ventaId, payload);
@@ -169,10 +207,11 @@ export const ItemAddVenta = () => {
           medio: v.medio || mediosVenta[0].value,
           productoId: v.producto?._id || v.producto || "",
           productoNombre: v.productoNombre || (v.producto ? `${v.producto.nombre ?? ""} ${v.producto.modelo ?? ""}`.trim() : ""),
+          plantillaId: v.plantilla?._id || v.plantilla || "",
           cantidad: v.cantidad || 1,
           descripcion: v.descripcion || v.descripcionVenta || "",
-          valorEnvio: v.valorEnvio || 0,
-          seña: v.seña || 0,
+          valorEnvio: v.valorEnvio ?? "",
+          seña: v.seña ?? "",
           precioManual:
             v.producto?._id || v.producto
               ? ""
@@ -190,27 +229,35 @@ export const ItemAddVenta = () => {
   }, [ventaId]);
 
   return (
-    <Box p={6}>
-      <Heading size="md" mb={4}>Agregar venta</Heading>
-      <VStack bg={card} borderWidth="1px" borderColor={border} borderRadius="md" p={4} spacing={4} align="stretch">
-        <HStack spacing={4} align="stretch">
-          <FormControl>
+    <Box p={{ base: 3, md: 5 }} maxW="1200px" mx="auto">
+      <Heading size="md" mb={3}>Agregar venta</Heading>
+      <VStack
+        bg={card}
+        borderWidth="1px"
+        borderColor={border}
+        borderRadius="md"
+        p={{ base: 3, md: 5 }}
+        spacing={{ base: 3, md: 4 }}
+        align="stretch"
+      >
+        <HStack spacing={{ base: 3, md: 4 }} align="flex-end" flexWrap={{ base: "wrap", "2xl": "nowrap" }}>
+          <FormControl minW="200px" flex="1">
             <FormLabel>Fecha</FormLabel>
             <Input type="date" value={form.fecha} onChange={onChange("fecha")} />
           </FormControl>
-          <FormControl>
+          <FormControl minW="220px" flex="1">
             <FormLabel>Cliente</FormLabel>
             <Input value={form.cliente} onChange={onChange("cliente")} />
           </FormControl>
-          <FormControl>
+          <FormControl minW="200px" flex="1">
             <FormLabel>Medio</FormLabel>
             <Select value={form.medio} onChange={onChange("medio")}>
               {mediosVenta.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
             </Select>
           </FormControl>
         </HStack>
-        <HStack spacing={4} align="stretch">
-          <FormControl position="relative">
+        <HStack spacing={{ base: 3, md: 4 }} align="stretch" flexWrap={{ base: "wrap", "2xl": "nowrap" }}>
+          <FormControl position="relative" flex="2" minW={{ base: "100%", md: "320px" }}>
             <FormLabel>Producto</FormLabel>
             <Textarea
               value={form.productoNombre}
@@ -239,7 +286,7 @@ export const ItemAddVenta = () => {
                 mt={1}
                 p={1}
               >
-                {productsData
+                {productOptions
                   .filter((producto) =>
                     `${producto.nombre ?? ""} ${producto.modelo ?? ""}`
                       .toLowerCase()
@@ -257,7 +304,7 @@ export const ItemAddVenta = () => {
                       {producto.nombre} {producto.modelo}
                     </Box>
                   ))}
-                {productsData.filter((producto) =>
+                {productOptions.filter((producto) =>
                   `${producto.nombre ?? ""} ${producto.modelo ?? ""}`
                     .toLowerCase()
                     .includes(searchProducto.toLowerCase())
@@ -269,11 +316,41 @@ export const ItemAddVenta = () => {
               </Box>
             )}
           </FormControl>
-          <FormControl >
-            <FormLabel>Cantidad</FormLabel>
-            <Input type="number" value={form.cantidad} onChange={onChange("cantidad", true)} />
+          <FormControl flex="1" minW={{ base: "100%", md: "260px" }}>
+            <FormLabel>Plantilla guardada</FormLabel>
+            <Select
+              value={form.plantillaId}
+              onChange={onSelectPlantilla}
+              placeholder={plantillasLoading ? "Cargando plantillas..." : "Sin plantilla"}
+              isDisabled={plantillasLoading}
+              
+            >
+              {plantillasOptions.map((plantilla) => (
+                <option key={plantilla._id} value={plantilla._id}>
+                  {plantilla.nombre}
+                  {plantilla.tipoProyecto ? ` · ${plantilla.tipoProyecto}` : ""}
+                </option>
+              ))}
+            </Select>
+            {selectedPlantilla && (
+              <Text fontSize="sm" color="gray.500" mt={2}>
+                {selectedPlantilla.tipoProyecto || "Proyecto general"}
+                {selectedPlantilla.categoria ? ` · ${selectedPlantilla.categoria}` : ""}
+                {Number.isFinite(plantillaCostoBase) && plantillaCostoBase > 0
+                  ? ` · Costo base: $${plantillaCostoBase.toLocaleString("es-AR")}`
+                  : ""}
+              </Text>
+            )}
           </FormControl>
-          <FormControl>
+          <FormControl
+            minW={{ base: "48%", md: "110px" }}
+            flex={{ base: "1 1 45%", xl: "0 0 110px" }}
+            maxW="120px"
+          >
+            <FormLabel>Cantidad</FormLabel>
+            <Input type="number" value={form.cantidad} onChange={onChange("cantidad", true)}  />
+          </FormControl>
+          <FormControl minW={{ base: "48%", md: "180px" }} flex="1">
             <FormLabel>Precio unitario</FormLabel>
             <Input
               type="number"
@@ -283,7 +360,11 @@ export const ItemAddVenta = () => {
               placeholder={selectedProduct ? "Precio del catálogo" : "Ingresá el precio"}
             />
           </FormControl>
-          <FormControl>
+          <FormControl
+            minW={{ base: "48%", md: "180px" }}
+            flex={{ base: "1 1 45%", xl: "0 0 180px" }}
+            maxW="230px"
+          >
             <FormLabel>Fecha Limite</FormLabel>
             <Input
               type="date"
@@ -296,39 +377,43 @@ export const ItemAddVenta = () => {
           <FormLabel>Descripción</FormLabel>
           <Textarea value={form.descripcion} onChange={onChange("descripcion")} />
         </FormControl>
-        <HStack spacing={4}>
-          <FormControl>
+        <HStack spacing={{ base: 3, md: 4 }} flexWrap={{ base: "wrap", "2xl": "nowrap" }}>
+          <FormControl minW={{ base: "48%", md: "200px" }} flex="1">
             <FormLabel>Envío</FormLabel>
-            <InputGroup>
+            <InputGroup size="sm">
               <InputLeftAddon children="$" />
               <Input type="number" value={form.valorEnvio} onChange={onChange("valorEnvio", true)} />
             </InputGroup>
           </FormControl>
-          <FormControl>
+          <FormControl minW={{ base: "48%", md: "200px" }} flex="1">
             <FormLabel>Seña</FormLabel>
-            <InputGroup>
+            <InputGroup size="sm">
               <InputLeftAddon children="$" />
               <Input type="number" value={form.seña} onChange={onChange("seña", true)} />
             </InputGroup>
           </FormControl>
-          <FormControl isReadOnly>
+          <FormControl minW={{ base: "48%", md: "200px" }} flex="1" isReadOnly>
             <FormLabel>Total</FormLabel>
-            <InputGroup>
+            <InputGroup size="sm">
               <InputLeftAddon children="$" />
               <Input value={valorTotal} readOnly />
             </InputGroup>
           </FormControl>
-          <FormControl isReadOnly>
+          <FormControl minW={{ base: "48%", md: "200px" }} flex="1" isReadOnly>
             <FormLabel>Restan</FormLabel>
-            <InputGroup>
+            <InputGroup size="sm">
               <InputLeftAddon children="$" />
               <Input value={restanPreview} readOnly />
             </InputGroup>
           </FormControl>
         </HStack>
-        <HStack justify="flex-end">
-          <Button variant="ghost" onClick={() => navigate("/ventas")}>Cancelar</Button>
-          <Button colorScheme="blue" onClick={onSubmit} isLoading={loading}>Guardar</Button>
+        <HStack justify="flex-end" flexWrap="wrap" spacing={2}>
+          <Button variant="ghost" onClick={() => navigate("/ventas")} w={{ base: "100%", sm: "auto" }}>
+            Cancelar
+          </Button>
+          <Button colorScheme="blue" onClick={onSubmit} isLoading={loading} w={{ base: "100%", sm: "auto" }}>
+            Guardar
+          </Button>
         </HStack>
       </VStack>
     </Box>

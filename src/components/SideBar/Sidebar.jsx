@@ -72,7 +72,7 @@ export const SidebarWithHeader = ({ children }) => {
       </Drawer>
 
       <MobileNav onOpen={onOpen} user={user} onLogout={handleLogout} />
-      <Box ml={{ base: 0, md: 60 }} p="4">
+      <Box ml={{ base: 0, md: 56 }} p="4">
         {children}
       </Box>
     </Box>
@@ -86,7 +86,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
       bg={useColorModeValue("white", "gray.900")}
       borderRight="1px"
       borderRightColor={useColorModeValue("gray.200", "gray.700")}
-      w={{ base: "full", md: 60 }}
+      w={{ base: "full", md: 56 }}
       pos="fixed"
       h="full"
       {...rest}
@@ -99,7 +99,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
       </Flex>
 
       {LinkItems.map((link) => (
-        <NavItem key={link.name} icon={link.icon} to={link.to}>
+        <NavItem key={link.name} icon={link.icon} to={link.to} onClose={onClose}>
           {link.name}
         </NavItem>
       ))}
@@ -107,8 +107,14 @@ const SidebarContent = ({ onClose, ...rest }) => {
   );
 };
 
-const NavItem = ({ icon, children, to, ...rest }) => (
-  <Box as={Link} to={to} style={{ textDecoration: "none" }} _focus={{ boxShadow: "none" }}>
+const NavItem = ({ icon, children, to, onClose, ...rest }) => (
+  <Box
+    as={Link}
+    to={to}
+    style={{ textDecoration: "none" }}
+    _focus={{ boxShadow: "none" }}
+    onClick={() => onClose?.()}
+  >
     <Flex
       align="center"
       p="4"
@@ -147,7 +153,7 @@ const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
 
   return (
     <Flex
-      ml={{ base: 0, md: 60 }}
+      ml={{ base: 0, md: 56 }}
       px={{ base: 4, md: 4 }}
       height="20"
       alignItems="center"

@@ -48,6 +48,7 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
     { label: "Nombre de madera", value: RawMaterials.nombreMadera },
     { label: "Medida", value: RawMaterials.medida },
     { label: "Espesor", value: RawMaterials.espesor },
+    { label: "Unidad", value: RawMaterials.unidad || RawMaterials.unidadMedida || "-" },
     { label: "Precio", value: RawMaterials.precio },
     { label: "Stock", value: RawMaterials.stock },
     { label: "Celda Excel", value: RawMaterials.celdaExcel },
