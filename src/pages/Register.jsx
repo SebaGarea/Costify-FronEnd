@@ -141,12 +141,12 @@ const Register = () => {
       await registerUser(payload);
       toast({
         title: "Cuenta creada",
-        description: "Revisa tu email para activar la cuenta",
+        description: "Ya puedes iniciar sesión con tus credenciales",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
-      navigate("/login?pendingVerification=1", { replace: true });
+      navigate("/login", { replace: true });
     } catch (error) {
       toast({
         title: "No se pudo registrar",

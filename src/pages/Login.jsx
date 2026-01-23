@@ -12,8 +12,8 @@ import {
   useColorModeValue,
   useToast,
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
-import { Link as RouterLink, useNavigate, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/auth/useAuth.jsx";
 import { FcGoogle } from "react-icons/fc";
 
@@ -21,44 +21,12 @@ const Login = () => {
   const { signIn } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const cardBg = useColorModeValue("rgba(255, 255, 255, 0.95)", "rgba(15, 23, 42, 0.9)");
   const cardBorder = useColorModeValue("rgba(148, 163, 184, 0.4)", "rgba(30, 58, 138, 0.6)");
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-
-  useEffect(() => {
-    const verified = searchParams.get("verified");
-    const pending = searchParams.get("pendingVerification");
-    if (verified) {
-      const messages = {
-        success: { title: "Correo verificado", status: "success" },
-        already: { title: "Correo ya verificado", status: "info" },
-        expired: { title: "Link vencido", status: "error", description: "Solicita una nueva invitación" },
-        invalid: { title: "Link inválido", status: "error" },
-        missing: { title: "Token faltante", status: "error" },
-      };
-      const config = messages[verified] || { title: "Error al verificar", status: "error" };
-      toast({ duration: 4000, isClosable: true, ...config });
-    }
-    if (pending) {
-      toast({
-        title: "Verificación pendiente",
-        description: "Revisa tu correo y confirma la cuenta para entrar",
-        status: "info",
-        duration: 4000,
-        isClosable: true,
-      });
-    }
-    if (verified || pending) {
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete("verified");
-      nextParams.delete("pendingVerification");
-      setSearchParams(nextParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams, toast]);
 
   const handleChange = ({ target }) => {
     setForm((prev) => ({ ...prev, [target.name]: target.value }));
