@@ -17,4 +17,5 @@ export * from './Login.jsx'
 export * from './ImportRawMaterials.jsx';
 export * from './ListaDeCompras.jsx';
 export * from './Configuracion.jsx';
+export * from './Perfil.jsx';
 

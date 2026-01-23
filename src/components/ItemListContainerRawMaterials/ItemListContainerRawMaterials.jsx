@@ -12,17 +12,17 @@ import {
   Grid,
   GridItem,
   Heading,
-  HStack,
   Menu,
   MenuButton,
   MenuItem,
   MenuList,
-  Spacer,
   Spinner,
   Stack,
   Text,
   useColorModeValue,
   useDisclosure,
+  Wrap,
+  WrapItem,
 } from "@chakra-ui/react";
 import { FiChevronDown, FiPlus, FiUploadCloud, FiDownload } from "react-icons/fi";
 import { RiArrowRightLine } from "react-icons/ri";
@@ -106,19 +106,19 @@ export const ItemListContainerRawMaterials = ({
   };
 
   const handleCategoryChange = (category) => {
-    onFiltersChange?.({ category, type: null, medida: null });
+    onFiltersChange?.({ ...filters, category, type: null, medida: null });
   };
 
   const handleTypeChange = (type) => {
-    onFiltersChange?.({ type, medida: null });
+    onFiltersChange?.({ ...filters, type, medida: null });
   };
 
   const handleMedidaChange = (medida) => {
-    onFiltersChange?.({ medida });
+    onFiltersChange?.({ ...filters, medida });
   };
 
   const handleClearFilters = () => {
-    onFiltersChange?.({ category: null, type: null, medida: null });
+    onFiltersChange?.({ ...filters, category: null, type: null, medida: null });
   };
 
   const goPrev = () => {
@@ -133,144 +133,184 @@ export const ItemListContainerRawMaterials = ({
     }
   };
 
+  const detailLabelColor = useColorModeValue("gray.600", "gray.300");
+  const detailValueColor = useColorModeValue("teal.700", "teal.200");
+
+  const renderDetail = (label, value) => (
+    <Text fontSize="sm" color={detailLabelColor}>
+      {label}: <Text as="span" fontWeight="semibold" color={detailValueColor}>{value}</Text>
+    </Text>
+  );
+
   return (
     <Stack spacing={6} align="stretch">
       <Box bg={toolbarBg} borderRadius="lg" p={3}>
-        <Stack direction={{ base: "column", lg: "row" }} spacing={4} align={{ base: "stretch", lg: "center" }}>
-          <HStack spacing={3} flexWrap="wrap">
-            <Menu>
-              <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase">
-                {selectedCategory || "Categoría"}
-              </MenuButton>
-              <MenuList {...scrollableMenuProps}>
-                {categoriesMp.map((cat) => (
-                  <MenuItem key={cat.nombre} textTransform="uppercase" onClick={() => handleCategoryChange(cat.nombre)}>
-                    {cat.nombre}
-                  </MenuItem>
-                ))}
-              </MenuList>
-            </Menu>
-
-            <Menu isDisabled={!selectedCategory}>
-              <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase">
-                {selectedType || "Tipo"}
-              </MenuButton>
-              <MenuList {...scrollableMenuProps}>
-                {availableTypes.length === 0 ? (
-                  <MenuItem disabled>Sin tipos</MenuItem>
-                ) : (
-                  availableTypes.map((tipo) => (
-                    <MenuItem key={tipo} textTransform="uppercase" onClick={() => handleTypeChange(tipo)}>
-                      {tipo}
+        <Stack direction={{ base: "column", xl: "row" }} spacing={4} align={{ base: "stretch", xl: "center" }}>
+          <Wrap spacing={3} w="full">
+            <WrapItem flex="1" minW={{ base: "180px", md: "220px" }}>
+              <Menu matchWidth>
+                <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w="full">
+                  {selectedCategory || "Categoría"}
+                </MenuButton>
+                <MenuList {...scrollableMenuProps}>
+                  {categoriesMp.map((cat) => (
+                    <MenuItem key={cat.nombre} textTransform="uppercase" onClick={() => handleCategoryChange(cat.nombre)}>
+                      {cat.nombre}
                     </MenuItem>
-                  ))
-                )}
-              </MenuList>
-            </Menu>
+                  ))}
+                </MenuList>
+              </Menu>
+            </WrapItem>
 
-            <Menu isDisabled={!selectedType}>
-              <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase">
-                {selectedMedida || "Medida"}
-              </MenuButton>
-              <MenuList {...scrollableMenuProps}>
-                {availableMedidas.length === 0 ? (
-                  <MenuItem disabled>Sin medidas</MenuItem>
-                ) : (
-                  availableMedidas.map((medida) => (
-                    <MenuItem key={medida} textTransform="uppercase" onClick={() => handleMedidaChange(medida)}>
-                      {medida}
-                    </MenuItem>
-                  ))
-                )}
-              </MenuList>
-            </Menu>
+            <WrapItem flex="1" minW={{ base: "180px", md: "220px" }}>
+              <Menu isDisabled={!selectedCategory} matchWidth>
+                <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w="full">
+                  {selectedType || "Tipo"}
+                </MenuButton>
+                <MenuList {...scrollableMenuProps}>
+                  {availableTypes.length === 0 ? (
+                    <MenuItem disabled>Sin tipos</MenuItem>
+                  ) : (
+                    availableTypes.map((tipo) => (
+                      <MenuItem key={tipo} textTransform="uppercase" onClick={() => handleTypeChange(tipo)}>
+                        {tipo}
+                      </MenuItem>
+                    ))
+                  )}
+                </MenuList>
+              </Menu>
+            </WrapItem>
+
+            <WrapItem flex="1" minW={{ base: "180px", md: "220px" }}>
+              <Menu isDisabled={!selectedType} matchWidth>
+                <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w="full">
+                  {selectedMedida || "Medida"}
+                </MenuButton>
+                <MenuList {...scrollableMenuProps}>
+                  {availableMedidas.length === 0 ? (
+                    <MenuItem disabled>Sin medidas</MenuItem>
+                  ) : (
+                    availableMedidas.map((medida) => (
+                      <MenuItem key={medida} textTransform="uppercase" onClick={() => handleMedidaChange(medida)}>
+                        {medida}
+                      </MenuItem>
+                    ))
+                  )}
+                </MenuList>
+              </Menu>
+            </WrapItem>
 
             {(selectedCategory || selectedType || selectedMedida) && (
-              <Button variant="outline" colorScheme="red" onClick={handleClearFilters}>
-                Borrar filtros
-              </Button>
+              <WrapItem flex="1" minW={{ base: "180px", md: "200px" }}>
+                <Button w="full" variant="outline" colorScheme="red" onClick={handleClearFilters}>
+                  Borrar filtros
+                </Button>
+              </WrapItem>
             )}
-          </HStack>
+          </Wrap>
 
-          <Spacer />
-
-          <HStack spacing={3} justify={{ base: "flex-start", lg: "flex-end" }}>
-            <Button
-              as={Link}
-              to="/materias-primas/itemAdd"
-              leftIcon={<FiPlus color="#67e8f9" size="20" strokeWidth={3} />}
-            >
-              Agregar Materia Prima
-            </Button>
-            <Button as={Link} to="/materias-primas/import" variant="outline" leftIcon={<FiUploadCloud />}>
-              Subir Excel
-            </Button>
-            <Button
-              variant="outline"
-              leftIcon={<FiDownload />}
-              onClick={onExport}
-              isLoading={isExporting}
-              isDisabled={isLoading || typeof onExport !== "function"}
-            >
-              Exportar Excel
-            </Button>
-            <Button
-              colorScheme="red"
-              variant="outline"
-              onClick={deleteDialog.onOpen}
-              isDisabled={!canBulkDelete || isLoading || isDeletingAll || sanitizedMaterials.length === 0}
-            >
-              Eliminar todo
-            </Button>
-          </HStack>
+          <Wrap spacing={3} justify={{ base: "flex-start", xl: "flex-end" }} w="full">
+            <WrapItem flex="1" minW={{ base: "200px", md: "220px" }}>
+              <Button
+                w="full"
+                as={Link}
+                to="/materias-primas/itemAdd"
+                leftIcon={<FiPlus color="#67e8f9" size="20" strokeWidth={3} />}
+              >
+                Agregar Materia Prima
+              </Button>
+            </WrapItem>
+            <WrapItem flex="1" minW={{ base: "200px", md: "220px" }}>
+              <Button w="full" as={Link} to="/materias-primas/import" variant="outline" leftIcon={<FiUploadCloud />}>
+                Subir Excel
+              </Button>
+            </WrapItem>
+            <WrapItem flex="1" minW={{ base: "200px", md: "220px" }}>
+              <Button
+                w="full"
+                variant="outline"
+                leftIcon={<FiDownload />}
+                onClick={onExport}
+                isLoading={isExporting}
+                isDisabled={isLoading || typeof onExport !== "function"}
+              >
+                Exportar Excel
+              </Button>
+            </WrapItem>
+            <WrapItem flex="1" minW={{ base: "200px", md: "220px" }}>
+              <Button
+                w="full"
+                colorScheme="red"
+                variant="outline"
+                onClick={deleteDialog.onOpen}
+                isDisabled={!canBulkDelete || isLoading || isDeletingAll || sanitizedMaterials.length === 0}
+              >
+                Eliminar todo
+              </Button>
+            </WrapItem>
+          </Wrap>
         </Stack>
       </Box>
 
-      <Box>
+      <Box py={4} px={{ base: 0, md: 2 }}>
         {isLoading ? (
-          <Flex justify="center" py={12}>
+          <Flex py={12} justify="center">
             <Spinner size="xl" />
           </Flex>
         ) : materialsToRender.length === 0 ? (
-          <Flex justify="center" py={12}>
-            <Text fontSize="lg" color="gray.400">
-              No hay materias primas registradas.
-            </Text>
+          <Flex py={12} direction="column" align="center" textAlign="center" gap={2}>
+            <Heading size="sm">No hay materias primas</Heading>
+            <Text color="gray.500">Ajustá los filtros o cargá una nueva materia prima para empezar.</Text>
           </Flex>
         ) : (
           <Grid
-            templateColumns={{ base: "repeat(auto-fit, minmax(270px, 1fr))", xl: "repeat(4, 1fr)" }}
-            gap={{ base: 4, md: 6 }}
-            alignItems="stretch"
+            templateColumns={{ base: "repeat(auto-fit, minmax(260px, 1fr))", md: "repeat(auto-fit, minmax(320px, 1fr))" }}
+            gap={4}
           >
-            {materialsToRender.map((mp) => (
-              <GridItem key={mp._id}>
-                <Stack bg={cardBg} borderRadius="lg" boxShadow="xl" p={6} spacing={3} h="full">
-                  <Heading size="md" textAlign="center">
-                    {mp.nombre}
-                  </Heading>
-                  <Text fontSize="sm" color="gray.500" textAlign="center">
-                    {mp.categoria}
-                  </Text>
-                  <Stack spacing={1} fontSize="sm" color="gray.600">
-                    <Text>Stock: {mp.stock}</Text>
-                    <Text>Tipo: {getMaterialTypeLabel(mp.type)}</Text>
-                    <Text>Medida: {mp.medida}</Text>
-                    <Text>Espesor: {mp.espesor || "N/A"} {mp.unidad || mp.unidadMedida || "-"}</Text>
-                    
-                    <Text>Celda Excel: {mp.celdaExcel || "-"}</Text>
-                    <Text color="gray.200">Precio: {formatPrice(mp.precio)}</Text>
-                    <Text fontSize="xs" color="gray.500">
-                      Última actualización: {formatUpdatedAt(mp.updatedAt)}
-                    </Text>
-                    <Text>ID Mongo: {mp._id}</Text>
+            {materialsToRender.map((mp) => {
+              const typeLabel = getMaterialTypeLabel(mp?.type) || mp?.type || "Sin tipo";
+              return (
+                <GridItem key={mp?._id}>
+                  <Stack bg={cardBg} borderRadius="lg" p={5} spacing={4} boxShadow="sm" h="full">
+                    <Stack direction="row" justify="space-between" spacing={3} align="flex-start">
+                      <Box>
+                        <Heading size="sm" noOfLines={1}>
+                          {mp?.nombre || "Sin nombre"}
+                        </Heading>
+                        <Text fontSize="sm" color="gray.500" textTransform="uppercase">
+                          {mp?.categoria || "Sin categoría"}
+                        </Text>
+                      </Box>
+                      <Text fontSize="xs" color="gray.500">
+                        {formatUpdatedAt(mp?.updatedAt)}
+                      </Text>
+                    </Stack>
+
+                    <Stack spacing={1}>
+                      {renderDetail("Stock", mp?.stock ?? 0)}
+                      {renderDetail("Tipo", typeLabel)}
+                      {renderDetail("Medida", mp?.medida || "Sin medida")}
+                      {renderDetail("Espesor", mp?.espesor || "N/A")}
+                      {renderDetail("Celda Excel", mp?.celdaExcel || "-")}
+                      {renderDetail("Precio", formatPrice(mp?.precio))}
+                      {renderDetail("ID", mp?._id || "-")}
+                    </Stack>
+
+                    <Stack direction={{ base: "column", sm: "row" }} spacing={2}>
+                      <Button
+                        w="full"
+                        as={Link}
+                        to={`/materias-primas/${mp?._id}`}
+                        variant="outline"
+                        rightIcon={<RiArrowRightLine />}
+                      >
+                        Ver detalle
+                      </Button>
+                    </Stack>
                   </Stack>
-                  <Button as={Link} to={`/materias-primas/${mp._id}`} variant="outline" colorScheme="teal" rightIcon={<RiArrowRightLine />}>
-                    Ver Detalle
-                  </Button>
-                </Stack>
-              </GridItem>
-            ))}
+                </GridItem>
+              );
+            })}
           </Grid>
         )}
       </Box>
@@ -287,12 +327,7 @@ export const ItemListContainerRawMaterials = ({
         </Button>
       </Flex>
 
-      <AlertDialog
-        isOpen={deleteDialog.isOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={deleteDialog.onClose}
-        isCentered
-      >
+      <AlertDialog isOpen={deleteDialog.isOpen} leastDestructiveRef={cancelRef} onClose={deleteDialog.onClose} isCentered>
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
@@ -329,284 +364,3 @@ export const ItemListContainerRawMaterials = ({
     </Stack>
   );
 };
-
-/* =======================================================================
-   Legacy implementation preserved for reference (no longer in use)
-   -----------------------------------------------------------------------
-
-import {
-  Box,
-  Center,
-  useColorModeValue,
-  Heading,
-  Text,
-  Stack,
-  SimpleGrid,
-  Button,
-  HStack,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Spacer,
-  Spinner,
-  VStack,
-} from "@chakra-ui/react";
-import { FiChevronDown, FiPlus, FiUploadCloud } from "react-icons/fi";
-import { useCategoryMp } from "../../hooks/materiasPrimas";
-import { Link } from "react-router-dom";
-import { RiArrowRightLine } from "react-icons/ri";
-
-export const ItemListContainerRawMaterials = ({
-  rawMaterials,
-  pagination,
-  filters,
-  filtersMeta,
-  onPageChange,
-  onFiltersChange,
-  isLoading,
-}) => {
-  const { categoriesMp } = useCategoryMp();
-  const colorBg = useColorModeValue("white", "gray.800");
-  const colorBgBox = useColorModeValue("gray.100", "gray.700");
-  const pageLimit = pagination?.limit || rawMaterials.length;
-  const materialsToRender = rawMaterials.slice(0, pageLimit);
-  if (process.env.NODE_ENV === "development") {
-    console.debug("Materias primas recibidas:", rawMaterials.length, "- Renderizadas:", materialsToRender.length);
-  }
-
-  const formatPrice = (value) => {
-    const parsed = Number(value);
-    if (Number.isNaN(parsed)) return "Sin precio";
-    const formatted = new Intl.NumberFormat("es-AR", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(parsed);
-    return `$${formatted}`;
-  };
-
-  const selectedCategory = filters?.category || null;
-  const selectedType = filters?.type || null;
-  const selectedMedida = filters?.medida || null;
-  const availableTypes = filtersMeta?.availableTypes || [];
-  const availableMedidas = filtersMeta?.availableMedidas || [];
-  const currentPage = pagination?.page || 1;
-  const totalPages = pagination?.totalPages || 1;
-  const totalItems = pagination?.total ?? rawMaterials.length;
-
-  const handleCategoryChange = (category) => {
-    onFiltersChange?.({ category, type: null, medida: null });
-  };
-
-  const handleTypeChange = (type) => {
-    onFiltersChange?.({ type, medida: null });
-  };
-
-  const handleMedidaChange = (medida) => {
-    onFiltersChange?.({ medida });
-  };
-
-  const handleClearFilters = () => {
-    onFiltersChange?.({ category: null, type: null, medida: null });
-  };
-
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      onPageChange?.(currentPage - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages) {
-      onPageChange?.(currentPage + 1);
-    }
-  };
-
-  return (
-    <VStack spacing={6} align="stretch">
-      <Box p={2} bg={colorBgBox} borderRadius="lg">
-        <HStack spacing={4}>
-          <Menu>
-            <MenuButton textTransform="uppercase" as={Button} rightIcon={<FiChevronDown />}>
-              {selectedCategory || "Categoría"}
-            </MenuButton>
-            <MenuList>
-              {categoriesMp.map((cat) => (
-                <MenuItem
-                  justifyContent="center"
-                  textTransform="uppercase"
-                  key={cat.nombre}
-                  onClick={() => handleCategoryChange(cat.nombre)}
-                >
-                  {cat.nombre}
-                </MenuItem>
-              ))}
-            </MenuList>
-          </Menu>
-
-          <Menu isDisabled={!selectedCategory}>
-            <MenuButton textTransform="uppercase" as={Button} rightIcon={<FiChevronDown />}>
-              {selectedType || "Tipo"}
-            </MenuButton>
-            <MenuList>
-              {availableTypes.length === 0 ? (
-                <MenuItem disabled>Sin tipos</MenuItem>
-              ) : (
-                availableTypes.map((tipo) => (
-                  <MenuItem
-                    justifyContent="center"
-                    textTransform="uppercase"
-                    key={tipo}
-                    onClick={() => handleTypeChange(tipo)}
-                  >
-                    {tipo}
-                  </MenuItem>
-                ))
-              )}
-            </MenuList>
-          </Menu>
-
-          <Menu isDisabled={!selectedType}>
-            <MenuButton textTransform="uppercase" as={Button} rightIcon={<FiChevronDown />}>
-              {selectedMedida || "Medida"}
-            </MenuButton>
-            <MenuList>
-              {availableMedidas.length === 0 ? (
-                <MenuItem disabled>Sin medidas</MenuItem>
-              ) : (
-                availableMedidas.map((medida) => (
-                  <MenuItem
-                    justifyContent="center"
-                    textTransform="uppercase"
-                    key={medida}
-                    onClick={() => handleMedidaChange(medida)}
-                  >
-                    {medida}
-                  </MenuItem>
-                ))
-              )}
-            </MenuList>
-          </Menu>
-
-          {(selectedCategory || selectedType || selectedMedida) && (
-            <Button colorScheme="red" variant="outline" onClick={handleClearFilters}>
-              Borrar Filtros
-            </Button>
-          )}
-
-          <Spacer />
-
-          <Button
-            as={Link}
-            to={"/materias-primas/itemAdd"}
-            leftIcon={<FiPlus color="#67e8f9" size={"25"} strokeWidth={4} />}
-            mr={15}
-          >
-            Agregar Materia Prima
-          </Button>
-          <Button
-            as={Link}
-            to={"/materias-primas/import"}
-            variant="outline"
-            leftIcon={<FiUploadCloud />}
-          >
-            Subir Excel de producto
-          </Button>
-        </HStack>
-      </Box>
-
-      <Box py={4} px={{ base: 0, md: 2 }}>
-        {isLoading ? (
-          <Center py={10}>
-            <Spinner size="xl" />
-          </Center>
-        ) : materialsToRender.length === 0 ? (
-          <Center py={10}>
-            <Text fontSize="lg" color="gray.500" textAlign="center">
-              No hay materias primas registradas.
-            </Text>
-          </Center>
-        ) : (
-          <SimpleGrid
-            spacing={{ base: 4, md: 6 }}
-            minChildWidth={{ base: "260px", md: "280px" }}
-            justifyItems="stretch"
-            maxW="7xl"
-            mx="auto"
-            alignContent="start"
-            gridAutoRows="auto"
-          >
-            {materialsToRender.map((mp) => (
-              <Box
-                key={mp._id}
-                p={6}
-                w="full"
-                bg={colorBg}
-                boxShadow={"2xl"}
-                rounded={"lg"}
-              >
-                <Stack align={"center"}>
-                  <Heading fontSize={"md"} fontWeight={500}>
-                    {mp.nombre}
-                  </Heading>
-                  <Text color={"gray.500"} fontSize={"sm"}>
-                    {mp.categoria}
-                  </Text>
-                  <Text fontSize={"sm"} color={"gray.600"}>
-                    Stock: {mp.stock}
-                  </Text>
-                  <Text fontSize={"sm"} color={"gray.600"}>
-                    Tipo: {mp.type}
-                  </Text>
-                  <Text fontSize={"sm"} color={"gray.600"}>
-                    Medida: {mp.medida}
-                  </Text>
-                  <Text fontSize={"sm"} color={"gray.600"}>
-                    Espesor: {mp.espesor || "N/A"}
-                  </Text>
-                  <Text fontSize={"sm"} color={"gray.600"}>
-                    Celda Excel: {mp.celdaExcel || "-"}
-                  </Text>
-                  <Text fontSize={"sm"} color={"gray.300"}>
-                    Precio: {formatPrice(mp.precio)}
-                  </Text>
-                  <Text fontSize={"sm"} color={"gray.600"}>
-                    ID MONGO: {mp._id}
-                  </Text>
-                  <HStack>
-                    <Button
-                      as={Link}
-                      to={`/materias-primas/${mp._id}`}
-                      colorScheme="teal"
-                      variant="outline"
-                      m={2}
-                    >
-                      Ver Detalle
-                      <Box as="span" ml={2}>
-                        <RiArrowRightLine />
-                      </Box>
-                    </Button>
-                  </HStack>
-                </Stack>
-              </Box>
-            ))}
-          </SimpleGrid>
-        )}
-      </Box>
-
-      <HStack justify="center" spacing={4}>
-        <Button onClick={handlePrev} isDisabled={currentPage <= 1 || isLoading}>
-          Anterior
-        </Button>
-        <Text>
-          Página {currentPage} de {totalPages} ({totalItems} resultados)
-        </Text>
-        <Button onClick={handleNext} isDisabled={currentPage >= totalPages || isLoading}>
-          Siguiente
-        </Button>
-      </HStack>
-    </VStack>
-  );
-};
-
-*/

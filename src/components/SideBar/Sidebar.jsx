@@ -20,6 +20,7 @@ import {
   useColorMode,
   Button,
 } from "@chakra-ui/react";
+import { useEffect } from "react";
 import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import {
   FiHome,
@@ -27,7 +28,6 @@ import {
   FiCompass,
   FiSettings,
   FiMenu,
-  FiBell,
   FiChevronDown,
 } from "react-icons/fi";
 import { FaHammer } from "react-icons/fa";
@@ -49,11 +49,17 @@ export const SidebarWithHeader = ({ children }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { setColorMode } = useColorMode();
 
   const handleLogout = () => {
     signOut();
     navigate("/login", { replace: true });
   };
+
+  useEffect(() => {
+    if (!user?.themePreference) return;
+    setColorMode(user.themePreference);
+  }, [user?.themePreference, setColorMode]);
 
   return (
     <Box bg={useColorModeValue("gray.100", "gray.900")}> 
@@ -150,6 +156,7 @@ const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
     ? `${user.first_name} ${user.last_name}`
     : user?.first_name ?? user?.nombre ?? "Invitado");
   const role = user?.role ?? "Usuario";
+  const statusMessage = user?.statusMessage || "";
 
   return (
     <Flex
@@ -170,7 +177,6 @@ const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
       </Text>
 
       <HStack spacing={{ base: "0", md: "2" }}>
-        <IconButton size="lg" variant="ghost" aria-label="notificaciones" icon={<FiBell />} />
         <Button onClick={toggleColorMode} mr={6}>
           {colorMode === "light" ? <MoonIcon /> : <SunIcon />}
         </Button>
@@ -178,11 +184,14 @@ const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
           <Menu>
             <MenuButton py={2} transition="all 0.3s" _focus={{ boxShadow: "none" }}>
               <HStack>
-                <Avatar size={"sm"} name={displayName} />
+                <Avatar size={"sm"} name={displayName} src={user?.avatar || undefined} />
                 <VStack display={{ base: "none", md: "flex" }} alignItems="flex-start" spacing="1px" ml="2">
                   <Text fontSize="sm">{displayName}</Text>
                   <Text fontSize="xs" color="gray.600" textTransform="capitalize">
                     {role}
+                  </Text>
+                  <Text fontSize="xs" color="gray.500" noOfLines={1} maxW="160px">
+                    {statusMessage || "Personaliza tu perfil"}
                   </Text>
                 </VStack>
                 <Box display={{ base: "none", md: "flex" }}>
@@ -191,7 +200,9 @@ const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
               </HStack>
             </MenuButton>
             <MenuList bg={useColorModeValue("white", "gray.900")} borderColor={useColorModeValue("gray.200", "gray.700")}>
-              <MenuItem>Perfil</MenuItem>
+              <MenuItem as={Link} to="/perfil">
+                Perfil
+              </MenuItem>
               <MenuItem as={Link} to="/configuracion">
                 Configuración
               </MenuItem>

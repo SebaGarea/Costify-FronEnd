@@ -12,4 +12,5 @@ export const login = (credentials) => api.post("/api/usuarios/login", credential
 export const registerUser = (payload) => api.post("/api/usuarios/registro", payload);
 export const getCurrentUser = () => api.get("/api/usuarios/current");
 export const changePassword = (payload) => api.post("/api/usuarios/change-password", payload);
+export const updateProfile = (payload) => api.put("/api/usuarios/perfil", payload);
 export default api;

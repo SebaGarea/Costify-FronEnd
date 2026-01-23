@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { login as loginRequest, getCurrentUser } from "../../services/auth.service";
 
 const AuthContext = createContext(null);
@@ -6,6 +6,15 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
+
+  const persistUser = useCallback((userData) => {
+    if (userData) {
+      localStorage.setItem("costify-user", JSON.stringify(userData));
+    } else {
+      localStorage.removeItem("costify-user");
+    }
+    setUser(userData);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -39,21 +48,20 @@ export function AuthProvider({ children }) {
             if (!mounted) return;
             const userData = data?.usuario ?? data?.user ?? null;
             if (userData) {
-              localStorage.setItem("costify-user", JSON.stringify(userData));
-              setUser(userData);
+              persistUser(userData);
             } else {
-              setUser(null);
+              persistUser(null);
             }
           } catch (error) {
             console.error("Error obteniendo usuario actual", error);
             localStorage.removeItem("costify-token");
             localStorage.removeItem("costify-user");
-            setUser(null);
+            if (mounted) persistUser(null);
           }
         } else {
           localStorage.removeItem("costify-token");
           localStorage.removeItem("costify-user");
-          setUser(null);
+          if (mounted) persistUser(null);
         }
 
         const cleanUrl = window.location.pathname + window.location.hash;
@@ -65,12 +73,13 @@ export function AuthProvider({ children }) {
       if (storedToken && tokenIsValid(storedToken)) {
         if (storedUser) {
           try {
-            setUser(JSON.parse(storedUser));
+            const parsedUser = JSON.parse(storedUser);
+            if (mounted) persistUser(parsedUser);
           } catch (error) {
             console.error("Error leyendo usuario almacenado", error);
             localStorage.removeItem("costify-user");
             localStorage.removeItem("costify-token");
-            setUser(null);
+            if (mounted) persistUser(null);
           }
         } else {
           try {
@@ -78,22 +87,21 @@ export function AuthProvider({ children }) {
             if (!mounted) return;
             const userData = data?.usuario ?? data?.user ?? null;
             if (userData) {
-              localStorage.setItem("costify-user", JSON.stringify(userData));
-              setUser(userData);
+              persistUser(userData);
             } else {
-              setUser(null);
+              persistUser(null);
             }
           } catch (error) {
             console.error("Error obteniendo usuario actual", error);
             localStorage.removeItem("costify-token");
             localStorage.removeItem("costify-user");
-            setUser(null);
+            if (mounted) persistUser(null);
           }
         }
       } else {
         localStorage.removeItem("costify-token");
         localStorage.removeItem("costify-user");
-        setUser(null);
+        if (mounted) persistUser(null);
       }
 
       setInitializing(false);
@@ -103,30 +111,27 @@ export function AuthProvider({ children }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [persistUser]);
 
   const signIn = async (credentials) => {
     const { data } = await loginRequest(credentials);
     const userData = data.user ?? data.usuario ?? null;
     localStorage.setItem("costify-token", data.token);
     if (userData) {
-      localStorage.setItem("costify-user", JSON.stringify(userData));
-      setUser(userData);
+      persistUser(userData);
       return;
     }
 
-    localStorage.removeItem("costify-user");
-    setUser(null);
+    persistUser(null);
   };
 
   const signOut = () => {
     localStorage.removeItem("costify-token");
-    localStorage.removeItem("costify-user");
-    setUser(null);
+    persistUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, initializing, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, initializing, signIn, signOut, setUserData: persistUser }}>
       {children}
     </AuthContext.Provider>
   );
