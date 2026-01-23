@@ -4,12 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run vite\" \"npm run electron\"",
+    "dev": "vite",
     "build": "vite build",
     "vite": "vite",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "electron": "electron electron.mjs"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",
@@ -31,7 +30,6 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "concurrently": "^9.2.1",
-    "electron": "^37.4.0",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

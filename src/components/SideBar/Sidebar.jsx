@@ -192,7 +192,9 @@ const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
             </MenuButton>
             <MenuList bg={useColorModeValue("white", "gray.900")} borderColor={useColorModeValue("gray.200", "gray.700")}>
               <MenuItem>Perfil</MenuItem>
-              <MenuItem>Configuración</MenuItem>
+              <MenuItem as={Link} to="/configuracion">
+                Configuración
+              </MenuItem>
               <MenuDivider />
               <MenuItem onClick={onLogout}>Salir</MenuItem>
             </MenuList>

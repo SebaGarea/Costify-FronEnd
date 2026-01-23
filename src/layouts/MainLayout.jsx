@@ -4,14 +4,15 @@ import { SidebarWithHeader } from "../components/SideBar";
 
 const MainLayout = ({ children }) => {
   const location = useLocation();
-  const isLoginRoute = location.pathname === "/login";
+  const authRoutes = ["/login", "/register"];
+  const isAuthRoute = authRoutes.includes(location.pathname);
   const loginBg = useColorModeValue(
     "linear-gradient(140deg, #0b1c28 0%, #050b13 40%, #03102c 110%)",
     "linear-gradient(140deg, #0f172a 0%, #09090a 40%, #0b1120 100%)"
   );
   const glassTint = useColorModeValue("rgba(19, 35, 71, 0.28)", "rgba(12, 24, 62, 0.55)");
 
-  if (isLoginRoute) {
+  if (isAuthRoute) {
     return (
       <Box position="relative" minH="100vh" overflow="hidden" bg={loginBg}>
         <Box
