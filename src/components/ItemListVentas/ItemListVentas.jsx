@@ -741,13 +741,13 @@ export const ItemListVentas = () => {
                     textAlign="center"
                   >
                     <Text color={text} fontSize="sm">
-                      <b>Envío:</b> ${venta.valorEnvio}
+                      <b>Envío:</b> {currencyFormatter.format(venta.valorEnvio)}
                     </Text>
                     <Text color={text} fontSize="sm">
-                      <b>Seña:</b> ${venta.seña}
+                      <b>Seña:</b> {currencyFormatter.format(venta.seña)}
                     </Text>
                     <Text color={text} fontSize="sm">
-                      <b>Total:</b> ${venta.valorTotal}
+                      <b>Total:</b> {currencyFormatter.format(venta.valorTotal)}
                     </Text>
                     <Flex align="center" gap={1} justify="center">
                       <Text color={heading} fontWeight="bold" fontSize="md">
