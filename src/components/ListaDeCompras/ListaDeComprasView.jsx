@@ -109,8 +109,29 @@ const normalizeSectionItemsShape = (value = {}) => {
   }, {});
 };
 
+const mapSectionItemsWithNumericQuantity = (sectionItems) => {
+  const normalized = normalizeSectionItemsShape(sectionItems);
+  return Object.keys(normalized).reduce((acc, key) => {
+    acc[key] = normalized[key].map((item) => {
+      if (!item || typeof item !== "object") {
+        return item;
+      }
+      const numericQuantity = Number(item?.cantidad ?? 0);
+      return {
+        ...item,
+        cantidad: Number.isFinite(numericQuantity) ? numericQuantity : 0,
+      };
+    });
+    return acc;
+  }, {});
+};
+
 const serializeShoppingListPayload = ({ sectionItems, efectivoDisponible, dineroDigital }) =>
-  JSON.stringify({ sectionItems, efectivoDisponible, dineroDigital });
+  JSON.stringify({
+    sectionItems: mapSectionItemsWithNumericQuantity(sectionItems),
+    efectivoDisponible,
+    dineroDigital,
+  });
 
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -300,16 +321,24 @@ export const ListaDeComprasView = () => {
       }
       setIsSaving(true);
       try {
-        const response = await saveShoppingList(payload);
+        const payloadForSave = {
+          ...payload,
+          sectionItems: mapSectionItemsWithNumericQuantity(payload.sectionItems),
+        };
+        const response = await saveShoppingList(payloadForSave);
         if (!isMountedRef.current) {
           return;
         }
         const updated = response?.data?.listaCompra;
         const normalizedSections = normalizeSectionItemsShape(
-          updated?.sectionItems ?? payload.sectionItems
+          updated?.sectionItems ?? payloadForSave.sectionItems
         );
-        const efectivo = Number(updated?.efectivoDisponible ?? payload.efectivoDisponible ?? 0);
-        const digital = Number(updated?.dineroDigital ?? payload.dineroDigital ?? 0);
+        const efectivo = Number(
+          updated?.efectivoDisponible ?? payloadForSave.efectivoDisponible ?? 0
+        );
+        const digital = Number(
+          updated?.dineroDigital ?? payloadForSave.dineroDigital ?? 0
+        );
         const serialized = serializeShoppingListPayload({
           sectionItems: normalizedSections,
           efectivoDisponible: efectivo,
@@ -777,35 +806,36 @@ export const ListaDeComprasView = () => {
         </Flex>
 
         <Stack spacing={6}>
-          {SECTIONS.map((section) => (
-            <ListaCompraSeccion
-              key={section.key}
-              title={section.title}
-              categorySlug={section.key}
-              rawMaterials={rawsMaterialData}
-              colorConfig={section.colors}
-              filterConfig={section.filter}
-              items={sectionItems[section.key] ?? []}
-              onItemsChange={onItemsChangeBySection[section.key]}
-              showMaterialField={section.showMaterialField}
-              materialFieldLabel={section.materialFieldLabel}
-              onSubtotalChange={onSubtotalChangeBySection[section.key]}
-            />
-          ))}
+            {SECTIONS.map((section) => (
+              <Box key={section.key}>
+                <ListaCompraSeccion
+                  title={section.title}
+                  categorySlug={section.key}
+                  rawMaterials={rawsMaterialData}
+                  colorConfig={section.colors}
+                  filterConfig={section.filter}
+                  items={sectionItems[section.key] ?? []}
+                  onItemsChange={onItemsChangeBySection[section.key]}
+                  showMaterialField={section.showMaterialField}
+                  materialFieldLabel={section.materialFieldLabel}
+                  onSubtotalChange={onSubtotalChangeBySection[section.key]}
+                />
+                <Flex justify="flex-end" mt={4} mb={2}>
+                  <Button
+                    colorScheme="teal"
+                    size="sm"
+                    onClick={handleManualSave}
+                    isDisabled={!hasPendingSave || isSaving}
+                    isLoading={isSaving}
+                  >
+                    Guardar cambios
+                  </Button>
+                </Flex>
+              </Box>
+            ))}
         </Stack>
 
-        <Flex justify="flex-end">
-          <Button
-            colorScheme="teal"
-            size="md"
-            onClick={handleManualSave}
-            isDisabled={!hasPendingSave || isSaving}
-            isLoading={isSaving}
-          >
-            Guardar cambios
-          </Button>
-        </Flex>
-
+      
         <Box
           mt={6}
           p={6}

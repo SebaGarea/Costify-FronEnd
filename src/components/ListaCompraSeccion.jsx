@@ -56,13 +56,38 @@ const buildEmptyItem = (overrides = {}) => ({
   espesor: "",
   materiaId: "",
   nombreMadera: "",
-  cantidad: 1,
+  cantidad: "1",
   descripcion: "",
   esPersonalizado: false,
   nombrePersonalizado: "",
   valorPersonalizado: 0,
   ...overrides,
 });
+
+const formatQuantityValue = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : "";
+  }
+  return String(value);
+};
+
+const normalizeQuantityInput = (value) => {
+  if (value === null || value === undefined) return "";
+  const raw = String(value).replace(/,/g, ".");
+  if (!raw.trim()) return "";
+  const [integerPartRaw, decimalPartRaw] = raw.split(".", 2);
+  const sanitizedInteger = (integerPartRaw ?? "").replace(/[^0-9]/g, "");
+  if (decimalPartRaw === undefined) {
+    return sanitizedInteger;
+  }
+  const sanitizedDecimal = decimalPartRaw.replace(/[^0-9]/g, "");
+  const baseInteger = sanitizedInteger || "0";
+  if (!sanitizedDecimal) {
+    return `${baseInteger}.`;
+  }
+  return `${baseInteger}.${sanitizedDecimal}`;
+};
 
 const ListaCompraSeccion = ({
   title,
@@ -606,6 +631,7 @@ const ListaCompraSeccion = ({
               ? getEspesorOptions(item.categoria, item.tipo, item.medida)
               : [];
           const showEspesorField = (espesorOptions || []).length > 0;
+          const quantityValue = formatQuantityValue(item.cantidad);
 
           return (
             <Box key={item.id} p={4} borderRadius="xl" bg={innerCardBg} boxShadow="lg">
@@ -647,20 +673,21 @@ const ListaCompraSeccion = ({
                   <GridItem colSpan={{ base: 12, lg: 2 }}>
                     <FormControl>
                       <FormLabel fontSize="sm">Cantidad</FormLabel>
-                      <NumberInput
-                        min={0}
-                        value={item.cantidad}
-                        onChange={(_, valueNumber) =>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9]*[.,]?[0-9]*"
+                        placeholder="0"
+                        size="sm"
+                        value={quantityValue}
+                        onChange={(event) =>
                           handleChange(
                             idx,
                             "cantidad",
-                            Number.isFinite(valueNumber) ? valueNumber : 0
+                            normalizeQuantityInput(event.target.value)
                           )
                         }
-                        size="sm"
-                      >
-                        <NumberInputField placeholder="0" />
-                      </NumberInput>
+                      />
                     </FormControl>
                   </GridItem>
                   <GridItem colSpan={{ base: 12, lg: 2 }}>
@@ -808,20 +835,21 @@ const ListaCompraSeccion = ({
                     <GridItem colSpan={{ base: 12, lg: showMaterialField ? 1 : 1 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Cantidad</FormLabel>
-                        <NumberInput
-                          min={0}
-                          value={item.cantidad}
-                          onChange={(_, valueNumber) =>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          pattern="[0-9]*[.,]?[0-9]*"
+                          placeholder="0"
+                          size="sm"
+                          value={quantityValue}
+                          onChange={(event) =>
                             handleChange(
                               idx,
                               "cantidad",
-                              Number.isFinite(valueNumber) ? valueNumber : 0
+                              normalizeQuantityInput(event.target.value)
                             )
                           }
-                          size="sm"
-                        >
-                          <NumberInputField placeholder="0" />
-                        </NumberInput>
+                        />
                       </FormControl>
                     </GridItem>
                     <GridItem
