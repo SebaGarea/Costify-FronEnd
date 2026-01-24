@@ -346,6 +346,30 @@ const ListaCompraSeccion = ({
     [materialIndex]
   );
 
+  const getMaterialOptionsByCatTipo = useCallback(
+    (categoriaSeleccionada, tipoSeleccionado) => {
+      if (!categoriaSeleccionada || !tipoSeleccionado) return [];
+      
+      // Traer directamente desde sectionMaterials filtrando por categoria y tipo
+      const materialesFiltered = sectionMaterials.filter((mat) => {
+        const matCategoria = normalizeText(mat?.categoria || "");
+        const matTipo = normalizeText(mat?.type || "");
+        const selectedCategoria = normalizeText(categoriaSeleccionada);
+        const selectedTipo = normalizeText(tipoSeleccionado);
+        
+        return matCategoria === selectedCategoria && matTipo === selectedTipo;
+      });
+      
+      // Eliminar duplicados por _id
+      const uniqueMaterials = Array.from(
+        new Map(materialesFiltered.map((m) => [m._id, m])).values()
+      );
+      
+      return uniqueMaterials;
+    },
+    [sectionMaterials]
+  );
+
   const getMaterialOptions = useCallback(
     (
       categoriaSeleccionada,
@@ -516,30 +540,16 @@ const ListaCompraSeccion = ({
           ...item,
           medida: value,
           espesor: "",
-          materiaId: "",
-          nombreMadera: "",
+          // Preservar materiaId y nombreMadera si ya están seleccionados
         };
-        if (!value) return baseItem;
-        const espOptions = getEspesorOptions(
-          baseItem.categoria,
-          baseItem.tipo,
-          value
-        );
-        if ((espOptions || []).length > 0) {
-          return baseItem;
+        if (!value) {
+          return {
+            ...baseItem,
+            materiaId: "",
+            nombreMadera: "",
+          };
         }
-        const autoMaterial = pickFirstMaterial(
-          baseItem.categoria,
-          baseItem.tipo,
-          value,
-          ""
-        );
-        if (!autoMaterial) return baseItem;
-        return {
-          ...baseItem,
-          materiaId: autoMaterial._id,
-          nombreMadera: getMaterialDisplayName(autoMaterial),
-        };
+        return baseItem;
       })
     );
   };
@@ -718,7 +728,7 @@ const ListaCompraSeccion = ({
                   <Grid
                     templateColumns={
                       showMaterialField
-                        ? { base: "repeat(1, 1fr)", lg: "repeat(16, 1fr)" }
+                        ? { base: "repeat(1, 1fr)", lg: "repeat(18, 1fr)" }
                         : isHerreria
                         ? { base: "repeat(1, 1fr)", lg: "repeat(14, 1fr)" }
                         : { base: "repeat(1, 1fr)", lg: "repeat(12, 1fr)" }
@@ -772,19 +782,12 @@ const ListaCompraSeccion = ({
                             placeholder="Seleccioná un material"
                             value={item.materiaId}
                             onChange={(e) => handleMaterialSelect(idx, e.target.value)}
-                            isDisabled={
-                              !item.categoria ||
-                              !item.tipo ||
-                              !item.medida ||
-                              (showEspesorField && espesorOptions.length > 0 && !item.espesor)
-                            }
+                            isDisabled={!item.categoria || !item.tipo}
                             size="sm"
                           >
-                            {getMaterialOptions(
+                            {getMaterialOptionsByCatTipo(
                               item.categoria,
-                              item.tipo,
-                              item.medida,
-                              showEspesorField ? item.espesor : undefined
+                              item.tipo
                             ).map((mat) => (
                               <option key={mat._id} value={mat._id}>
                                 {getMaterialDisplayName(mat) || "Material"}
@@ -801,7 +804,7 @@ const ListaCompraSeccion = ({
                           placeholder="Medida"
                           value={item.medida}
                           onChange={(e) => handleMedidaChange(idx, e.target.value)}
-                          isDisabled={!item.tipo}
+                          isDisabled={!item.tipo || (showMaterialField && !item.materiaId)}
                           size="sm"
                         >
                           {getMedidaOptions(item.categoria, item.tipo).map((option) => (
@@ -832,7 +835,7 @@ const ListaCompraSeccion = ({
                         </FormControl>
                       </GridItem>
                     )}
-                    <GridItem colSpan={{ base: 12, lg: showMaterialField ? 1 : 1 }}>
+                    <GridItem colSpan={{ base: 12, lg: 1 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Cantidad</FormLabel>
                         <Input
@@ -852,12 +855,7 @@ const ListaCompraSeccion = ({
                         />
                       </FormControl>
                     </GridItem>
-                    <GridItem
-                      colSpan={{
-                        base: 12,
-                        lg: showMaterialField ? 2 : isHerreria ? 2 : 1,
-                      }}
-                    >
+                    <GridItem colSpan={{ base: 12, lg: showMaterialField ? 2 : 2 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Valor</FormLabel>
                         <Input
@@ -868,7 +866,7 @@ const ListaCompraSeccion = ({
                         />
                       </FormControl>
                     </GridItem>
-                    <GridItem colSpan={{ base: 12, lg: showMaterialField ? 2 : 2 }}>
+                    <GridItem colSpan={{ base: 12, lg: showMaterialField ? 3 : 2 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Sub-total</FormLabel>
                         <Flex gap={2} align="center">
