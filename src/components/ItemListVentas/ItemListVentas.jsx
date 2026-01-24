@@ -423,7 +423,7 @@ export const ItemListVentas = () => {
               color={heading}
               textAlign="center"
               whiteSpace="nowrap"
-              fontSize={{ base: "4xl", md: "5xl" }}
+              fontSize={{ base: "2xl", md: "5xl" }}
               letterSpacing="widest"
             >
               📊 Gestión de Ventas

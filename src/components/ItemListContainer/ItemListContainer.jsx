@@ -67,13 +67,14 @@ export const ItemListContainer = ({ products }) => {
   return (
     <>
       <Box mb={2} p={2} bg={colorBgBox} borderRadius="lg">
-        <HStack spacing={4}>
+        <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 2, md: 4 }} align={{ base: "stretch", md: "center" }}>
           {/* Dropdown Catálogo */}
           <Menu>
             <MenuButton
               textTransform="uppercase"
               as={Button}
               rightIcon={<FiChevronDown />}
+              size={{ base: "sm", md: "md" }}
             >
               {selectedCatalogo || "Catálogo"}
             </MenuButton>
@@ -100,6 +101,7 @@ export const ItemListContainer = ({ products }) => {
               textTransform="uppercase"
               as={Button}
               rightIcon={<FiChevronDown />}
+              size={{ base: "sm", md: "md" }}
             >
               {selectedModelo || "Modelo"}
             </MenuButton>
@@ -129,21 +131,23 @@ export const ItemListContainer = ({ products }) => {
                 setSelectedCatalogo(null);
                 setSelectedModelo(null);
               }}
+              size={{ base: "sm", md: "md" }}
             >
               Borrar Filtros
             </Button>
           )}
-          <Spacer />
+          <Spacer display={{ base: "none", md: "block" }} />
 
           <Button
             as={Link}
             to={"/productos/itemAdd"}
             leftIcon={<FiPlus color="#67e8f9" size={"25"} strokeWidth={4} />}
-            mr={15}
+            size={{ base: "sm", md: "md" }}
+            width={{ base: "100%", md: "auto" }}
           >
             Agregar Producto
           </Button>
-        </HStack>
+        </Stack>
       </Box>
 
       <Center py={12}>

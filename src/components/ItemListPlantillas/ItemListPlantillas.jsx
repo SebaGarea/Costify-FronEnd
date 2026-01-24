@@ -164,7 +164,7 @@ export const ItemListPlantillas = () => {
     <>
       <Box mb={2} p={4} bg={colorBgBox} borderRadius="lg">
         <VStack spacing={4} align="stretch">
-          <HStack spacing={4}>
+          <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 2, md: 4 }} align={{ base: "stretch", md: "center" }}>
             {/* Dropdown Tipo de Proyecto */}
             <Menu>
               <MenuButton
@@ -172,6 +172,7 @@ export const ItemListPlantillas = () => {
                 as={Button}
                 rightIcon={<FiChevronDown />}
                 isLoading={loadingTipos}
+                size={{ base: "sm", md: "md" }}
               >
                 {filtros.tipoProyecto === 'todos' ? 'Tipo de Proyecto' : filtros.tipoProyecto}
               </MenuButton>
@@ -190,7 +191,7 @@ export const ItemListPlantillas = () => {
             </Menu>
 
             {/* Campo de búsqueda */}
-            <InputGroup size="md" maxW="300px">
+            <InputGroup size={{ base: "sm", md: "md" }} maxW={{ base: "100%", md: "300px" }}>
               <InputLeftElement pointerEvents="none">
                 <FiSearch color="gray.300" />
               </InputLeftElement>
@@ -207,23 +208,25 @@ export const ItemListPlantillas = () => {
                 colorScheme="red"
                 variant="outline"
                 onClick={handleClearFilters}
+                size={{ base: "sm", md: "md" }}
               >
                 Borrar Filtros
               </Button>
             )}
 
-            <Spacer />
+            <Spacer display={{ base: "none", md: "block" }} />
 
             {/* Botón Agregar Plantillas */}
             <Button
               as={Link}
               to={"/plantillas/plantillaAdd"}
               leftIcon={<FiPlus color="#67e8f9" size={"25"} strokeWidth={4} />}
-              mr={15}
+              size={{ base: "sm", md: "md" }}
+              width={{ base: "100%", md: "auto" }}
             >
               Agregar Plantillas
             </Button>
-          </HStack>
+          </Stack>
         </VStack>
       </Box>
 
