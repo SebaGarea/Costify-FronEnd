@@ -5,10 +5,12 @@ import {
   FormControl,
   FormLabel,
   Heading,
+  Image,
   Input,
   Stack,
   Text,
   VStack,
+  useColorMode,
   useColorModeValue,
   useToast,
 } from "@chakra-ui/react";
@@ -21,8 +23,10 @@ export const LoginView = () => {
   const { signIn } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const { colorMode } = useColorMode();
   const cardBg = useColorModeValue("rgba(255, 255, 255, 0.95)", "rgba(15, 23, 42, 0.9)");
   const cardBorder = useColorModeValue("rgba(148, 163, 184, 0.4)", "rgba(30, 58, 138, 0.6)");
+  const logoSrc = colorMode === "dark" ? "/logo-light.png" : "/logo-dark.png";
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -60,20 +64,46 @@ export const LoginView = () => {
   };
 
   return (
-    <Box minH="100vh" w="full" display="flex" alignItems="center" justifyContent="center" px={{ base: 4, md: 0 }}>
+    <Box
+      position="relative"
+      minH="100vh"
+      w="100vw"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      px={{ base: 4, md: 6 }}
+      py={{ base: 8, md: 12 }}
+      overflow="hidden"
+      bg="transparent"
+      _before={{
+        content: "''",
+        position: "fixed",
+        inset: 0,
+        bgImage:
+          "linear-gradient(180deg, rgba(9, 11, 20, 0.72) 0%, rgba(9, 11, 20, 0.88) 100%), url('/bckLogin.jpg')",
+        bgSize: "cover",
+        bgPos: "center",
+        bgRepeat: "no-repeat",
+        zIndex: -1,
+      }}
+    >
       <Box
         bg={cardBg}
-        p={{ base: 8, md: 10 }}
+        py={{ base: 1, md: 2}}
+        px={{ base: 6, md: 8 }}
         rounded="2xl"
         shadow="2xl"
-        w={{ base: "100%", sm: "420px" }}
+        w={{ base: "100%", sm: "380px" }}
         backdropFilter="blur(8px)"
         borderWidth="1px"
         borderColor={cardBorder}
       >
-        <VStack as="form" spacing={6} align="stretch" onSubmit={handleSubmit}>
-          <Heading textAlign="center" size="lg">Iniciar sesión</Heading>
-          <Stack spacing={4}>
+        <VStack as="form" spacing={4} align="stretch" onSubmit={handleSubmit}>
+          <VStack spacing={0}>
+            <Image src={logoSrc} alt="El Portal" h="48" objectFit="contain" />
+            <Heading textAlign="center" size="md">Iniciar sesión</Heading>
+          </VStack>
+          <Stack spacing={3}>
             <FormControl isRequired>
               <FormLabel>Email</FormLabel>
               <Input name="email" type="email" value={form.email} onChange={handleChange} />

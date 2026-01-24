@@ -671,7 +671,7 @@ export const HomeView = () => {
               fontSize={{ base: "2xl", md: "4xl" }}
               fontFamily="'Space Grotesk', 'DM Sans', sans-serif"
             >
-              Dashboard Costify
+              Dashboard Operativo
             </Heading>
             <Text fontSize="lg" color={mutedText} maxW="720px">
               Monitoreá ventas, márgenes y capacidad en un solo lugar, con métricas que se

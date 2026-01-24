@@ -19,6 +19,7 @@ import {
   MenuList,
   useColorMode,
   Button,
+  Image,
 } from "@chakra-ui/react";
 import { useEffect } from "react";
 import { MoonIcon, SunIcon } from "@chakra-ui/icons";
@@ -86,6 +87,9 @@ export const SidebarWithHeader = ({ children }) => {
 };
 
 const SidebarContent = ({ onClose, ...rest }) => {
+  const { colorMode } = useColorMode();
+  const logoSrc = colorMode === "dark" ? "/logo-light.png" : "/logo-dark.png";
+
   return (
     <Box
       transition="3s ease"
@@ -97,10 +101,15 @@ const SidebarContent = ({ onClose, ...rest }) => {
       h="full"
       {...rest}
     >
-      <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
-        <Text textDecoration={"underline"} letterSpacing={"widest"} fontSize="2xl" fontFamily="monospace" fontWeight="bold">
-          Costify
-        </Text>
+      <Flex
+        h="20"
+        alignItems="center"
+        mx="8"
+        justifyContent="space-between"
+        pt="8"
+        mb="6"
+      >
+        <Image src={logoSrc} alt="Costify Logo" h="40" w="auto" objectFit="contain" />
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
 
@@ -189,9 +198,6 @@ const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
                   <Text fontSize="sm">{displayName}</Text>
                   <Text fontSize="xs" color="gray.600" textTransform="capitalize">
                     {role}
-                  </Text>
-                  <Text fontSize="xs" color="gray.500" noOfLines={1} maxW="160px">
-                    {statusMessage || "Personaliza tu perfil"}
                   </Text>
                 </VStack>
                 <Box display={{ base: "none", md: "flex" }}>
