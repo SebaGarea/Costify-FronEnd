@@ -21,8 +21,6 @@ import {
   Text,
   useColorModeValue,
   useDisclosure,
-  Wrap,
-  WrapItem,
 } from "@chakra-ui/react";
 import { FiChevronDown, FiPlus, FiUploadCloud, FiDownload } from "react-icons/fi";
 import { RiArrowRightLine } from "react-icons/ri";
@@ -145,111 +143,107 @@ export const ItemListContainerRawMaterials = ({
   return (
     <Stack spacing={6} align="stretch">
       <Box bg={toolbarBg} borderRadius="lg" p={3}>
-        <Stack direction={{ base: "column", xl: "row" }} spacing={4} align={{ base: "stretch", xl: "center" }}>
-          <Wrap spacing={3} w="full">
-            <WrapItem flex="1" minW={{ base: "180px", md: "220px" }}>
-              <Menu matchWidth>
-                <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w="full">
-                  {selectedCategory || "Categoría"}
-                </MenuButton>
-                <MenuList {...scrollableMenuProps}>
-                  {categoriesMp.map((cat) => (
-                    <MenuItem key={cat.nombre} textTransform="uppercase" onClick={() => handleCategoryChange(cat.nombre)}>
-                      {cat.nombre}
-                    </MenuItem>
-                  ))}
-                </MenuList>
-              </Menu>
-            </WrapItem>
+        {/* Todo en una fila en desktop, responsive en mobile */}
+        <Flex 
+          direction={{ base: "column", md: "row" }} 
+          gap={3} 
+          align={{ base: "stretch", md: "center" }}
+          flexWrap={{ base: "nowrap", md: "wrap" }}
+        >
+          {/* Filtros */}
+          <Menu matchWidth>
+            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
+              {selectedCategory || "Categoría"}
+            </MenuButton>
+            <MenuList {...scrollableMenuProps}>
+              {categoriesMp.map((cat) => (
+                <MenuItem key={cat.nombre} textTransform="uppercase" onClick={() => handleCategoryChange(cat.nombre)}>
+                  {cat.nombre}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </Menu>
 
-            <WrapItem flex="1" minW={{ base: "180px", md: "220px" }}>
-              <Menu isDisabled={!selectedCategory} matchWidth>
-                <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w="full">
-                  {selectedType || "Tipo"}
-                </MenuButton>
-                <MenuList {...scrollableMenuProps}>
-                  {availableTypes.length === 0 ? (
-                    <MenuItem disabled>Sin tipos</MenuItem>
-                  ) : (
-                    availableTypes.map((tipo) => (
-                      <MenuItem key={tipo} textTransform="uppercase" onClick={() => handleTypeChange(tipo)}>
-                        {tipo}
-                      </MenuItem>
-                    ))
-                  )}
-                </MenuList>
-              </Menu>
-            </WrapItem>
+          <Menu isDisabled={!selectedCategory} matchWidth>
+            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
+              {selectedType || "Tipo"}
+            </MenuButton>
+            <MenuList {...scrollableMenuProps}>
+              {availableTypes.length === 0 ? (
+                <MenuItem disabled>Sin tipos</MenuItem>
+              ) : (
+                availableTypes.map((tipo) => (
+                  <MenuItem key={tipo} textTransform="uppercase" onClick={() => handleTypeChange(tipo)}>
+                    {tipo}
+                  </MenuItem>
+                ))
+              )}
+            </MenuList>
+          </Menu>
 
-            <WrapItem flex="1" minW={{ base: "180px", md: "220px" }}>
-              <Menu isDisabled={!selectedType} matchWidth>
-                <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w="full">
-                  {selectedMedida || "Medida"}
-                </MenuButton>
-                <MenuList {...scrollableMenuProps}>
-                  {availableMedidas.length === 0 ? (
-                    <MenuItem disabled>Sin medidas</MenuItem>
-                  ) : (
-                    availableMedidas.map((medida) => (
-                      <MenuItem key={medida} textTransform="uppercase" onClick={() => handleMedidaChange(medida)}>
-                        {medida}
-                      </MenuItem>
-                    ))
-                  )}
-                </MenuList>
-              </Menu>
-            </WrapItem>
+          <Menu isDisabled={!selectedType} matchWidth>
+            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
+              {selectedMedida || "Medida"}
+            </MenuButton>
+            <MenuList {...scrollableMenuProps}>
+              {availableMedidas.length === 0 ? (
+                <MenuItem disabled>Sin medidas</MenuItem>
+              ) : (
+                availableMedidas.map((medida) => (
+                  <MenuItem key={medida} textTransform="uppercase" onClick={() => handleMedidaChange(medida)}>
+                    {medida}
+                  </MenuItem>
+                ))
+              )}
+            </MenuList>
+          </Menu>
 
-            {(selectedCategory || selectedType || selectedMedida) && (
-              <WrapItem flex="1" minW={{ base: "180px", md: "200px" }}>
-                <Button w="full" variant="outline" colorScheme="red" onClick={handleClearFilters}>
-                  Borrar filtros
-                </Button>
-              </WrapItem>
-            )}
-          </Wrap>
+          {/* Botón borrar filtros inline */}
+          {(selectedCategory || selectedType || selectedMedida) && (
+            <Button variant="outline" colorScheme="red" onClick={handleClearFilters} w={{ base: "full", md: "auto" }}>
+              Borrar filtros
+            </Button>
+          )}
 
-          <Wrap spacing={3} justify={{ base: "flex-start", xl: "flex-end" }} w="full">
-            <WrapItem flex="1" minW={{ base: "200px", md: "220px" }}>
-              <Button
-                w="full"
-                as={Link}
-                to="/materias-primas/itemAdd"
-                leftIcon={<FiPlus color="#67e8f9" size="20" strokeWidth={3} />}
-              >
-                Agregar Materia Prima
-              </Button>
-            </WrapItem>
-            <WrapItem flex="1" minW={{ base: "200px", md: "220px" }}>
-              <Button w="full" as={Link} to="/materias-primas/import" variant="outline" leftIcon={<FiUploadCloud />}>
-                Subir Excel
-              </Button>
-            </WrapItem>
-            <WrapItem flex="1" minW={{ base: "200px", md: "220px" }}>
-              <Button
-                w="full"
-                variant="outline"
-                leftIcon={<FiDownload />}
-                onClick={onExport}
-                isLoading={isExporting}
-                isDisabled={isLoading || typeof onExport !== "function"}
-              >
-                Exportar Excel
-              </Button>
-            </WrapItem>
-            <WrapItem flex="1" minW={{ base: "200px", md: "220px" }}>
-              <Button
-                w="full"
-                colorScheme="red"
-                variant="outline"
-                onClick={deleteDialog.onOpen}
-                isDisabled={!canBulkDelete || isLoading || isDeletingAll || sanitizedMaterials.length === 0}
-              >
-                Eliminar todo
-              </Button>
-            </WrapItem>
-          </Wrap>
-        </Stack>
+          {/* Botones de acciones */}
+          <Button
+            as={Link}
+            to="/materias-primas/itemAdd"
+            leftIcon={<FiPlus color="#67e8f9" size="20" strokeWidth={3} />}
+            w={{ base: "full", md: "auto" }}
+          >
+            Agregar Materia Prima
+          </Button>
+          <Button 
+            as={Link} 
+            to="/materias-primas/import" 
+            variant="outline" 
+            leftIcon={<FiUploadCloud />}
+            w={{ base: "full", md: "auto" }}
+          >
+            Subir Excel
+          </Button>
+          <Button
+            variant="outline"
+            leftIcon={<FiDownload />}
+            onClick={onExport}
+            isLoading={isExporting}
+            isDisabled={isLoading || typeof onExport !== "function"}
+            w={{ base: "full", md: "auto" }}
+          >
+            Exportar Excel
+          </Button>
+          <Button
+            colorScheme="red"
+            variant="outline"
+            onClick={deleteDialog.onOpen}
+            isDisabled={!canBulkDelete || isLoading || isDeletingAll || sanitizedMaterials.length === 0}
+            w={{ base: "full", md: "auto" }}
+            ml={{ base: 0, md: "auto" }}
+          >
+            Eliminar todo
+          </Button>
+        </Flex>
       </Box>
 
       <Box py={4} px={{ base: 0, md: 2 }}>
