@@ -342,15 +342,29 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const precioBg = useColorModeValue("green.50", "green.900");
   const precioBorder = useColorModeValue("green.200", "green.600");
 
+  const obtenerPrecioUnitario = (item) => {
+    if (
+      item?.materiaPrima?.precio !== undefined &&
+      item?.materiaPrima?.precio !== null
+    ) {
+      return parseFloat(item.materiaPrima.precio) || 0;
+    }
+    if (item?.valor !== undefined && item?.valor !== null && item.valor !== "") {
+      return parseFloat(item.valor) || 0;
+    }
+    if (item?.valorPersonalizado !== undefined && item.valorPersonalizado !== "") {
+      return parseFloat(item.valorPersonalizado) || 0;
+    }
+    return 0;
+  };
+
   // Función para calcular subtotal de una categoría
   const calcularSubtotal = (items) => {
     return items.reduce((total, item) => {
-      if (item.valor && item.cantidad) {
-        return (
-          total + parseFloat(item.valor || 0) * parseFloat(item.cantidad || 0)
-        );
-      }
-      return total;
+      const cantidad = parseFloat(item.cantidad) || 0;
+      if (cantidad <= 0) return total;
+      const precioUnitario = obtenerPrecioUnitario(item);
+      return total + precioUnitario * cantidad;
     }, 0);
   };
 
@@ -423,23 +437,36 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     [subtotalCarpinteria, form.porcentajesPorCategoria.carpinteria]
   );
   const precioFinalPintura = useMemo(() => {
-    const consumiblesPintura = parseFloat(debouncedConsumibles.pintura || 0);
+    const porcentajeCategoria = parseFloat(
+      form.porcentajesPorCategoria.pintura || 0
+    );
+
     const precioConGanancia = debouncedPintura.reduce((total, item) => {
-      const valor = parseFloat(item.valor) || 0;
       const cantidad = parseFloat(item.cantidad) || 0;
-      const base = valor * cantidad;
+      if (cantidad <= 0) {
+        return total;
+      }
+      const base = obtenerPrecioUnitario(item) * cantidad;
       if (base <= 0) {
         return total;
       }
       const porcentajeItem =
         item.gananciaIndividual !== undefined && item.gananciaIndividual !== ""
           ? parseFloat(item.gananciaIndividual) || 0
-          : 0;
+          : porcentajeCategoria;
       return total + base * (1 + porcentajeItem / 100);
     }, 0);
 
-    return precioConGanancia + consumiblesPintura;
-  }, [debouncedPintura, debouncedConsumibles.pintura]);
+    const consumiblesPintura = parseFloat(debouncedConsumibles.pintura || 0);
+    const consumiblesConGanancia =
+      consumiblesPintura * (1 + porcentajeCategoria / 100);
+
+    return precioConGanancia + consumiblesConGanancia;
+  }, [
+    debouncedPintura,
+    debouncedConsumibles.pintura,
+    form.porcentajesPorCategoria.pintura,
+  ]);
   const precioFinalOtros = useMemo(
     () =>
       calcularPrecioFinal(

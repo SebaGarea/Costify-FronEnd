@@ -152,7 +152,16 @@ export const ItemListContainer = ({ products }) => {
 
       <Center py={12}>
         <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8}>
-          {filteredProducts.map((product) => (
+          {filteredProducts.map((product) => {
+            const planilla = product?.planillaCosto ?? null;
+            const costoPlanilla = Number(planilla?.costoTotal ?? 0);
+            const precioPlanilla = Number(planilla?.precioFinal ?? 0);
+            const gananciaPlanilla = precioPlanilla - costoPlanilla;
+            const displayedPrice = Number(
+              planilla?.precioFinal ?? product?.precioActual ?? product?.precio ?? 0
+            );
+
+            return (
             <Box
               key={product._id}
               role={"group"}
@@ -209,15 +218,15 @@ export const ItemListContainer = ({ products }) => {
                 </Text>
                 
                 {/* Información de la plantilla asociada */}
-                {product.planillaCosto ? (
+                {planilla ? (
                   <VStack spacing={3} w="full">
                     <Badge colorScheme="blue" fontSize="xs" px={2} py={1}>
-                      Plantilla: {product.planillaCosto.nombre}
+                      Plantilla: {planilla.nombre}
                     </Badge>
                     
-                    {product.planillaCosto.tipoProyecto && (
+                    {planilla.tipoProyecto && (
                       <Badge colorScheme="purple" fontSize="xs" px={2} py={1}>
-                        {product.planillaCosto.tipoProyecto}
+                        {planilla.tipoProyecto}
                       </Badge>
                     )}
                     
@@ -225,21 +234,21 @@ export const ItemListContainer = ({ products }) => {
                       <HStack justify="space-between" w="full">
                         <Text fontSize="xs" color="gray.600">Costo Total:</Text>
                         <Text fontSize="xs" fontWeight="bold" color="green.600">
-                          ${Number(product.planillaCosto.costoTotal || 0).toLocaleString()}
+                          ${costoPlanilla.toLocaleString()}
                         </Text>
                       </HStack>
                       
                       <HStack justify="space-between" w="full">
                         <Text fontSize="xs" color="gray.600">Precio Plantilla:</Text>
                         <Text fontSize="xs" fontWeight="bold" color="blue.600">
-                          ${Number(product.planillaCosto.precioFinal || 0).toLocaleString()}
+                          ${precioPlanilla.toLocaleString()}
                         </Text>
                       </HStack>
                       
                       <HStack justify="space-between" w="full">
                         <Text fontSize="xs" color="gray.600">Ganancia Plantilla:</Text>
                         <Text fontSize="xs" fontWeight="bold" color="orange.600">
-                          ${Number((product.planillaCosto.precioFinal || 0) - (product.planillaCosto.costoTotal || 0)).toLocaleString()}
+                          ${gananciaPlanilla.toLocaleString()}
                         </Text>
                       </HStack>
                     </VStack>
@@ -260,9 +269,7 @@ export const ItemListContainer = ({ products }) => {
                 
                 <Stack direction={"row"} align={"center"}>
                   <Text fontWeight={800} fontSize={"xl"} color="green.500">
-                    ${Number(
-                      product?.precioActual ?? product?.planillaCosto?.precioFinal ?? product?.precio ?? 0
-                    ).toLocaleString()}
+                    ${displayedPrice.toLocaleString()}
                   </Text>
                   <Text ml={2} color={"gray.600"} fontSize="sm">
                     Stock: {product.stock}
@@ -287,7 +294,8 @@ export const ItemListContainer = ({ products }) => {
                 </Text>
               </Stack>
             </Box>
-          ))}
+            );
+          })}
         </SimpleGrid>
       </Center>
     </>

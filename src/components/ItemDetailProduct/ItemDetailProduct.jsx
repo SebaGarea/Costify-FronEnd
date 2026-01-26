@@ -96,8 +96,8 @@ export const ItemDetailProduct = ({ products }) => {
   const precioCalculado = useMemo(
     () =>
       Number(
-        products?.precioActual ??
-          products?.planillaCosto?.precioFinal ??
+        products?.planillaCosto?.precioFinal ??
+          products?.precioActual ??
           products?.precio ??
           0
       ),

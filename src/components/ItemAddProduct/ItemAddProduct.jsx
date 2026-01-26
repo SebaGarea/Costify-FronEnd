@@ -56,11 +56,14 @@ export const ItemAddProduct = ({ productId }) => {
   useEffect(() => {
     if (productId) {
       getProductById(productId).then((res) => {
+        const precioDesdePlanilla = res.data?.planillaCosto?.precioFinal;
+        const precioCalculado =
+          precioDesdePlanilla ?? res.data?.precioActual ?? res.data?.precio ?? "";
         setForm({
           nombre: res.data.nombre,
           catalogo: res.data.catalogo,
           modelo: res.data.modelo,
-          precio: res.data.precio,
+          precio: precioCalculado?.toString() || "",
           stock: res.data.stock,
           descripcion: res.data.descripcion,
           planillaCosto: res.data.planillaCosto?._id || "", // Cargar ID de plantilla si existe
