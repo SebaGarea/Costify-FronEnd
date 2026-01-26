@@ -260,7 +260,9 @@ export const ItemListContainer = ({ products }) => {
                 
                 <Stack direction={"row"} align={"center"}>
                   <Text fontWeight={800} fontSize={"xl"} color="green.500">
-                    ${Number(product.precio).toLocaleString()}
+                    ${Number(
+                      product?.precioActual ?? product?.planillaCosto?.precioFinal ?? product?.precio ?? 0
+                    ).toLocaleString()}
                   </Text>
                   <Text ml={2} color={"gray.600"} fontSize="sm">
                     Stock: {product.stock}

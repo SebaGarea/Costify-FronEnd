@@ -93,10 +93,17 @@ export const ItemDetailProduct = ({ products }) => {
     () => loadPlataformasConfigFromStorage(),
     []
   );
-  const montoObjetivo = useMemo(
-    () => Number(products?.precio ?? 0),
+  const precioCalculado = useMemo(
+    () =>
+      Number(
+        products?.precioActual ??
+          products?.planillaCosto?.precioFinal ??
+          products?.precio ??
+          0
+      ),
     [products]
   );
+  const montoObjetivo = precioCalculado;
   const mercadoLibrePrices = useMemo(
     () => getMercadoLibrePrices(montoObjetivo, plataformasConfig),
     [montoObjetivo, plataformasConfig]
@@ -238,7 +245,7 @@ export const ItemDetailProduct = ({ products }) => {
               display="block"
             >
               <Flex alignItems="center" justifyContent="center" display="inline-flex">
-                ${products.precio}
+                ${precioCalculado.toLocaleString()}
                 <Box as="span" ml={4}>
                   <FcMoneyTransfer />
                 </Box>
