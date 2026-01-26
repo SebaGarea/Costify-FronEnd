@@ -582,6 +582,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             if (item.materiaPrima && typeof item.materiaPrima === "object") {
               const selectedId = item.materiaPrima?._id?.toString() || materiaPrimaId;
               return {
+                ...baseItem,
                 categoriaMP:
                   item.materiaPrima.categoriaMP ||
                   item.materiaPrima.categoria ||
@@ -594,8 +595,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   item.materiaPrima.espesorMP ||
                   item.materiaPrima.espesor ||
                   "",
-                valor: item.valor || item.materiaPrima.precio || "",
-                cantidad: item.cantidad || "",
+                valor: toInputString(item.valor, "") || toInputString(item.materiaPrima.precio, ""),
+                cantidad: toInputString(item.cantidad, ""),
                 isPriceAuto: true, // Marcar como automático ya que viene del backend
                 isCustomMaterial: esPersonalizado,
                 descripcionPersonalizada: item.descripcionPersonalizada || "",
@@ -613,12 +614,13 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               );
               if (material) {
                 return {
+                  ...baseItem,
                   categoriaMP: material.categoria || "",
                   tipoMP: material.type || "",
                   medidaMP: material.medida || "",
                   espesorMP: material.espesor || "",
-                  valor: item.valor || material.precio || "",
-                  cantidad: item.cantidad || "",
+                  valor: toInputString(item.valor, "") || toInputString(material.precio, ""),
+                  cantidad: toInputString(item.cantidad, ""),
                   isPriceAuto: false,
                   isCustomMaterial: esPersonalizado,
                   descripcionPersonalizada: item.descripcionPersonalizada || "",
@@ -631,12 +633,13 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               if (item.materiaPrima.includes(" - ")) {
                 const partes = item.materiaPrima.split(" - ");
                 return {
+                  ...baseItem,
                   categoriaMP: partes[0] || "",
                   tipoMP: partes[1] || "",
                   medidaMP: partes[2] || "",
                   espesorMP: partes[3] || "",
-                  valor: item.valor || "",
-                  cantidad: item.cantidad || "",
+                  valor: toInputString(item.valor, ""),
+                  cantidad: toInputString(item.cantidad, ""),
                   isPriceAuto: false,
                   isCustomMaterial: esPersonalizado,
                   descripcionPersonalizada: item.descripcionPersonalizada || "",
@@ -852,6 +855,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         nextItem.medidaMP = "";
         nextItem.espesorMP = "";
         nextItem.valor = "";
+        nextItem.cantidad = "";
         nextItem.isPriceAuto = false;
         nextItem.nombreMadera = "";
         nextItem.selectedMaterialId = "";
@@ -864,6 +868,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         nextItem.medidaMP = "";
         nextItem.espesorMP = "";
         nextItem.valor = "";
+        nextItem.cantidad = "";
         nextItem.isPriceAuto = false;
         nextItem.nombreMadera = "";
         nextItem.selectedMaterialId = "";
