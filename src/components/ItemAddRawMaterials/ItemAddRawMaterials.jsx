@@ -85,6 +85,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "Bisagras Elevables",
       "Correderas",
       "Tiradores",
+      "Regatones",
       "Cerraduras",
       "Tornillos",
       "Tirafondos",
