@@ -88,6 +88,9 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       "Cerraduras",
       "Tornillos",
       "Tirafondos",
+      "Patas Regulables",
+      "Tuerca Mariposa",
+      "Varilla Roscada",
       "Otros",
     ],
     Otros: [
