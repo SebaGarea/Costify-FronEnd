@@ -100,15 +100,22 @@ export const ItemAddProduct = ({ productId }) => {
       formData.append("imagenes", img);
     });
 
-    let ok;
+    let result;
     if (productId) {
       // Modo edición
-      ok = await updateProduct(productId, formData, true);
+      result = await updateProduct(productId, formData, true);
     } else {
       // Modo creación
-      ok = await addProduct(formData, true);
+      result = await addProduct(formData, true);
     }
-    if (ok) {
+    
+    if (result) {
+      // Actualizar las imágenes actuales con las devueltas por el servidor
+      if (result.imagenes) {
+        setImagenesActuales(result.imagenes);
+      }
+      setImagenes([]);
+      
       toast({
         title: productId ? "Producto actualizado." : "Producto agregado.",
         description: productId
@@ -118,9 +125,11 @@ export const ItemAddProduct = ({ productId }) => {
         duration: 3000,
         isClosable: true,
       });
+      
       setTimeout(() => {
         navigate("/productos");
       }, 1000);
+      
       setForm({
         nombre: "",
         catalogo: "",
@@ -128,7 +137,6 @@ export const ItemAddProduct = ({ productId }) => {
         precio: "",
         descripcion: "",
       });
-      setImagenes([]);
     } else {
       toast({
         title: "Error",

@@ -8,11 +8,11 @@ const updateProduct = async (id, form, isFormData = false) =>{
     setLoading(true);
     setError(null);
     try {
-    await updateProductService(id, form, isFormData);  
-    return true ;
+    const response = await updateProductService(id, form, isFormData);  
+    return response.data;
     } catch (error) {
         setError(error.response?.data?.error || "Error al editar el producto");
-        return false;
+        return null;
     } finally {
         setLoading(false);
     }
