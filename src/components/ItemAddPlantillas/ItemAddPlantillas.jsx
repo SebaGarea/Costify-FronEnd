@@ -434,16 +434,12 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       const porcentajeItem =
         item.gananciaIndividual !== undefined && item.gananciaIndividual !== ""
           ? parseFloat(item.gananciaIndividual) || 0
-          : parseFloat(form.porcentajesPorCategoria.pintura || 0);
+          : 0;
       return total + base * (1 + porcentajeItem / 100);
     }, 0);
 
     return precioConGanancia + consumiblesPintura;
-  }, [
-    debouncedPintura,
-    debouncedConsumibles.pintura,
-    form.porcentajesPorCategoria.pintura,
-  ]);
+  }, [debouncedPintura, debouncedConsumibles.pintura]);
   const precioFinalOtros = useMemo(
     () =>
       calcularPrecioFinal(
@@ -2177,16 +2173,18 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               />
             </FormControl>
 
-            <FormControl flex="1">
-              <FormLabel>Porcentaje de Ganancia (%)</FormLabel>
-              <Input
-                type="number"
-                name={`porcentaje_${categoria}`}
-                value={form.porcentajesPorCategoria[categoria]}
-                onChange={handleChange}
-                placeholder="Ej: 50"
-              />
-            </FormControl>
+            {categoria !== "pintura" && (
+              <FormControl flex="1">
+                <FormLabel>Porcentaje de Ganancia (%)</FormLabel>
+                <Input
+                  type="number"
+                  name={`porcentaje_${categoria}`}
+                  value={form.porcentajesPorCategoria[categoria]}
+                  onChange={handleChange}
+                  placeholder="Ej: 50"
+                />
+              </FormControl>
+            )}
           </HStack>
 
           {/* Subtotal de la categoría */}
