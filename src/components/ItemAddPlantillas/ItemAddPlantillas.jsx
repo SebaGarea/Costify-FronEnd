@@ -194,6 +194,7 @@ const createEmptyItem = () => ({
   descripcionPersonalizada: "",
   nombreMadera: "",
   selectedMaterialId: "",
+  gananciaIndividual: "",
 });
 
 const createDefaultExtrasState = () => ({
@@ -421,14 +422,28 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       ),
     [subtotalCarpinteria, form.porcentajesPorCategoria.carpinteria]
   );
-  const precioFinalPintura = useMemo(
-    () =>
-      calcularPrecioFinal(
-        subtotalPintura,
-        form.porcentajesPorCategoria.pintura
-      ),
-    [subtotalPintura, form.porcentajesPorCategoria.pintura]
-  );
+  const precioFinalPintura = useMemo(() => {
+    const consumiblesPintura = parseFloat(debouncedConsumibles.pintura || 0);
+    const precioConGanancia = debouncedPintura.reduce((total, item) => {
+      const valor = parseFloat(item.valor) || 0;
+      const cantidad = parseFloat(item.cantidad) || 0;
+      const base = valor * cantidad;
+      if (base <= 0) {
+        return total;
+      }
+      const porcentajeItem =
+        item.gananciaIndividual !== undefined && item.gananciaIndividual !== ""
+          ? parseFloat(item.gananciaIndividual) || 0
+          : parseFloat(form.porcentajesPorCategoria.pintura || 0);
+      return total + base * (1 + porcentajeItem / 100);
+    }, 0);
+
+    return precioConGanancia + consumiblesPintura;
+  }, [
+    debouncedPintura,
+    debouncedConsumibles.pintura,
+    form.porcentajesPorCategoria.pintura,
+  ]);
   const precioFinalOtros = useMemo(
     () =>
       calcularPrecioFinal(
@@ -560,6 +575,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               selectedMaterialId: item.selectedMaterialId || materiaPrimaId,
               isCustomMaterial: esPersonalizado || Boolean(item.isCustomMaterial),
               isPriceAuto: esPersonalizado ? false : Boolean(item.isPriceAuto),
+              gananciaIndividual: toInputString(item.gananciaIndividual, ""),
             };
 
             const tieneMetadatosCascada = Boolean(
@@ -1307,6 +1323,11 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       const cantidad = parseFloat(item.cantidad) || 0;
       if (cantidad <= 0) return null;
 
+      const gananciaIndividualLimpia =
+        categoria === "pintura" && item.gananciaIndividual !== undefined && item.gananciaIndividual !== ""
+          ? parseFloat(item.gananciaIndividual) || 0
+          : null;
+
       if (item.isCustomMaterial) {
         const valorPersonalizado = parseFloat(item.valor) || 0;
         if (valorPersonalizado <= 0) return null;
@@ -1337,6 +1358,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           medidaMP: item.medidaMP || "",
           espesorMP: item.espesorMP || "",
           nombreMadera: item.nombreMadera || "",
+          ...(gananciaIndividualLimpia !== null
+            ? { gananciaIndividual: gananciaIndividualLimpia }
+            : {}),
         };
       }
 
@@ -1369,6 +1393,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         medidaMP: item.medidaMP || "",
         espesorMP: item.espesorMP || "",
         nombreMadera: item.nombreMadera || "",
+        ...(gananciaIndividualLimpia !== null
+          ? { gananciaIndividual: gananciaIndividualLimpia }
+          : {}),
       };
     };
 
@@ -1648,8 +1675,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               const fieldSize = "md";
               const labelFontSize = "sm";
               const baseColumns = showSubtotalColumn ? 8 : 6;
-              const totalColumns =
-                isPintura && !item.isCustomMaterial ? baseColumns + 1 : baseColumns;
+              const selectorExtraColumn = isPintura && !item.isCustomMaterial ? 1 : 0;
+              const gananciaExtraColumn = isPintura ? 1 : 0;
+              const totalColumns = baseColumns + selectorExtraColumn + gananciaExtraColumn;
               const mdColumns = Math.min(totalColumns, 3);
               const gridTemplateColumns = {
                 base: "repeat(1, minmax(0, 1fr))",
@@ -2020,6 +2048,30 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                         />
                       </FormControl>
                     </GridItem>
+
+                    {isPintura && (
+                      <GridItem minW="0">
+                        <FormControl>
+                          <FormLabel fontSize={labelFontSize}>Ganancia (%)</FormLabel>
+                          <Input
+                            size={fieldSize}
+                            type="number"
+                            placeholder="Ej: 30"
+                            min="0"
+                            step="0.1"
+                            value={item.gananciaIndividual ?? ""}
+                            onChange={(e) =>
+                              handleItemChange(
+                                categoria,
+                                index,
+                                "gananciaIndividual",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </FormControl>
+                      </GridItem>
+                    )}
 
                     <GridItem
                       minW="0"
