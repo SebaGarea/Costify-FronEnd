@@ -12,8 +12,8 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: pageSize, totalPages: 1 });
-  const [filtersMeta, setFiltersMeta] = useState({ availableTypes: [], availableMedidas: [] });
-  const [filters, setFilters] = useState({ category: null, type: null, medida: null });
+  const [filtersMeta, setFiltersMeta] = useState({ availableTypes: [], availableMedidas: [], availableNombresMadera: [] });
+  const [filters, setFilters] = useState({ category: null, type: null, medida: null, nombreMadera: null });
 
   const buildTypeParam = (typeLabel) => {
     if (!typeLabel) return undefined;
@@ -29,6 +29,7 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
         const categoryParam = filters.category || undefined;
         const typeParam = buildTypeParam(filters.type);
         const medidaParam = filters.medida || undefined;
+        const nombreMaderaParam = filters.nombreMadera || undefined;
 
         if (fetchAll) {
           const aggregatedItems = [];
@@ -39,6 +40,7 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
             category: categoryParam,
             type: typeParam,
             medida: medidaParam,
+            nombreMadera: nombreMaderaParam,
           }).catch((metaError) => {
             console.error("Error al obtener metadatos de materias primas", metaError);
             return null;
@@ -50,6 +52,7 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
             category: categoryParam,
             type: typeParam,
             medida: medidaParam,
+            nombreMadera: nombreMaderaParam,
           });
           const firstItems = firstResponse.data.materiasPrimas || [];
           aggregatedItems.push(...firstItems);
@@ -69,6 +72,7 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
                   category: categoryParam,
                   type: typeParam,
                   medida: medidaParam,
+                  nombreMadera: nombreMaderaParam,
                 })
               );
             }
@@ -96,14 +100,16 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
             setPagination({ total: aggregatedItems.length, page: 1, limit: aggregatedItems.length, totalPages: 1 });
           }
           const metaResponse = await metaRequest;
-          const fetchedMeta = metaResponse?.data?.filtersMeta || { availableTypes: [], availableMedidas: [] };
+          const fetchedMeta = metaResponse?.data?.filtersMeta || { availableTypes: [], availableMedidas: [], availableNombresMadera: [] };
           const finalMeta = {
             availableTypes: (fetchedMeta.availableTypes?.length ? fetchedMeta.availableTypes : Array.from(availableTypeSet)) || [],
             availableMedidas: (fetchedMeta.availableMedidas?.length ? fetchedMeta.availableMedidas : Array.from(availableMedidasSet)) || [],
+            availableNombresMadera: fetchedMeta.availableNombresMadera || [],
           };
           setFiltersMeta({
             availableTypes: mapCodesToTypeLabels(finalMeta.availableTypes),
             availableMedidas: finalMeta.availableMedidas,
+            availableNombresMadera: finalMeta.availableNombresMadera,
           });
           return;
         }
@@ -114,13 +120,15 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
           category: categoryParam,
           type: typeParam,
           medida: medidaParam,
+          nombreMadera: nombreMaderaParam,
         });
         setRawsMaterialData(res.data.materiasPrimas || []);
         setPagination(res.data.pagination || { total: 0, page, limit: pageSize, totalPages: 1 });
-        const rawMeta = res.data.filtersMeta || { availableTypes: [], availableMedidas: [] };
+        const rawMeta = res.data.filtersMeta || { availableTypes: [], availableMedidas: [], availableNombresMadera: [] };
         setFiltersMeta({
           availableTypes: mapCodesToTypeLabels(rawMeta.availableTypes || []),
           availableMedidas: rawMeta.availableMedidas || [],
+          availableNombresMadera: rawMeta.availableNombresMadera || [],
         });
       } catch (error) {
         console.error("Error al cargar materias primas", error);
@@ -131,7 +139,7 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
     };
 
     fetch();
-  }, [fetchAll, filters.category, filters.medida, filters.type, page, pageSize]);
+  }, [fetchAll, filters.category, filters.medida, filters.type, filters.nombreMadera, page, pageSize]);
 
   useEffect(() => {
     fetchData();

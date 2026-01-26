@@ -744,18 +744,27 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
   // Funciones utilitarias (deben ir antes de handleItemChange)
   const getEspesorOptions = useCallback(
-    (categoriaSeleccionada, tipoSeleccionado, medidaSeleccionada) => {
+    (categoriaSeleccionada, tipoSeleccionado, medidaSeleccionada, nombreMaderaSeleccionado) => {
       if (!categoriaSeleccionada || !tipoSeleccionado || !medidaSeleccionada)
         return [];
+      
+      let filtrados = rawsMaterialData.filter(
+        (mp) =>
+          mp.categoria === categoriaSeleccionada &&
+          mp.type === tipoSeleccionado &&
+          mp.medida === medidaSeleccionada
+      );
+
+      // Si hay nombreMadera seleccionado, filtrar también por eso
+      if (nombreMaderaSeleccionado) {
+        filtrados = filtrados.filter(
+          (mp) => mp.nombreMadera === nombreMaderaSeleccionado
+        );
+      }
+
       const espesores = [
         ...new Set(
-          rawsMaterialData
-            .filter(
-              (mp) =>
-                mp.categoria === categoriaSeleccionada &&
-                mp.type === tipoSeleccionado &&
-                mp.medida === medidaSeleccionada
-            )
+          filtrados
             .map((mp) => mp.espesor)
             .filter(Boolean)
         ),
@@ -770,7 +779,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       categoriaSeleccionada,
       tipoSeleccionado,
       medidaSeleccionada,
-      espesorSeleccionado
+      espesorSeleccionado,
+      nombreMaderaSeleccionado
     ) => {
       if (!categoriaSeleccionada || !tipoSeleccionado || !medidaSeleccionada)
         return null;
@@ -783,7 +793,10 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             mp.medida === medidaSeleccionada &&
             (espesorSeleccionado
               ? mp.espesor === espesorSeleccionado
-              : !mp.espesor || mp.espesor === "")
+              : !mp.espesor || mp.espesor === "") &&
+            (nombreMaderaSeleccionado
+              ? mp.nombreMadera === nombreMaderaSeleccionado
+              : true)
         ) || null
       );
     },
@@ -886,14 +899,16 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         const espesoresDisponibles = getEspesorOptions(
           nextItem.categoriaMP,
           nextItem.tipoMP,
-          value
+          value,
+          nextItem.nombreMadera
         );
         if (espesoresDisponibles.length === 0) {
           const material = getMaterialMatch(
             nextItem.categoriaMP,
             nextItem.tipoMP,
             value,
-            null
+            null,
+            nextItem.nombreMadera
           );
           if (material) {
             nextItem.valor = material.precio?.toString() || "";
@@ -916,7 +931,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           nextItem.categoriaMP,
           nextItem.tipoMP,
           nextItem.medidaMP,
-          value
+          value,
+          nextItem.nombreMadera
         );
         if (material) {
           nextItem.valor = material.precio?.toString() || "";
@@ -1183,16 +1199,25 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       .sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));
   };
 
-  const getMedidaOptions = (categoriaSeleccionada, tipoSeleccionado) => {
+  const getMedidaOptions = (categoriaSeleccionada, tipoSeleccionado, nombreMaderaSeleccionado) => {
     if (!categoriaSeleccionada || !tipoSeleccionado) return [];
+    
+    let filtrados = rawsMaterialData.filter(
+      (mp) =>
+        mp.categoria === categoriaSeleccionada &&
+        mp.type === tipoSeleccionado
+    );
+
+    // Si hay nombreMadera seleccionado, filtrar también por eso
+    if (nombreMaderaSeleccionado) {
+      filtrados = filtrados.filter(
+        (mp) => mp.nombreMadera === nombreMaderaSeleccionado
+      );
+    }
+
     const medidas = [
       ...new Set(
-        rawsMaterialData
-          .filter(
-            (mp) =>
-              mp.categoria === categoriaSeleccionada &&
-              mp.type === tipoSeleccionado
-          )
+        filtrados
           .map((mp) => mp.medida)
           .filter(Boolean)
       ),
@@ -1642,7 +1667,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                     item.categoriaMP,
                     item.tipoMP,
                     item.medidaMP,
-                    item.espesorMP || null
+                    item.espesorMP || null,
+                    item.nombreMadera
                   )
                 : null;
             const rawNombreMadera = isCarpinteria
@@ -1885,7 +1911,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                               )
                             }
                           >
-                            {getMedidaOptions(item.categoriaMP, item.tipoMP).map(
+                            {getMedidaOptions(item.categoriaMP, item.tipoMP, item.nombreMadera).map(
                               (medida) => (
                                 <option key={medida} value={medida}>
                                   {medida}
@@ -1963,7 +1989,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                             {getEspesorOptions(
                               item.categoriaMP,
                               item.tipoMP,
-                              item.medidaMP
+                              item.medidaMP,
+                              item.nombreMadera
                             ).map((espesor) => (
                               <option key={espesor} value={espesor}>
                                 {espesor}

@@ -70,9 +70,11 @@ export const ItemListContainerRawMaterials = ({
   const selectedCategory = filters.category ?? null;
   const selectedType = filters.type ?? null;
   const selectedMedida = filters.medida ?? null;
+  const selectedNombreMadera = filters.nombreMadera ?? null;
 
   const availableTypes = filtersMeta.availableTypes ?? [];
   const availableMedidas = filtersMeta.availableMedidas ?? [];
+  const availableNombresMadera = filtersMeta.availableNombresMadera ?? [];
 
   const formatPrice = (value) => {
     const parsed = Number(value);
@@ -108,15 +110,19 @@ export const ItemListContainerRawMaterials = ({
   };
 
   const handleTypeChange = (type) => {
-    onFiltersChange?.({ ...filters, type, medida: null });
+    onFiltersChange?.({ ...filters, type, nombreMadera: null, medida: null });
   };
 
   const handleMedidaChange = (medida) => {
     onFiltersChange?.({ ...filters, medida });
   };
 
+  const handleNombreMaderaChange = (nombreMadera) => {
+    onFiltersChange?.({ ...filters, nombreMadera, type: null, medida: null });
+  };
+
   const handleClearFilters = () => {
-    onFiltersChange?.({ ...filters, category: null, type: null, medida: null });
+    onFiltersChange?.({ ...filters, category: null, type: null, medida: null, nombreMadera: null });
   };
 
   const goPrev = () => {
@@ -181,7 +187,27 @@ export const ItemListContainerRawMaterials = ({
             </MenuList>
           </Menu>
 
-          <Menu isDisabled={!selectedType} matchWidth>
+          {/* Dropdown Nombre de madera (solo si la categoría es Madera) */}
+          {selectedCategory?.toLowerCase() === "madera" && (
+            <Menu matchWidth>
+              <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
+                {selectedNombreMadera || "Nombre Madera"}
+              </MenuButton>
+              <MenuList {...scrollableMenuProps}>
+                {availableNombresMadera.length === 0 ? (
+                  <MenuItem disabled>Sin nombres</MenuItem>
+                ) : (
+                  availableNombresMadera.map((nombre) => (
+                    <MenuItem key={nombre} textTransform="capitalize" onClick={() => handleNombreMaderaChange(nombre)}>
+                      {nombre}
+                    </MenuItem>
+                  ))
+                )}
+              </MenuList>
+            </Menu>
+          )}
+
+          <Menu isDisabled={!selectedType && !selectedNombreMadera} matchWidth>
             <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
               {selectedMedida || "Medida"}
             </MenuButton>
@@ -199,7 +225,7 @@ export const ItemListContainerRawMaterials = ({
           </Menu>
 
           {/* Botón borrar filtros inline */}
-          {(selectedCategory || selectedType || selectedMedida) && (
+          {(selectedCategory || selectedType || selectedMedida || selectedNombreMadera) && (
             <Button variant="outline" colorScheme="red" onClick={handleClearFilters} w={{ base: "full", md: "auto" }}>
               Borrar filtros
             </Button>
