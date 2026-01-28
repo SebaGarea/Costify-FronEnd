@@ -558,11 +558,21 @@ export const ItemListVentas = () => {
         ) : (
           filteredVentas.map((venta) => {
             let plantillaId = null;
-            if (venta.producto && venta.producto.planillaCosto) {
-              plantillaId =
-                typeof venta.producto.planillaCosto === "object"
-                  ? venta.producto.planillaCosto._id
-                  : venta.producto.planillaCosto;
+            let plantillaNombre = "";
+            if (venta.plantilla) {
+              if (typeof venta.plantilla === "object") {
+                plantillaId = venta.plantilla._id;
+                plantillaNombre = venta.plantilla.nombre ?? "";
+              } else {
+                plantillaId = venta.plantilla;
+              }
+            } else if (venta.producto && venta.producto.planillaCosto) {
+              if (typeof venta.producto.planillaCosto === "object") {
+                plantillaId = venta.producto.planillaCosto._id;
+                plantillaNombre = venta.producto.planillaCosto.nombre ?? "";
+              } else {
+                plantillaId = venta.producto.planillaCosto;
+              }
             }
             const restanValue = Number(venta.restan ?? 0);
             const restanLabel = currencyFormatter.format(restanValue);
@@ -579,12 +589,35 @@ export const ItemListVentas = () => {
                 bg={cardVentas}
                 borderColor={border}
                 shadow="md"
-                transition="box-shadow 0.2s"
-                _hover={{ shadow: "lg", borderColor: heading }}
+                transition="all 0.3s"
+                _hover={venta.estado !== "despachada" ? { shadow: "lg", borderColor: heading } : {}}
                 w="full"
                 minW={{ base: "280px", md: "640px" }}
                 alignSelf="stretch"
+                position="relative"
+                opacity={venta.estado === "despachada" ? 0.85 : 1}
               >
+                {/* Patrón de rayas diagonales para despachada */}
+                {venta.estado === "despachada" && (
+                  <Box
+                    position="absolute"
+                    top={0}
+                    left={0}
+                    width="100%"
+                    height="100%"
+                    borderRadius="xl"
+                    pointerEvents="none"
+                    zIndex={5}
+                    overflow="hidden"
+                    backgroundImage={`repeating-linear-gradient(
+                      45deg,
+                      transparent,
+                      transparent 8px,
+                      rgba(220, 38, 38, 0.35) 8px,
+                      rgba(220, 38, 38, 0.35) 16px
+                    )`}
+                  />
+                )}
                 <HStack justifyContent="space-between" mb={2}>
                   <Text fontSize="sm" color={text}>
                     {venta.productoNombre || venta.producto?.nombre || ""}
@@ -656,7 +689,9 @@ export const ItemListVentas = () => {
                           onClick={() =>
                             navigate(`/plantillas/plantillaAdd/${plantillaId}`)
                           }
-                          title="Ver plantilla de costo"
+                          title={`Ver plantilla de costo${
+                            plantillaNombre ? ` · ${plantillaNombre}` : ""
+                          }`}
                           size={20}
                           color={iconColor}
                         />

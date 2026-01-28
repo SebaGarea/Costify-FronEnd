@@ -4,7 +4,7 @@ import {
   useColorModeValue, Text,
   Select
 } from "@chakra-ui/react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useItems, useGetAllPlantillas } from "../../hooks/index.js";
 import { useAddVenta } from "../../hooks/ventas/useAddVenta.js";
@@ -18,6 +18,13 @@ const mediosVenta = [
   { value: "whatsapp", label: "WhatsApp" },
   { value: "otro", label: "Otro" },
 ];
+
+const getProductoPrecioCatalogo = (producto) => {
+  if (!producto) return 0;
+  const raw = producto.precioActual ?? producto.precio ?? 0;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 export const ItemAddVenta = () => {
   const { productsData = [] } = useItems();
@@ -39,8 +46,10 @@ export const ItemAddVenta = () => {
     productoNombre: "",
     productoId: "",
     plantillaId: "",
+    plantillaNombre: "",
     cantidad: 1,
     precioManual: "",
+    precioUnitario: "",
     descripcion: "",
     valorEnvio: "",
     seña: "",
@@ -50,6 +59,21 @@ export const ItemAddVenta = () => {
   // Sugerencias de producto
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchProducto, setSearchProducto] = useState("");
+  // Sugerencias de plantillas
+  const [showPlantillaSuggestions, setShowPlantillaSuggestions] = useState(false);
+  const [searchPlantilla, setSearchPlantilla] = useState("");
+
+  const priceFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat("es-AR", {
+        style: "currency",
+        currency: "ARS",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    []
+  );
+  const formatCurrency = (value) => priceFormatter.format(Number(value || 0));
 
   const productOptions = Array.isArray(productsData) ? productsData : [];
   const selectedProduct = productOptions.find((p) => p._id === form.productoId);
@@ -58,9 +82,10 @@ export const ItemAddVenta = () => {
   const plantillaCostoBase = selectedPlantilla
     ? Number(selectedPlantilla.precioFinal ?? selectedPlantilla.costoTotal ?? 0)
     : null;
-  const precioUnit = selectedProduct
-    ? Number(selectedProduct?.precioActual ?? selectedProduct?.precio ?? 0)
-    : Number(form.precioManual || 0);
+  const precioCatalogoActual = selectedProduct
+    ? getProductoPrecioCatalogo(selectedProduct)
+    : null;
+  const precioUnit = Number(form.precioUnitario || 0);
   const subtotal = Number(form.cantidad || 0) * precioUnit;
   const valorTotal = subtotal + Number(form.valorEnvio || 0);
   const restanPreview = valorTotal - Number(form.seña || 0);
@@ -80,6 +105,7 @@ export const ItemAddVenta = () => {
       ...prev,
       productoNombre: texto,
       productoId: "", // resetea el id si escribe manualmente
+      precioManual: prev.productoId ? prev.precioUnitario : prev.precioManual,
     }));
     setShowSuggestions(true);
   };
@@ -90,11 +116,18 @@ export const ItemAddVenta = () => {
     const productoCoincide = productOptions.find(
       (p) => `${p.nombre ?? ""} ${p.modelo ?? ""}`.trim().toLowerCase() === form.productoNombre.trim().toLowerCase()
     );
-    setForm(prev => ({
-      ...prev,
-      productoId: productoCoincide ? productoCoincide._id : "",
-      precioManual: productoCoincide ? "" : prev.precioManual,
-    }));
+    setForm(prev => {
+      const productoId = productoCoincide ? productoCoincide._id : "";
+      const next = {
+        ...prev,
+        productoId,
+        precioManual: productoCoincide ? "" : prev.precioManual,
+      };
+      if (productoCoincide && productoId !== prev.productoId) {
+        next.precioUnitario = getProductoPrecioCatalogo(productoCoincide);
+      }
+      return next;
+    });
   };
 
   const onSelectSuggestion = (producto) => {
@@ -104,32 +137,74 @@ export const ItemAddVenta = () => {
       productoNombre: nombreModelo,
       productoId: producto._id,
       precioManual: "",
+      precioUnitario:
+        prev.productoId === producto._id
+          ? prev.precioUnitario
+          : getProductoPrecioCatalogo(producto),
     }));
     setShowSuggestions(false);
   };
 
-  const onSelectPlantilla = (e) => {
-    const plantillaId = e.target.value;
-    const plantilla = plantillasOptions.find((p) => p._id === plantillaId);
-    if (!plantilla) {
-      setForm((prev) => ({ ...prev, plantillaId: "" }));
-      return;
-    }
-
+  const applyPlantillaSelection = (plantilla) => {
     setForm((prev) => {
+      if (!plantilla) {
+        return { ...prev, plantillaId: "", plantillaNombre: prev.plantillaNombre };
+      }
+
       const next = {
         ...prev,
-        plantillaId,
-        productoNombre: plantilla.nombre || prev.productoNombre,
+        plantillaId: plantilla._id ?? "",
+        plantillaNombre: plantilla.nombre ?? prev.plantillaNombre,
       };
 
-      if (!selectedProduct) {
+      if (!prev.productoId) {
         const precioSugerido = Number(plantilla.precioFinal ?? plantilla.costoTotal ?? 0);
         if (Number.isFinite(precioSugerido) && precioSugerido > 0) {
           next.precioManual = precioSugerido;
+          next.precioUnitario = precioSugerido;
         }
       }
 
+      return next;
+    });
+  };
+
+  const onChangePlantilla = (e) => {
+    const texto = e.target.value;
+    setSearchPlantilla(texto);
+    setForm((prev) => ({
+      ...prev,
+      plantillaNombre: texto,
+      plantillaId: "",
+    }));
+    setShowPlantillaSuggestions(true);
+  };
+
+  const onBlurPlantilla = () => {
+    setTimeout(() => setShowPlantillaSuggestions(false), 150);
+    const plantillaCoincide = plantillasOptions.find(
+      (p) => (p.nombre ?? "").trim().toLowerCase() === form.plantillaNombre.trim().toLowerCase()
+    );
+    if (plantillaCoincide) {
+      applyPlantillaSelection(plantillaCoincide);
+      setSearchPlantilla(plantillaCoincide.nombre ?? "");
+    }
+  };
+
+  const onSelectPlantillaSuggestion = (plantilla) => {
+    applyPlantillaSelection(plantilla);
+    setSearchPlantilla(plantilla.nombre ?? "");
+    setShowPlantillaSuggestions(false);
+  };
+
+  const handlePrecioUnitarioChange = (e) => {
+    const rawValue = e.target.value;
+    const numericValue = rawValue === "" ? "" : Number(rawValue);
+    setForm((prev) => {
+      const next = { ...prev, precioUnitario: numericValue };
+      if (!prev.productoId) {
+        next.precioManual = numericValue;
+      }
       return next;
     });
   };
@@ -143,7 +218,7 @@ export const ItemAddVenta = () => {
       toast({ status: "warning", title: "Falta producto" });
       return;
     }
-    if (!selectedProduct && Number(form.precioManual) <= 0) {
+    if (!selectedProduct && Number(form.precioUnitario) <= 0) {
       toast({ status: "warning", title: "Falta precio unitario" });
       return;
     }
@@ -168,8 +243,8 @@ export const ItemAddVenta = () => {
       descripcion: form.descripcion.trim(),
       valorEnvio: Number(form.valorEnvio || 0),
       seña: Number(form.seña || 0),
-      valorTotal,
-      precioManual: isManualProduct ? Number(form.precioManual || 0) : null,
+      valorTotal: Number(valorTotal),
+      precioManual: isManualProduct ? Number(form.precioUnitario || 0) : null,
       fechaLimite: form.fechaLimite ? form.fechaLimite : null,
     };
 
@@ -200,6 +275,11 @@ export const ItemAddVenta = () => {
         const res = await api.get(`/api/ventas/${ventaId}`);
         const v = res.data;
         const fmt = (d) => (d ? new Date(d).toISOString().split("T")[0] : "");
+        const cantidadVenta = Number(v.cantidad || 0) || 1;
+        const netoVenta = Number(v.valorTotal ?? 0) - Number(v.valorEnvio ?? 0);
+        const precioUnitarioVenta = Number.isFinite(netoVenta / cantidadVenta)
+          ? netoVenta / cantidadVenta
+          : 0;
         setForm((prev) => ({
           ...prev,
           fecha: fmt(v.fecha),
@@ -208,18 +288,19 @@ export const ItemAddVenta = () => {
           productoId: v.producto?._id || v.producto || "",
           productoNombre: v.productoNombre || (v.producto ? `${v.producto.nombre ?? ""} ${v.producto.modelo ?? ""}`.trim() : ""),
           plantillaId: v.plantilla?._id || v.plantilla || "",
+          plantillaNombre: v.plantilla?.nombre || prev.plantillaNombre,
           cantidad: v.cantidad || 1,
           descripcion: v.descripcion || v.descripcionVenta || "",
           valorEnvio: v.valorEnvio ?? "",
           seña: v.seña ?? "",
           precioManual:
-            v.producto?._id || v.producto
-              ? ""
-              : v.cantidad
-                ? ((v.valorTotal ?? 0) - (v.valorEnvio ?? 0)) / (v.cantidad || 1)
-                : "",
+            v.producto?._id || v.producto ? "" : precioUnitarioVenta,
+          precioUnitario: precioUnitarioVenta,
           fechaLimite: fmt(v.fechaLimite),
         }));
+        if (v.plantilla?.nombre) {
+          setSearchPlantilla(v.plantilla.nombre);
+        }
         loadedRef.current = true;
       } catch (err) {
         console.error("Error cargando venta:", err);
@@ -315,23 +396,73 @@ export const ItemAddVenta = () => {
                 )}
               </Box>
             )}
+            {selectedProduct && (
+              <Text fontSize="sm" color="gray.400" mt={2}>
+                Precio catálogo actualizado: {formatCurrency(precioCatalogoActual ?? 0)} · Precio fijado para esta venta: {formatCurrency(precioUnit)}
+                {selectedProduct.planillaCosto ? " · Tiene planilla asociada" : ""}
+              </Text>
+            )}
           </FormControl>
-          <FormControl flex="1" minW={{ base: "100%", md: "260px" }}>
+          <FormControl flex="1" minW={{ base: "100%", md: "260px" }} position="relative">
             <FormLabel>Plantilla guardada</FormLabel>
-            <Select
-              value={form.plantillaId}
-              onChange={onSelectPlantilla}
-              placeholder={plantillasLoading ? "Cargando plantillas..." : "Sin plantilla"}
+            <Textarea
+              value={form.plantillaNombre}
+              onChange={onChangePlantilla}
+              onFocus={() => setShowPlantillaSuggestions(true)}
+              onBlur={onBlurPlantilla}
+              placeholder={plantillasLoading ? "Cargando plantillas..." : "Buscar o escribir plantilla"}
               isDisabled={plantillasLoading}
-              
-            >
-              {plantillasOptions.map((plantilla) => (
-                <option key={plantilla._id} value={plantilla._id}>
-                  {plantilla.nombre}
-                  {plantilla.tipoProyecto ? ` · ${plantilla.tipoProyecto}` : ""}
-                </option>
-              ))}
-            </Select>
+              autoComplete="off"
+              minH="40px"
+            />
+            {showPlantillaSuggestions && !plantillasLoading && (
+              <Box
+                position="absolute"
+                top="100%"
+                left={0}
+                width="250px"
+                bg={card}
+                borderWidth="2px"
+                borderStyle="solid"
+                borderColor={border}
+                borderRadius="md"
+                boxShadow="xl"
+                zIndex={10}
+                maxH="200px"
+                overflowY="auto"
+                mt={1}
+                p={1}
+              >
+                {plantillasOptions
+                  .filter((plantilla) =>
+                    (plantilla.nombre ?? "")
+                      .toLowerCase()
+                      .includes(searchPlantilla.toLowerCase())
+                  )
+                  .map((plantilla) => (
+                    <Box
+                      key={plantilla._id}
+                      onClick={() => onSelectPlantillaSuggestion(plantilla)}
+                      cursor="pointer"
+                      px={2}
+                      py={1}
+                      _hover={{ bg: border }}
+                    >
+                      {plantilla.nombre}
+                      {plantilla.tipoProyecto ? ` · ${plantilla.tipoProyecto}` : ""}
+                    </Box>
+                  ))}
+                {plantillasOptions.filter((plantilla) =>
+                  (plantilla.nombre ?? "")
+                    .toLowerCase()
+                    .includes(searchPlantilla.toLowerCase())
+                ).length === 0 && (
+                  <Text px={2} py={1} color="gray.500">
+                    No hay plantillas coincidentes.
+                  </Text>
+                )}
+              </Box>
+            )}
             {selectedPlantilla && (
               <Text fontSize="sm" color="gray.500" mt={2}>
                 {selectedPlantilla.tipoProyecto || "Proyecto general"}
@@ -354,8 +485,8 @@ export const ItemAddVenta = () => {
             <FormLabel>Precio unitario</FormLabel>
             <Input
               type="number"
-              value={selectedProduct ? (selectedProduct.precioActual ?? selectedProduct.precio ?? 0) : form.precioManual}
-              onChange={onChange("precioManual", true)}
+              value={form.precioUnitario}
+              onChange={handlePrecioUnitarioChange}
               isDisabled={Boolean(selectedProduct)}
               placeholder={selectedProduct ? "Precio del catálogo" : "Ingresá el precio"}
             />

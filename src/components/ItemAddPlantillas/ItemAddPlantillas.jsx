@@ -343,18 +343,26 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const precioBorder = useColorModeValue("green.200", "green.600");
 
   const obtenerPrecioUnitario = (item) => {
+    const valorManual =
+      item?.valor !== undefined && item?.valor !== null && item.valor !== ""
+        ? parseFloat(item.valor) || 0
+        : null;
+
+    if (valorManual !== null) {
+      return valorManual;
+    }
+
+    if (item?.valorPersonalizado !== undefined && item.valorPersonalizado !== "") {
+      return parseFloat(item.valorPersonalizado) || 0;
+    }
+
     if (
       item?.materiaPrima?.precio !== undefined &&
       item?.materiaPrima?.precio !== null
     ) {
       return parseFloat(item.materiaPrima.precio) || 0;
     }
-    if (item?.valor !== undefined && item?.valor !== null && item.valor !== "") {
-      return parseFloat(item.valor) || 0;
-    }
-    if (item?.valorPersonalizado !== undefined && item.valorPersonalizado !== "") {
-      return parseFloat(item.valorPersonalizado) || 0;
-    }
+
     return 0;
   };
 
