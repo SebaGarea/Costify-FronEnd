@@ -127,7 +127,18 @@ export const getMercadoLibrePrices = (amount, config = {}) => {
   );
   const baseCommission = basePercent / 100;
 
-  return MERCADO_LIBRE_PLANS.map((plan) => {
+  const basePlan = {
+    key: "mercadoLibreBaseSolo",
+    label: "🏷️ Precio ML Base",
+    helper: "Sólo comisión base",
+    badgeColor: "blue",
+    basePercent,
+    extraPercent: 0,
+    comisionTotalPercent: Number(basePercent.toFixed(2)),
+    precio: computePriceWithCommission(amount, baseCommission),
+  };
+
+  const cuotasPlans = MERCADO_LIBRE_PLANS.map((plan) => {
     const extraPercent = Number(config[plan.key] ?? plan.defaultPercent);
     const extraCommission = extraPercent / 100;
     const commission = baseCommission + extraCommission;
@@ -141,6 +152,8 @@ export const getMercadoLibrePrices = (amount, config = {}) => {
       precio,
     };
   });
+
+  return [basePlan, ...cuotasPlans];
 };
 
 export const getNubePrices = (amount, config = {}) => {
