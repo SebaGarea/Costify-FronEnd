@@ -580,10 +580,19 @@ export const ItemListVentas = () => {
             const togglePaidLabel = isPaid
               ? "Reactivar saldo pendiente"
               : "Marcar venta como pagada";
+
+            const statusBadge =
+              venta.estado === "finalizada"
+                ? { label: "Finalizada", color: "green.700", bg: "green.100" }
+                : venta.estado === "en_proceso"
+                ? { label: "En proceso", color: "orange.800", bg: "orange.100" }
+                : venta.estado === "despachada"
+                ? { label: "Despachada", color: "blue.700", bg: "blue.100" }
+                : null;
             return (
               <Box
                 key={venta._id}
-                p={{ base: 3, md: 5 }}
+                p={{ base: 2, md: 3 }}
                 borderWidth="1px"
                 borderRadius="xl"
                 bg={cardVentas}
@@ -618,69 +627,20 @@ export const ItemListVentas = () => {
                     )`}
                   />
                 )}
-                <HStack justifyContent="space-between" mb={2}>
-                  <Text fontSize="sm" color={text}>
-                    {venta.productoNombre || venta.producto?.nombre || ""}
-                  </Text>
-                  <HStack spacing={2}>
-                    {venta.estado === "finalizada" && (
-                      <Text
-                        fontSize="xs"
-                        color="green.700"
-                        bg="green.100"
-                        px={2}
-                        py={0.5}
-                        borderRadius="md"
-                      >
-                        Finalizada
-                      </Text>
-                    )}
-                    {venta.estado === "en_proceso" && (
-                      <Text
-                        fontSize="xs"
-                        color="orange.800"
-                        bg="orange.100"
-                        px={2}
-                        py={0.5}
-                        borderRadius="md"
-                      >
-                        En proceso
-                      </Text>
-                    )}
-                    {venta.estado === "despachada" && (
-                      <Text
-                        fontSize="xs"
-                        color="blue.700"
-                        bg="blue.100"
-                        px={2}
-                        py={0.5}
-                        borderRadius="md"
-                      >
-                        Despachada
-                      </Text>
-                    )}
-                  </HStack>
-                </HStack>
 
                 <HStack
-                  spacing={2}
+                  spacing={1}
                   alignItems="center"
                   flexWrap="wrap"
-                  mb={2}
+                  mb={1}
                   justifyContent={{ base: "flex-start", md: "space-between" }}
                 >
-                  <Text fontWeight="bold" color={heading} minW="90px">
+                  <Text fontWeight="bold" color={heading} minW="80px" fontSize="sm">
                     {fmtDateUTC(venta.fecha)}
                   </Text>
-                  <Text color={text} minW="120px" fontSize="md">
-                    {venta.cliente}
-                  </Text>
-                  <Text color={text} minW="120px" fontSize="md">
-                    {medioLabels[venta.medio] ?? venta.medio}
-                  </Text>
-                  <HStack spacing={1} minW="160px">
-                    <Text color={text} fontSize="md">
-                      {getProductoLabel(venta)}
+                  <HStack spacing={1} minW={{ base: "auto", md: "200px" }}>
+                    <Text color={text} fontSize="sm">
+                      {getProductoLabel(venta) || ""}
                     </Text>
                     {plantillaId && (
                       <Box ml={1}>
@@ -692,15 +652,23 @@ export const ItemListVentas = () => {
                           title={`Ver plantilla de costo${
                             plantillaNombre ? ` · ${plantillaNombre}` : ""
                           }`}
-                          size={20}
+                          size={18}
                           color={iconColor}
                         />
                       </Box>
                     )}
-                    <Text color={text} minW="80px" fontSize="md">
+                  </HStack>
+                  <Text color={text} minW="110px" fontSize="sm">
+                    {venta.cliente}
+                  </Text>
+                  <Text color={text} minW="110px" fontSize="sm">
+                    {medioLabels[venta.medio] ?? venta.medio}
+                  </Text>
+                  <HStack spacing={1} minW="160px">
+                    <Text color={text} minW="70px" fontSize="sm">
                       x{venta.cantidad}
                     </Text>
-                    <Text color={text} minW="140px" fontSize="sm">
+                    <Text color={text} minW="140px" fontSize="xs">
                       <b>Fecha límite:</b>{" "}
                       {venta.fechaLimite
                         ? fmtDateUTC(venta.fechaLimite)
@@ -708,12 +676,12 @@ export const ItemListVentas = () => {
                     </Text>
                   </HStack>
                 </HStack>
-                <Box mt={2} w="100%">
+                <Box mt={1} w="100%">
                   <Text
                     fontWeight="semibold"
                     color={heading}
-                    fontSize="sm"
-                    mb={1}
+                    fontSize="xs"
+                    mb={0.5}
                   >
                     Descripción
                   </Text>
@@ -721,8 +689,8 @@ export const ItemListVentas = () => {
                     value={venta.descripcion || venta.descripcionVenta || ""}
                     isReadOnly
                     size="sm"
-                    minH="60px"
-                    maxH="160px"
+                    minH="44px"
+                    maxH="120px"
                     resize="vertical"
                     bg={descBg}
                     borderColor={border}
@@ -732,11 +700,12 @@ export const ItemListVentas = () => {
                 </Box>
 
                 <Flex
-                  gap={4}
+                  gap={2}
                   align="center"
                   flexWrap="wrap"
                   bg={filaMonetariaBg}
-                  p={2}
+                  px={2}
+                  py={1}
                   borderRadius="md"
                 >
                   <Flex gap={2} flexWrap="wrap" align="center">
@@ -785,7 +754,7 @@ export const ItemListVentas = () => {
                       <b>Total:</b> {currencyFormatter.format(venta.valorTotal)}
                     </Text>
                     <Flex align="center" gap={1} justify="center">
-                      <Text color={heading} fontWeight="bold" fontSize="md">
+                      <Text color={heading} fontWeight="bold" fontSize="sm">
                         Restan: {restanLabel}
                       </Text>
                         <IconButton
@@ -803,6 +772,23 @@ export const ItemListVentas = () => {
                         />
                     </Flex>
                   </HStack>
+
+                  {statusBadge && (
+                    <Text
+                      alignSelf="center"
+                      flexShrink={0}
+                      fontSize="xs"
+                      color={statusBadge.color}
+                      bg={statusBadge.bg}
+                      px={2}
+                      py={0.5}
+                      borderRadius="md"
+                      lineHeight="1"
+                      whiteSpace="nowrap"
+                    >
+                      {statusBadge.label}
+                    </Text>
+                  )}
 
                   <Flex gap={2} ml={{ base: 0, md: "auto" }} flexWrap="wrap" justify="flex-end">
                     <IconButton
