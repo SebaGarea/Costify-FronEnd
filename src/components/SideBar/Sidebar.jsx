@@ -30,6 +30,7 @@ import {
   FiSettings,
   FiMenu,
   FiChevronDown,
+  FiCheckSquare,
 } from "react-icons/fi";
 import { FaHammer } from "react-icons/fa";
 import { PiAlignLeftDuotone } from "react-icons/pi";
@@ -44,6 +45,7 @@ const LinkItems = [
   { name: "Productos", icon: FiCompass, to: "/productos" },
   { name: "Materia Primas", icon: FaHammer, to: "/materias-primas" },
   { name: "Lista de Compras", icon: CiViewList, to: "/lista-compras" },
+  { name: "Tareas", icon: FiCheckSquare, to: "/tareas" },
 ];
 
 export const SidebarWithHeader = ({ children }) => {
