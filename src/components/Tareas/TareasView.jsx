@@ -145,7 +145,7 @@ export const TareasView = () => {
     return "Error al cargar las tareas";
   }, [error]);
 
-  if (loading) return <Loader />;
+  if (loading && items.length === 0) return <Loader />;
 
   return (
     <Box bg={bg} minH="100vh" p={{ base: 2, md: 4 }}>
@@ -169,6 +169,11 @@ export const TareasView = () => {
                 size="sm"
                 value={draft.title}
                 onChange={(e) => setDraft((p) => ({ ...p, title: e.target.value }))}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  handleAdd();
+                }}
                 placeholder="Ej: Hacer presupuesto / Hablar a cliente"
               />
             </Box>
@@ -231,6 +236,7 @@ export const TareasView = () => {
 
           <Flex mt={3} justify="flex-end">
             <Button
+              type="button"
               leftIcon={<FiPlus />}
               colorScheme="blue"
               onClick={handleAdd}
@@ -311,6 +317,11 @@ export const TareasView = () => {
                                 size="sm"
                                 value={editDraft.title}
                                 onChange={(e) => setEditDraft((p) => ({ ...p, title: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key !== "Enter") return;
+                                  e.preventDefault();
+                                  saveEdit(t._id);
+                                }}
                               />
                               <HStack spacing={2} flexWrap="wrap">
                                 <Select
@@ -368,6 +379,7 @@ export const TareasView = () => {
                               icon={<FiEdit2 />}
                               size="sm"
                               variant="ghost"
+                              type="button"
                               onClick={() => startEdit(t)}
                             />
                             <IconButton
@@ -377,6 +389,7 @@ export const TareasView = () => {
                               colorScheme="red"
                               variant="ghost"
                               isLoading={deleting}
+                              type="button"
                               onClick={() => handleDelete(t._id)}
                             />
                           </>
@@ -389,6 +402,7 @@ export const TareasView = () => {
                               colorScheme="green"
                               variant="solid"
                               isLoading={updating}
+                              type="button"
                               onClick={() => saveEdit(t._id)}
                             />
                             <IconButton
@@ -396,6 +410,7 @@ export const TareasView = () => {
                               icon={<FiX />}
                               size="sm"
                               variant="ghost"
+                              type="button"
                               onClick={cancelEdit}
                             />
                           </>
@@ -417,6 +432,7 @@ export const TareasView = () => {
                 Anterior
               </Button>
               <Button
+                type="button"
                 onClick={() => setPage(Math.min(totalPages, page + 1))}
                 isDisabled={page >= totalPages}
               >
