@@ -43,6 +43,7 @@ import {
   useItems,
   useItemsMateriasPrimas,
 } from "../../hooks";
+import { useGetTareasPaginated } from "../../hooks/tareas/useGetTareasPaginated.js";
 
 const getProductLabel = (venta = {}) => {
   if (venta?.productoNombre) return venta.productoNombre;
@@ -170,6 +171,12 @@ export const HomeView = () => {
     loading: ventasLoading,
     error: ventasError,
   } = useGetAllVentas();
+
+  const {
+    items: tareasItems,
+    loading: tareasLoading,
+    error: tareasError,
+  } = useGetTareasPaginated(1, 50);
   const { productsData = [], loading: productsLoading } = useItems();
   const {
     plantillasData = [],
@@ -254,6 +261,40 @@ export const HomeView = () => {
     setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
 
   const ventas = useMemo(() => (Array.isArray(ventasData) ? ventasData : []), [ventasData]);
+
+  const pendingTasksPreview = useMemo(() => {
+    const tareas = Array.isArray(tareasItems) ? tareasItems : [];
+    const pendientes = tareas.filter((t) => t?.status === "pendiente" && t?.title);
+
+    pendientes.sort((a, b) => {
+      const ad = a?.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
+      const bd = b?.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
+      if (ad !== bd) return ad - bd;
+
+      const au = new Date(a?.updatedAt || a?.createdAt || 0).getTime();
+      const bu = new Date(b?.updatedAt || b?.createdAt || 0).getTime();
+      return bu - au;
+    });
+
+    return pendientes.slice(0, 4);
+  }, [tareasItems]);
+
+  const getPriorityBadge = (priority) => {
+    if (priority === "alta") return { scheme: "red", label: "Alta" };
+    if (priority === "baja") return { scheme: "gray", label: "Baja" };
+    return { scheme: "orange", label: "Media" };
+  };
+
+  const fmtDateShort = (d) => {
+    try {
+      if (!d) return "";
+      const date = new Date(d);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short" });
+    } catch {
+      return "";
+    }
+  };
 
   const deliveryEventsByDay = useMemo(() => {
     if (!ventas.length) return new Map();
@@ -400,20 +441,20 @@ export const HomeView = () => {
 
     const salesMetrics = useMemo(() => {
       if (!filteredVentas.length) {
-      return {
-        totalRevenue: 0,
-        averageTicket: 0,
-        conversionRate: 0,
-        pendingCount: 0,
-        pendingAmount: 0,
-        estimatedMargin: 0,
-        finalizadas: 0,
-        totalVentas: 0,
-        topProduct: { label: "Sin datos", count: 0, revenue: 0 },
-        topProducts: [],
-        lastUpdate: null,
-      };
-    }
+        return {
+          totalRevenue: 0,
+          conversionRate: 0,
+          pendingCount: 0,
+          pendingAmount: 0,
+          estimatedMargin: 0,
+          finalizadas: 0,
+          totalVentas: 0,
+          topProduct: { label: "Sin datos", salesCount: 0, units: 0, revenue: 0 },
+          topProducts: [],
+          totalUnits: 0,
+          lastUpdate: null,
+        };
+      }
 
     let totalRevenue = 0;
     let totalCost = 0;
@@ -421,6 +462,7 @@ export const HomeView = () => {
     let pendingAmount = 0;
     let finalizadas = 0;
     const productMap = new Map();
+    let totalUnits = 0;
     let lastUpdate = 0;
 
     filteredVentas.forEach((venta) => {
@@ -438,11 +480,11 @@ export const HomeView = () => {
       }
 
       const unitCost = Number(
-        venta?.producto?.planillaCosto?.costoTotal ??
-          venta?.plantilla?.costoTotal ??
-          0
+        venta?.producto?.planillaCosto?.costoTotal ?? venta?.plantilla?.costoTotal ?? 0
       );
-      const quantity = Number(venta?.cantidad ?? 1) || 1;
+      const quantityRaw = Number(venta?.cantidad ?? 1);
+      const quantity = Number.isFinite(quantityRaw) && quantityRaw > 0 ? quantityRaw : 1;
+      totalUnits += quantity;
       if (Number.isFinite(unitCost) && unitCost > 0) {
         totalCost += unitCost * quantity;
       }
@@ -450,8 +492,14 @@ export const HomeView = () => {
       const label = getProductLabel(venta);
       const key = venta?.producto?._id ?? label ?? venta?._id;
       if (label) {
-        const current = productMap.get(key) || { label, count: 0, revenue: 0 };
-        current.count += quantity;
+        const current = productMap.get(key) || {
+          label,
+          salesCount: 0,
+          units: 0,
+          revenue: 0,
+        };
+        current.salesCount += 1;
+        current.units += quantity;
         current.revenue += Number.isFinite(total) ? total : 0;
         productMap.set(key, current);
       }
@@ -464,20 +512,32 @@ export const HomeView = () => {
       }
     });
 
-    const sortedProducts = Array.from(productMap.values()).sort(
-      (a, b) => b.revenue - a.revenue
-    );
-    const topProducts = sortedProducts.slice(0, 3);
-    const topProduct = topProducts[0] ?? { label: "Sin datos", count: 0, revenue: 0 };
+    const productsArray = Array.from(productMap.values());
+
+    const topProduct =
+      productsArray
+        .slice()
+        .sort((a, b) => {
+          if (b.salesCount !== a.salesCount) return b.salesCount - a.salesCount;
+          if (b.units !== a.units) return b.units - a.units;
+          return b.revenue - a.revenue;
+        })[0] ?? { label: "Sin datos", salesCount: 0, units: 0, revenue: 0 };
+
+    const topProducts = productsArray
+      .slice()
+      .sort((a, b) => {
+        if (b.units !== a.units) return b.units - a.units;
+        if (b.salesCount !== a.salesCount) return b.salesCount - a.salesCount;
+        return b.revenue - a.revenue;
+      })
+      .slice(0, 3);
 
     const totalVentas = filteredVentas.length;
-    const averageTicket = totalVentas ? totalRevenue / totalVentas : 0;
     const conversionRate = totalVentas ? finalizadas / totalVentas : 0;
     const estimatedMargin = totalRevenue - totalCost;
 
     return {
       totalRevenue,
-      averageTicket,
       conversionRate,
       pendingCount,
       pendingAmount,
@@ -486,6 +546,7 @@ export const HomeView = () => {
       totalVentas,
       topProduct,
       topProducts,
+      totalUnits,
       lastUpdate: lastUpdate ? new Date(lastUpdate) : null,
     };
   }, [filteredVentas]);
@@ -593,12 +654,12 @@ export const HomeView = () => {
       accentBg: accentTealBg,
     },
     {
-      label: "Ticket promedio",
-      value: currencyFormatter.format(salesMetrics.averageTicket || 0),
-      helpText: salesMetrics.totalVentas
-        ? `${salesMetrics.totalVentas} operaciones en el período`
-        : "Esperando primeras ventas",
-      icon: FaShoppingBag,
+      label: "Saldo pendiente",
+      value: currencyFormatter.format(salesMetrics.pendingAmount),
+      helpText: salesMetrics.pendingCount
+        ? `${numberFormatter.format(salesMetrics.pendingCount)} ventas con cobro parcial`
+        : "Sin saldo pendiente",
+      icon: FaHourglassHalf,
       accentColor: accentOrange,
       accentBg: accentOrangeBg,
     },
@@ -615,10 +676,10 @@ export const HomeView = () => {
     {
       label: "Producto estrella",
       value: salesMetrics.topProduct.label || "Sin datos",
-      helpText: salesMetrics.topProduct.count
-        ? `${numberFormatter.format(salesMetrics.topProduct.count)} unidades | ${currencyFormatter.format(
-            salesMetrics.topProduct.revenue
-          )}`
+      helpText: salesMetrics.topProduct.salesCount
+        ? `${numberFormatter.format(salesMetrics.topProduct.salesCount)} ventas | ${numberFormatter.format(
+            salesMetrics.topProduct.units
+          )} unidades`
         : "Seguimos recolectando datos",
       icon: FaCrown,
       accentColor: accentIndigo,
@@ -657,7 +718,7 @@ export const HomeView = () => {
           align={{ base: "stretch", xl: "flex-start" }}
         >
           <Stack spacing={3} flex="1">
-            <Badge
+            {/* <Badge
               alignSelf="flex-start"
               colorScheme="teal"
               px={3}
@@ -666,21 +727,22 @@ export const HomeView = () => {
               fontSize="0.7rem"
             >
               Tablero operativo
-            </Badge>
+            </Badge> */}
             <Heading
               fontSize={{ base: "2xl", md: "4xl" }}
               fontFamily="'Space Grotesk', 'DM Sans', sans-serif"
             >
               Dashboard Operativo
             </Heading>
-            <Text fontSize="lg" color={mutedText} maxW="720px">
+            <Text fontSize="md" color={mutedText} maxW="720px">
               Monitoreá ventas, márgenes y capacidad en un solo lugar, con métricas que se
               actualizan al instante.
             </Text>
             
             <Flex
               mt={2}
-              p={4}
+              m={2}
+              p={2}
               borderRadius="xl"
               borderWidth="1px"
               borderColor={borderColor}
@@ -713,6 +775,83 @@ export const HomeView = () => {
                 </Button>
               </ButtonGroup>
             </Flex>
+
+            <Box
+              p={4}
+              borderRadius="xl"
+              borderWidth="1px"
+              borderColor={borderColor}
+              bg={cardBg}
+            >
+              <Flex align="center" justify="space-between" mb={3} gap={3} flexWrap="wrap">
+                <HStack spacing={2}>
+                  <Icon as={FaClipboardList} color={accentTeal} />
+                  <Heading size="sm" fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+                    Tareas pendientes
+                  </Heading>
+                </HStack>
+                <Text fontSize="xs" color={mutedText}>
+                  {tareasLoading
+                    ? "Cargando…"
+                    : tareasError
+                      ? "No se pudieron cargar"
+                      : pendingTasksPreview.length
+                        ? `${pendingTasksPreview.length} mostradas`
+                        : "Sin pendientes"}
+                </Text>
+              </Flex>
+
+              {tareasLoading && pendingTasksPreview.length === 0 ? (
+                <Text fontSize="sm" color={mutedText}>
+                  Buscando tareas…
+                </Text>
+              ) : pendingTasksPreview.length === 0 ? (
+                <Text fontSize="sm" color={mutedText}>
+                  No tenés tareas pendientes.
+                </Text>
+              ) : (
+                <VStack align="stretch" spacing={2}>
+                  {pendingTasksPreview.map((t) => {
+                    const pb = getPriorityBadge(t?.priority);
+                    const dueLabel = fmtDateShort(t?.dueDate);
+                    return (
+                      <Flex
+                        key={t._id || t.title}
+                        align="center"
+                        justify="space-between"
+                        gap={3}
+                        p={2}
+                        borderRadius="lg"
+                        borderWidth="1px"
+                        borderColor={borderColor}
+                        bg={innerCardBg}
+                      >
+                        <Box minW={0}>
+                          <Text fontWeight="semibold" noOfLines={1}>
+                            {t.title}
+                          </Text>
+                          <HStack spacing={2} mt={0.5} flexWrap="wrap">
+                            <Badge colorScheme={pb.scheme} borderRadius="full" px={2}>
+                              {pb.label}
+                            </Badge>
+                            {dueLabel ? (
+                              <Badge
+                                colorScheme="red"
+                                variant="subtle"
+                                borderRadius="full"
+                                px={2}
+                              >
+                                Vence {dueLabel}
+                              </Badge>
+                            ) : null}
+                          </HStack>
+                        </Box>
+                      </Flex>
+                    );
+                  })}
+                </VStack>
+              )}
+            </Box>
           </Stack>
 
           <Box
@@ -932,86 +1071,9 @@ export const HomeView = () => {
         </SimpleGrid>
 
         <Flex direction={{ base: "column", lg: "row" }} gap={6}>
-          <Box flex="2" p={6} borderRadius="2xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
-            <Heading size="md" mb={4} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
-              Estado de ventas
-            </Heading>
-            <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>
-              <InsightCard
-                title="Ticket promedio"
-                value={currencyFormatter.format(salesMetrics.averageTicket || 0)}
-                caption="Ingresos por operación"
-                icon={FaShoppingBag}
-                cardBg={innerCardBg}
-                borderColor={borderColor}
-              />
-              <InsightCard
-                title="Saldo pendiente"
-                value={currencyFormatter.format(salesMetrics.pendingAmount)}
-                caption={`${salesMetrics.pendingCount} ventas con cobro parcial`}
-                icon={FaHourglassHalf}
-                cardBg={innerCardBg}
-                borderColor={borderColor}
-              />
-              <InsightCard
-                title="Margen estimado"
-                value={currencyFormatter.format(salesMetrics.estimatedMargin)}
-                caption="Base en planillas de costo"
-                icon={FaBalanceScale}
-                cardBg={innerCardBg}
-                borderColor={borderColor}
-              />
-            </SimpleGrid>
-            <Divider my={6} opacity={0.5} />
-            <Text fontSize="sm" color={mutedText}>
-              Conversión sobre el total: {(salesMetrics.conversionRate * 100 || 0).toFixed(1)}% ·
-              Operaciones finalizadas: {salesMetrics.finalizadas} · Pipeline activa: {salesMetrics.totalVentas - salesMetrics.finalizadas}
-            </Text>
-          </Box>
+         
 
-          <Box flex="1" p={6} borderRadius="2xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
-            <Heading size="md" mb={4} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
-              Top 3 productos
-            </Heading>
-            {salesMetrics.topProducts?.length ? (
-              <Stack spacing={4}>
-                {salesMetrics.topProducts.map((product, index) => {
-                  const share = salesMetrics.totalRevenue
-                    ? (product.revenue / salesMetrics.totalRevenue) * 100
-                    : 0;
-                  return (
-                    <Flex
-                      key={`${product.label}-${index}`}
-                      p={3}
-                      borderWidth="1px"
-                      borderColor={borderColor}
-                      borderRadius="lg"
-                      align="center"
-                      justify="space-between"
-                      bg={innerCardBg}
-                    >
-                      <Box>
-                        <Text fontWeight="bold" fontSize="lg">
-                          {index + 1}. {product.label}
-                        </Text>
-                        <Text fontSize="sm" color={mutedText}>
-                          {numberFormatter.format(product.count)} unidades · {currencyFormatter.format(product.revenue)}
-                        </Text>
-                      </Box>
-                      <Badge colorScheme="teal" borderRadius="full" px={3} py={1}>
-                        {share.toFixed(1)}% ingresos
-                      </Badge>
-                    </Flex>
-                  );
-                })}
-              </Stack>
-            ) : (
-              <Text color={mutedText}>Aún no hay suficiente información para este período.</Text>
-            )}
-          </Box>
-        </Flex>
-
-        <Box p={6} borderRadius="2xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
+<Box p={6} borderRadius="2xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
           <Flex
             justify="space-between"
             align={{ base: "flex-start", md: "center" }}
@@ -1084,6 +1146,52 @@ export const HomeView = () => {
             <Text color={mutedText}>Aún no hay ventas registradas para calcular este ranking.</Text>
           )}
         </Box>
+
+          <Box flex="1" p={6} borderRadius="2xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
+            <Heading size="md" mb={4} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+              Top 3 productos
+            </Heading>
+            {salesMetrics.topProducts?.length ? (
+              <Stack spacing={4}>
+                {salesMetrics.topProducts.map((product, index) => {
+                  const share = salesMetrics.totalUnits
+                    ? (product.units / salesMetrics.totalUnits) * 100
+                    : 0;
+                  return (
+                    <Flex
+                      key={`${product.label}-${index}`}
+                      p={3}
+                      borderWidth="1px"
+                      borderColor={borderColor}
+                      borderRadius="lg"
+                      align="center"
+                      justify="space-between"
+                      bg={innerCardBg}
+                    >
+                      <Box>
+                        <Text fontWeight="bold" fontSize="lg">
+                          {index + 1}. {product.label}
+                        </Text>
+                        <Text fontSize="sm" color={mutedText}>
+                          {numberFormatter.format(product.units)} unidades · {numberFormatter.format(product.salesCount)} ventas
+                        </Text>
+                      </Box>
+                      <Badge colorScheme="teal" borderRadius="full" px={3} py={1}>
+                        {share.toFixed(1)}% unidades
+                      </Badge>
+                    </Flex>
+                  );
+                })}
+              </Stack>
+            ) : (
+              <Text color={mutedText}>Aún no hay suficiente información para este período.</Text>
+            )}
+          </Box>
+
+
+        </Flex>
+
+        
 
         <Box p={6} borderRadius="2xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
           <Heading size="md" mb={6} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">

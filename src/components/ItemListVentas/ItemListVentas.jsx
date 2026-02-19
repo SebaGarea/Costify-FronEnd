@@ -78,7 +78,20 @@ const formatDueDiffText = (diffDays) => {
 };
 
 export const ItemListVentas = () => {
-  const { items, total, page, totalPages, loading, error, setPage } =
+  const {
+    items,
+    total,
+    page,
+    totalPages,
+    pendingAmountTotal,
+    statusMetricsGlobal,
+    dueSoonCountGlobal,
+    dueSoonListGlobal,
+    loading,
+    error,
+    setPage,
+    refetch,
+  } =
     useGetVentasPaginated(1, 10);
   const [ventas, setVentas] = useState([]);
   const [clienteQuery, setClienteQuery] = useState("");
@@ -139,7 +152,7 @@ export const ItemListVentas = () => {
     });
   }, [ventas]);
 
-  const statusMetrics = useMemo(() => {
+  const statusMetricsPage = useMemo(() => {
     const counters = {
       en_proceso: 0,
       finalizada: 0,
@@ -175,6 +188,17 @@ export const ItemListVentas = () => {
     return counters;
   }, [ventasOrdenadas]);
 
+  const statusMetrics = useMemo(() => {
+    const global = statusMetricsGlobal;
+    if (!global || typeof global !== "object") return statusMetricsPage;
+
+    return {
+      en_proceso: Number(global.en_proceso ?? statusMetricsPage.en_proceso ?? 0),
+      finalizada: Number(global.finalizada ?? statusMetricsPage.finalizada ?? 0),
+      despachada: Number(global.despachada ?? statusMetricsPage.despachada ?? 0),
+    };
+  }, [statusMetricsGlobal, statusMetricsPage]);
+
   const currencyFormatter = useMemo(
     () =>
       new Intl.NumberFormat("es-AR", {
@@ -186,7 +210,7 @@ export const ItemListVentas = () => {
     []
   );
 
-  const { pendingAmount, dueSoonCount, dueSoonList } = useMemo(() => {
+  const { pendingAmountPage, dueSoonCountPage, dueSoonListPage } = useMemo(() => {
     const now = Date.now();
     const thresholdMs = ALERT_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
     const dayMs = 24 * 60 * 60 * 1000;
@@ -226,8 +250,25 @@ export const ItemListVentas = () => {
       }
     });
 
-    return { pendingAmount: pending, dueSoonCount: due, dueSoonList: alerts };
+    return { pendingAmountPage: pending, dueSoonCountPage: due, dueSoonListPage: alerts };
   }, [ventasOrdenadas]);
+
+  const pendingAmount = useMemo(() => {
+    const totalValue = Number(pendingAmountTotal);
+    if (Number.isFinite(totalValue)) return totalValue;
+    return pendingAmountPage;
+  }, [pendingAmountTotal, pendingAmountPage]);
+
+  const dueSoonCount = useMemo(() => {
+    const totalValue = Number(dueSoonCountGlobal);
+    if (Number.isFinite(totalValue)) return totalValue;
+    return dueSoonCountPage;
+  }, [dueSoonCountGlobal, dueSoonCountPage]);
+
+  const dueSoonList = useMemo(() => {
+    if (Array.isArray(dueSoonListGlobal)) return dueSoonListGlobal;
+    return dueSoonListPage;
+  }, [dueSoonListGlobal, dueSoonListPage]);
 
   useEffect(() => {
     if (showDueAlerts && dueSoonList.length === 0) {
@@ -366,6 +407,8 @@ export const ItemListVentas = () => {
       if (serverPatch) {
         patchVentaLocal(venta._id, serverPatch);
       }
+
+      await refetch?.({ silent: true });
     } catch (e) {
       patchVentaLocal(venta._id, { estado: prevEstado });
       console.error("Error actualizando estado de venta:", e);
@@ -394,6 +437,8 @@ export const ItemListVentas = () => {
       if (serverPatch) {
         patchVentaLocal(venta._id, serverPatch);
       }
+
+      await refetch?.({ silent: true });
     } catch (error) {
       patchVentaLocal(venta._id, { restan: restanValue });
       console.error("Error alternando el pago de la venta:", error);
@@ -912,6 +957,8 @@ export const ItemListVentas = () => {
                       setVentas((prev) =>
                         prev.filter((v) => v._id !== deletingId)
                       );
+
+                      await refetch?.({ silent: true });
                     } catch (err) {
                       console.error("Error eliminando:", err);
                     }
