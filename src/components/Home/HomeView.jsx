@@ -262,6 +262,81 @@ export const HomeView = () => {
 
   const ventas = useMemo(() => (Array.isArray(ventasData) ? ventasData : []), [ventasData]);
 
+  const pendingHistoric = useMemo(() => {
+    if (!ventas.length) return { pendingCount: 0, pendingAmount: 0 };
+
+    let pendingCount = 0;
+    let pendingAmount = 0;
+
+    ventas.forEach((venta) => {
+      const restan = Number(venta?.restan ?? 0);
+      if (Number.isFinite(restan) && restan > 0) {
+        pendingCount += 1;
+        pendingAmount += restan;
+      }
+    });
+
+    return { pendingCount, pendingAmount };
+  }, [ventas]);
+
+  const productsHistoric = useMemo(() => {
+    if (!ventas.length) {
+      return {
+        topProduct: { label: "Sin datos", salesCount: 0, units: 0, revenue: 0 },
+        topProducts: [],
+        totalUnits: 0,
+      };
+    }
+
+    const productMap = new Map();
+    let totalUnits = 0;
+
+    ventas.forEach((venta) => {
+      const label = getProductLabel(venta);
+      const key = venta?.producto?._id ?? label ?? venta?._id;
+      const quantityRaw = Number(venta?.cantidad ?? 1);
+      const quantity = Number.isFinite(quantityRaw) && quantityRaw > 0 ? quantityRaw : 1;
+      const total = Number(venta?.valorTotal ?? 0);
+
+      totalUnits += quantity;
+
+      if (!label) return;
+
+      const current = productMap.get(key) || {
+        label,
+        salesCount: 0,
+        units: 0,
+        revenue: 0,
+      };
+      current.salesCount += 1;
+      current.units += quantity;
+      current.revenue += Number.isFinite(total) ? total : 0;
+      productMap.set(key, current);
+    });
+
+    const productsArray = Array.from(productMap.values());
+
+    const topProduct =
+      productsArray
+        .slice()
+        .sort((a, b) => {
+          if (b.salesCount !== a.salesCount) return b.salesCount - a.salesCount;
+          if (b.units !== a.units) return b.units - a.units;
+          return b.revenue - a.revenue;
+        })[0] ?? { label: "Sin datos", salesCount: 0, units: 0, revenue: 0 };
+
+    const topProducts = productsArray
+      .slice()
+      .sort((a, b) => {
+        if (b.units !== a.units) return b.units - a.units;
+        if (b.salesCount !== a.salesCount) return b.salesCount - a.salesCount;
+        return b.revenue - a.revenue;
+      })
+      .slice(0, 3);
+
+    return { topProduct, topProducts, totalUnits };
+  }, [ventas]);
+
   const pendingTasksPreview = useMemo(() => {
     const tareas = Array.isArray(tareasItems) ? tareasItems : [];
     const pendientes = tareas.filter((t) => t?.status === "pendiente" && t?.title);
@@ -655,9 +730,9 @@ export const HomeView = () => {
     },
     {
       label: "Saldo pendiente",
-      value: currencyFormatter.format(salesMetrics.pendingAmount),
-      helpText: salesMetrics.pendingCount
-        ? `${numberFormatter.format(salesMetrics.pendingCount)} ventas con cobro parcial`
+      value: currencyFormatter.format(pendingHistoric.pendingAmount),
+      helpText: pendingHistoric.pendingCount
+        ? `${numberFormatter.format(pendingHistoric.pendingCount)} ventas con cobro parcial`
         : "Sin saldo pendiente",
       icon: FaHourglassHalf,
       accentColor: accentOrange,
@@ -675,10 +750,10 @@ export const HomeView = () => {
     },
     {
       label: "Producto estrella",
-      value: salesMetrics.topProduct.label || "Sin datos",
-      helpText: salesMetrics.topProduct.salesCount
-        ? `${numberFormatter.format(salesMetrics.topProduct.salesCount)} ventas | ${numberFormatter.format(
-            salesMetrics.topProduct.units
+      value: productsHistoric.topProduct.label || "Sin datos",
+      helpText: productsHistoric.topProduct.salesCount
+        ? `${numberFormatter.format(productsHistoric.topProduct.salesCount)} ventas | ${numberFormatter.format(
+            productsHistoric.topProduct.units
           )} unidades`
         : "Seguimos recolectando datos",
       icon: FaCrown,
@@ -695,8 +770,8 @@ export const HomeView = () => {
     },
     {
       label: "Ventas con saldo restante",
-      value: numberFormatter.format(salesMetrics.pendingCount),
-      helpText: `${currencyFormatter.format(salesMetrics.pendingAmount)} en saldo`,
+      value: numberFormatter.format(pendingHistoric.pendingCount),
+      helpText: `${currencyFormatter.format(pendingHistoric.pendingAmount)} en saldo`,
       icon: FaHourglassHalf,
       accentColor: accentPink,
       accentBg: accentPinkBg,
@@ -1151,11 +1226,11 @@ export const HomeView = () => {
             <Heading size="md" mb={4} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
               Top 3 productos
             </Heading>
-            {salesMetrics.topProducts?.length ? (
+            {productsHistoric.topProducts?.length ? (
               <Stack spacing={4}>
-                {salesMetrics.topProducts.map((product, index) => {
-                  const share = salesMetrics.totalUnits
-                    ? (product.units / salesMetrics.totalUnits) * 100
+                {productsHistoric.topProducts.map((product, index) => {
+                  const share = productsHistoric.totalUnits
+                    ? (product.units / productsHistoric.totalUnits) * 100
                     : 0;
                   return (
                     <Flex
@@ -1184,7 +1259,7 @@ export const HomeView = () => {
                 })}
               </Stack>
             ) : (
-              <Text color={mutedText}>Aún no hay suficiente información para este período.</Text>
+              <Text color={mutedText}>Aún no hay suficiente información para este ranking.</Text>
             )}
           </Box>
 
