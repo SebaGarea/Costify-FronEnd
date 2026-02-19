@@ -26,16 +26,18 @@ import {
   InputLeftElement,
   VStack,
 } from "@chakra-ui/react";
-import { FiChevronDown, FiPlus, FiEdit2, FiTrash2, FiSearch } from "react-icons/fi";
+import { FiChevronDown, FiPlus, FiEdit2, FiTrash2, FiSearch, FiCopy } from "react-icons/fi";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Loader } from "../Loader/Loader.jsx";
 import { RiArrowRightLine } from "react-icons/ri";
 
-import { useGetAllPlantillas, useDeletePlantilla, useGetTiposProyectoUnicos } from "../../hooks/index.js";
+import { useGetAllPlantillas, useDeletePlantilla, useDuplicatePlantilla, useGetTiposProyectoUnicos } from "../../hooks/index.js";
 
 export const ItemListPlantillas = () => {
+  const navigate = useNavigate();
+
   // Estados para filtros
   const [filtros, setFiltros] = useState({
     tipoProyecto: 'todos',
@@ -53,6 +55,7 @@ export const ItemListPlantillas = () => {
   } = useGetAllPlantillas(filtros);
 
   const { deletePlantilla, loading: isDeleting, error: deleteError } = useDeletePlantilla();
+  const { duplicatePlantilla, loading: isDuplicating, error: duplicateError } = useDuplicatePlantilla();
   
   // Hook para obtener tipos de proyecto únicos
   const { tiposProyecto, loading: loadingTipos, refetch: refetchTipos } = useGetTiposProyectoUnicos();
@@ -60,6 +63,15 @@ export const ItemListPlantillas = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [plantillaToDelete, setPlantillaToDelete] = useState(null);
   const cancelRef = useRef();
+
+  const {
+    isOpen: isDuplicateOpen,
+    onOpen: onDuplicateOpen,
+    onClose: onDuplicateClose,
+  } = useDisclosure();
+  const [plantillaToDuplicate, setPlantillaToDuplicate] = useState(null);
+  const [duplicateName, setDuplicateName] = useState("");
+  const duplicateCancelRef = useRef();
   const toast = useToast();
 
   const colorBg = useColorModeValue("white", "gray.800");
@@ -118,6 +130,12 @@ export const ItemListPlantillas = () => {
     onOpen();
   };
 
+  const handleDuplicateClick = (plantilla) => {
+    setPlantillaToDuplicate(plantilla);
+    setDuplicateName(`${plantilla.nombre} (copia)`);
+    onDuplicateOpen();
+  };
+
   // Función para confirmar eliminación
   const handleConfirmDelete = async () => {
     if (!plantillaToDelete) return;
@@ -146,6 +164,52 @@ export const ItemListPlantillas = () => {
     
     setPlantillaToDelete(null);
     onClose();
+  };
+
+  const handleConfirmDuplicate = async () => {
+    if (!plantillaToDuplicate) return;
+
+    const nombre = (duplicateName || "").trim();
+    if (!nombre) {
+      toast({
+        title: "Nombre requerido",
+        description: "Ingresá un nombre para la plantilla duplicada.",
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const created = await duplicatePlantilla(plantillaToDuplicate._id, { nombre });
+
+    if (created) {
+      toast({
+        title: "Plantilla duplicada",
+        description: `Se creó "${created.nombre}" a partir de "${plantillaToDuplicate.nombre}".`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      onDuplicateClose();
+      setPlantillaToDuplicate(null);
+      setDuplicateName("");
+
+      if (created?._id) {
+        navigate(`/plantillas/plantillaAdd/${created._id}`);
+      } else {
+        refetch();
+        refetchTipos();
+      }
+    } else {
+      toast({
+        title: "Error al duplicar",
+        description: duplicateError || "Hubo un problema al duplicar la plantilla. Por favor, intenta de nuevo.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   if (loadingGetAll) {
@@ -309,30 +373,46 @@ export const ItemListPlantillas = () => {
                 </Text>
 
                 <HStack spacing={2} w="full">
-                  <Button
-                    as={Link}
-                    to={`/plantillas/plantillaAdd/${plantilla._id}`}
-                    colorScheme="teal"
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<FiEdit2 />}
-                    flex={1}
-                  >
-                    Ver/Modificar
-                    <Box as="span" ml={1}>
-                      <RiArrowRightLine />
-                    </Box>
-                  </Button>
-                  
-                  <Button
-                    colorScheme="red"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteClick(plantilla)}
-                    leftIcon={<FiTrash2 />}
-                  >
-                    Eliminar
-                  </Button>
+                  <Stack w="full" spacing={2}>
+                    <Button
+                      as={Link}
+                      to={`/plantillas/plantillaAdd/${plantilla._id}`}
+                      colorScheme="teal"
+                      variant="outline"
+                      size="sm"
+                      leftIcon={<FiEdit2 />}
+                      width="full"
+                    >
+                      Ver/Modificar
+                      <Box as="span" ml={1}>
+                        <RiArrowRightLine />
+                      </Box>
+                    </Button>
+
+                    <HStack spacing={2} w="full">
+                      <Button
+                        colorScheme="blue"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDuplicateClick(plantilla)}
+                        leftIcon={<FiCopy />}
+                        flex={1}
+                      >
+                        Duplicar
+                      </Button>
+
+                      <Button
+                        colorScheme="red"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteClick(plantilla)}
+                        leftIcon={<FiTrash2 />}
+                        flex={1}
+                      >
+                        Eliminar
+                      </Button>
+                    </HStack>
+                  </Stack>
                 </HStack>
               </Stack>
             </Box>
@@ -373,6 +453,52 @@ export const ItemListPlantillas = () => {
                 loadingText="Eliminando..."
               >
                 Eliminar
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Modal de confirmación para duplicar */}
+      <AlertDialog
+        isOpen={isDuplicateOpen}
+        leastDestructiveRef={duplicateCancelRef}
+        onClose={onDuplicateClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Duplicar Plantilla
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              <Text mb={2}>
+                Vas a duplicar la plantilla{" "}
+                <Text as="span" fontWeight="bold">
+                  "{plantillaToDuplicate?.nombre}"
+                </Text>
+                . Elegí el nombre para la copia:
+              </Text>
+              <Input
+                value={duplicateName}
+                onChange={(e) => setDuplicateName(e.target.value)}
+                placeholder="Nombre de la nueva plantilla"
+                autoFocus
+              />
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={duplicateCancelRef} onClick={onDuplicateClose}>
+                Cancelar
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={handleConfirmDuplicate}
+                ml={3}
+                isLoading={isDuplicating}
+                loadingText="Duplicando..."
+              >
+                Duplicar
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

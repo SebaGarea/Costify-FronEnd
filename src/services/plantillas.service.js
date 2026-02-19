@@ -36,6 +36,10 @@ export const deletePlantilla = async (id) => {
   return await api.delete(`${BASE_URL}/api/plantillas/${id}`);
 };
 
+export const duplicatePlantilla = async (id, payload = {}) => {
+  return await api.post(`${BASE_URL}/api/plantillas/${id}/duplicate`, payload);
+};
+
 export const calculatePlantillaCost = async (plantillaData) => {
   return await api.post(`${BASE_URL}/api/plantillas/calculate`, plantillaData);
 };

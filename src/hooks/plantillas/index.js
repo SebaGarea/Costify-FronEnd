@@ -1,5 +1,6 @@
 export * from './useAddPlantilla.js';
 export * from './useDeletePlantilla.js';
+export * from './useDuplicatePlantilla.js';
 export * from './useGetAllPlantillas.js';
 export * from './useGetPlantillaById.js';
 export * from './useGetTiposProyectoUnicos.js';
