@@ -6,7 +6,7 @@
 
 > Una versión demo pública con datos ficticios, separada del entorno productivo.
 
-**URL:** [https://PLACEHOLDER-costify-demo.vercel.app](https://PLACEHOLDER-costify-demo.vercel.app) *(se actualizará tras el deploy)*
+**URL:** [https://costify-fron-end-ebw7.vercel.app](https://costify-fron-end-ebw7.vercel.app)
 
 | Campo | Valor |
 |---|---|
