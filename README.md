@@ -2,6 +2,19 @@
 
 # Costify FrontEnd
 
+## 🎬 Demo en vivo
+
+> Una versión demo pública con datos ficticios, separada del entorno productivo.
+
+**URL:** [https://PLACEHOLDER-costify-demo.vercel.app](https://PLACEHOLDER-costify-demo.vercel.app) *(se actualizará tras el deploy)*
+
+| Campo | Valor |
+|---|---|
+| Email | `demo@costify.com` |
+| Contraseña | `Demo1234` |
+
+Los datos son ficticios y se resetean periódicamente. No hay datos reales de ninguna empresa.
+
 
 ## Estado del proyecto
 

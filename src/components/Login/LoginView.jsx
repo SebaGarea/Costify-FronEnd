@@ -1,4 +1,8 @@
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
   Box,
   Button,
   Divider,
@@ -27,6 +31,8 @@ export const LoginView = () => {
   const cardBg = useColorModeValue("rgba(255, 255, 255, 0.95)", "rgba(15, 23, 42, 0.9)");
   const cardBorder = useColorModeValue("rgba(148, 163, 184, 0.4)", "rgba(30, 58, 138, 0.6)");
   const logoSrc = colorMode === "dark" ? "/logo-light.png" : "/logo-dark.png";
+
+  const isDemo = import.meta.env.VITE_IS_DEMO === "true";
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -87,6 +93,29 @@ export const LoginView = () => {
         zIndex: -1,
       }}
     >
+      {isDemo && (
+        <Alert
+          status="info"
+          variant="solid"
+          borderRadius="xl"
+          mb={4}
+          w={{ base: "100%", sm: "380px" }}
+          flexDirection="column"
+          alignItems="flex-start"
+          gap={1}
+          py={3}
+          px={4}
+        >
+          <AlertIcon mr={2} />
+          <AlertTitle fontSize="sm">Versión demo</AlertTitle>
+          <AlertDescription fontSize="xs" lineHeight="1.5">
+            Usuario de prueba: <strong>demo@costify.com</strong>
+            <br />
+            Contraseña: <strong>Demo1234</strong>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Box
         bg={cardBg}
         py={{ base: 1, md: 2}}
