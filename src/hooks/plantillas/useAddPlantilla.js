@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { createPlantilla } from '../../services/plantillas.service.js';
 
 export const useAddPlantilla = () => {
@@ -14,7 +14,6 @@ export const useAddPlantilla = () => {
             return response.data; // Devolver los datos de la respuesta
         } catch (error) {
             setError(error.response?.data?.error || "Error al crear la plantilla");
-            console.error("Error al crear la plantilla:", error);
             return false;
         } finally {
             setLoading(false);

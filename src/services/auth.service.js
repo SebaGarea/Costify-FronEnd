@@ -8,6 +8,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("costify-token");
+      localStorage.removeItem("costify-user");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const login = (credentials) => api.post("/api/usuarios/login", credentials);
 export const registerUser = (payload) => api.post("/api/usuarios/registro", payload);
 export const getCurrentUser = () => api.get("/api/usuarios/current");

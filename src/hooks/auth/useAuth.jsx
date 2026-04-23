@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+﻿import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { login as loginRequest, getCurrentUser } from "../../services/auth.service";
 
 const AuthContext = createContext(null);
@@ -28,7 +28,6 @@ export function AuthProvider({ children }) {
         if (!decoded?.exp) return false;
         return decoded.exp * 1000 > Date.now();
       } catch (error) {
-        console.error("Token inválido", error);
         return false;
       }
     };
@@ -53,7 +52,6 @@ export function AuthProvider({ children }) {
               persistUser(null);
             }
           } catch (error) {
-            console.error("Error obteniendo usuario actual", error);
             localStorage.removeItem("costify-token");
             localStorage.removeItem("costify-user");
             if (mounted) persistUser(null);
@@ -76,7 +74,6 @@ export function AuthProvider({ children }) {
             const parsedUser = JSON.parse(storedUser);
             if (mounted) persistUser(parsedUser);
           } catch (error) {
-            console.error("Error leyendo usuario almacenado", error);
             localStorage.removeItem("costify-user");
             localStorage.removeItem("costify-token");
             if (mounted) persistUser(null);
@@ -92,7 +89,6 @@ export function AuthProvider({ children }) {
               persistUser(null);
             }
           } catch (error) {
-            console.error("Error obteniendo usuario actual", error);
             localStorage.removeItem("costify-token");
             localStorage.removeItem("costify-user");
             if (mounted) persistUser(null);

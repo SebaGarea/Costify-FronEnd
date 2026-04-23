@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { deletePlantilla as deletePlantillaService } from '../../services/plantillas.service.js';
 
 
@@ -15,7 +15,6 @@ export const useDeletePlantilla = () => {
             return true;
         }catch (error) {
             setError(error.response?.data?.error || 'Error al eliminar la plantilla');
-            console.error('Error al eliminar la plantilla:', error);
             return false;
         }finally {
             setLoading(false);

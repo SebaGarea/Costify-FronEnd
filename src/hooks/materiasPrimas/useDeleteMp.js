@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { deleteRawMaterial as deleteRawMaterialService } from "../../services/rawMaterials.service.js";
 
 export const useDeleteMp = () => {
@@ -13,7 +13,6 @@ export const useDeleteMp = () => {
       await deleteRawMaterialService(id);
         return true;
     } catch (error) {
-      console.error("Error al eliminar la materia prima:", error);
       setError(error.response?.data?.error || "Error al eliminar la materia prima");
       return false;
     } finally {

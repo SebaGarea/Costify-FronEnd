@@ -1,4 +1,4 @@
-
+﻿
 
 import { useEffect, useState, useCallback } from 'react'
 import { getAllPlantillas } from '../../services/plantillas.service.js';
@@ -17,7 +17,6 @@ const fetchPlantillas = useCallback(async() => {
     const response = await getAllPlantillas(filtros || {});
     setPlantillasData(response.data);
   } catch (error) {
-    console.error("Error al cargar las plantillas:", error);
     setError(error.response?.data?.error || "Error al cargar las plantillas");
   } finally {
     setLoading(false);
