@@ -330,7 +330,6 @@ export const ItemListPlantillas = () => {
             </Button>
           </VStack>
         ) : (
-          <>
           <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8}>
             {paginatedPlantillas.map((plantilla) => (
             <Box
@@ -429,31 +428,30 @@ export const ItemListPlantillas = () => {
             </Box>
             ))}
           </SimpleGrid>
-
-          {totalPages > 1 && (
-            <HStack justify="center" spacing={4} pt={8}>
-              <Button
-                onClick={() => setCurrentPage((p) => p - 1)}
-                isDisabled={currentPage === 1}
-                size="sm"
-              >
-                Anterior
-              </Button>
-              <Text fontSize="sm">
-                Página {currentPage} de {totalPages}
-              </Text>
-              <Button
-                onClick={() => setCurrentPage((p) => p + 1)}
-                isDisabled={currentPage === totalPages}
-                size="sm"
-              >
-                Siguiente
-              </Button>
-            </HStack>
-          )}
-          </>
         )}
       </Center>
+
+      {totalPages > 1 && plantillasData.length > 0 && (
+        <HStack justify="center" spacing={4} pb={8}>
+          <Button
+            onClick={() => setCurrentPage((p) => p - 1)}
+            isDisabled={currentPage === 1}
+            size="sm"
+          >
+            Anterior
+          </Button>
+          <Text fontSize="sm">
+            Página {currentPage} de {totalPages}
+          </Text>
+          <Button
+            onClick={() => setCurrentPage((p) => p + 1)}
+            isDisabled={currentPage === totalPages}
+            size="sm"
+          >
+            Siguiente
+          </Button>
+        </HStack>
+      )}
 
       {/* Modal de confirmación para eliminar */}
       <AlertDialog
