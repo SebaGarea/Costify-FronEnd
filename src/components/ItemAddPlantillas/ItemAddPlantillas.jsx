@@ -767,13 +767,13 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const addItem = useCallback((categoria) => {
     const newItem = createEmptyItem();
     if (categoria === "herreria") {
-      setHerreria((prev) => [...prev, newItem]);
+      setHerreria((prev) => [newItem, ...prev]);
     } else if (categoria === "carpinteria") {
-      setCarpinteria((prev) => [...prev, newItem]);
+      setCarpinteria((prev) => [newItem, ...prev]);
     } else if (categoria === "pintura") {
-      setPintura((prev) => [...prev, newItem]);
+      setPintura((prev) => [newItem, ...prev]);
     } else if (categoria === "otros") {
-      setOtros((prev) => [...prev, newItem]);
+      setOtros((prev) => [newItem, ...prev]);
     }
   }, []);
 
