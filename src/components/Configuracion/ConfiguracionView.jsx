@@ -36,6 +36,9 @@ import { BsLightningCharge } from "react-icons/bs";
 import { useAuth } from "../../hooks/auth/useAuth.jsx";
 import { createInvitation, listInvitations } from "../../services/invitations.service";
 import { changePassword } from "../../services/auth.service";
+import { usePerfilesPintura } from "../../hooks/perfilesPintura/usePerfilesPintura.js";
+import { createPerfilPintura, updatePerfilPintura, deletePerfilPintura } from "../../services/perfilesPintura.service.js";
+import { FiTrash2, FiEdit2, FiCheck, FiX } from "react-icons/fi";
 
 const formatDateTime = (value) => {
   if (!value) return null;
@@ -401,6 +404,157 @@ export const ConfiguracionView = () => {
           </CardBody>
         </Card>
       )}
+
+      <PerfilesPinturaSection />
     </Box>
+  );
+};
+
+const TIPO_OPTIONS = [
+  { value: "cuadrado", label: "Cuadrado" },
+  { value: "rectangular", label: "Rectangular" },
+  { value: "redondo", label: "Redondo" },
+  { value: "L", label: "En L (ángulo)" },
+];
+
+const emptyForm = { nombre: "", tipo: "cuadrado", perimetro: "" };
+
+const PerfilesPinturaSection = () => {
+  const { perfiles, loading, refetch } = usePerfilesPintura();
+  const toast = useToast();
+  const { isOpen, onToggle } = useDisclosure();
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+  const cardBg = useColorModeValue("white", "gray.800");
+
+  const handleAdd = async () => {
+    if (!form.nombre.trim() || !form.perimetro) return;
+    setSaving(true);
+    try {
+      await createPerfilPintura({ nombre: form.nombre.trim(), tipo: form.tipo, perimetro: parseFloat(form.perimetro) });
+      toast({ title: "Perfil agregado", status: "success", duration: 2000, isClosable: true });
+      setForm(emptyForm);
+      refetch();
+    } catch {
+      toast({ title: "Error al agregar perfil", status: "error", duration: 2000, isClosable: true });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = (perfil) => {
+    setEditingId(perfil._id);
+    setEditForm({ nombre: perfil.nombre, tipo: perfil.tipo, perimetro: perfil.perimetro });
+  };
+
+  const handleSaveEdit = async (id) => {
+    setSaving(true);
+    try {
+      await updatePerfilPintura(id, { nombre: editForm.nombre.trim(), tipo: editForm.tipo, perimetro: parseFloat(editForm.perimetro) });
+      toast({ title: "Perfil actualizado", status: "success", duration: 2000, isClosable: true });
+      setEditingId(null);
+      refetch();
+    } catch {
+      toast({ title: "Error al actualizar perfil", status: "error", duration: 2000, isClosable: true });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deletePerfilPintura(id);
+      toast({ title: "Perfil eliminado", status: "success", duration: 2000, isClosable: true });
+      refetch();
+    } catch {
+      toast({ title: "Error al eliminar perfil", status: "error", duration: 2000, isClosable: true });
+    }
+  };
+
+  return (
+    <Card bg={cardBg}>
+      <CardHeader>
+        <HStack justify="space-between">
+          <HStack spacing={2}>
+            <Heading size="md">🔥 Perfiles de Pintura al Horno</Heading>
+          </HStack>
+          <IconButton
+            icon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            variant="ghost"
+            onClick={onToggle}
+            aria-label="Expandir"
+          />
+        </HStack>
+      </CardHeader>
+      <Collapse in={isOpen}>
+        <CardBody>
+          <Stack spacing={4}>
+            {/* Formulario agregar */}
+            <Box p={3} border="1px" borderColor="orange.200" borderRadius="md">
+              <Text fontWeight="semibold" mb={3} fontSize="sm">Agregar perfil</Text>
+              <Stack direction={{ base: "column", md: "row" }} spacing={3} align="flex-end">
+                <FormControl flex="3">
+                  <FormLabel fontSize="sm">Nombre</FormLabel>
+                  <Input size="sm" placeholder="CAÑO 40×40" value={form.nombre} onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))} />
+                </FormControl>
+                <FormControl flex="2">
+                  <FormLabel fontSize="sm">Tipo</FormLabel>
+                  <Select size="sm" value={form.tipo} onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value }))}>
+                    {TIPO_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </Select>
+                </FormControl>
+                <FormControl flex="2">
+                  <FormLabel fontSize="sm">Perímetro (m/m lineal)</FormLabel>
+                  <Input size="sm" type="number" step="0.001" placeholder="0.16" value={form.perimetro} onChange={(e) => setForm((f) => ({ ...f, perimetro: e.target.value }))} />
+                </FormControl>
+                <Button size="sm" colorScheme="orange" onClick={handleAdd} isLoading={saving} isDisabled={!form.nombre.trim() || !form.perimetro}>
+                  Agregar
+                </Button>
+              </Stack>
+            </Box>
+
+            {/* Lista de perfiles */}
+            {loading ? (
+              <Text fontSize="sm" color="gray.500">Cargando perfiles...</Text>
+            ) : (
+              <Stack spacing={2}>
+                {perfiles.map((p) => (
+                  <Box key={p._id} p={2} border="1px" borderColor="gray.200" borderRadius="md">
+                    {editingId === p._id ? (
+                      <Stack direction={{ base: "column", md: "row" }} spacing={2} align="flex-end">
+                        <Input size="sm" value={editForm.nombre} onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))} />
+                        <Select size="sm" value={editForm.tipo} onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value }))}>
+                          {TIPO_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </Select>
+                        <Input size="sm" type="number" step="0.001" value={editForm.perimetro} onChange={(e) => setEditForm((f) => ({ ...f, perimetro: e.target.value }))} w="100px" />
+                        <HStack>
+                          <IconButton icon={<FiCheck />} size="sm" colorScheme="green" onClick={() => handleSaveEdit(p._id)} isLoading={saving} aria-label="Guardar" />
+                          <IconButton icon={<FiX />} size="sm" onClick={() => setEditingId(null)} aria-label="Cancelar" />
+                        </HStack>
+                      </Stack>
+                    ) : (
+                      <HStack justify="space-between">
+                        <HStack spacing={3}>
+                          <Text fontSize="sm" fontWeight="semibold">{p.nombre}</Text>
+                          <Badge colorScheme="orange" fontSize="xs">{p.tipo}</Badge>
+                          <Text fontSize="sm" color="gray.500">{p.perimetro} m/m</Text>
+                        </HStack>
+                        <HStack>
+                          <IconButton icon={<FiEdit2 />} size="xs" variant="ghost" onClick={() => handleEdit(p)} aria-label="Editar" />
+                          <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDelete(p._id)} aria-label="Eliminar" />
+                        </HStack>
+                      </HStack>
+                    )}
+                  </Box>
+                ))}
+                {perfiles.length === 0 && <Text fontSize="sm" color="gray.400">No hay perfiles cargados.</Text>}
+              </Stack>
+            )}
+          </Stack>
+        </CardBody>
+      </Collapse>
+    </Card>
   );
 };

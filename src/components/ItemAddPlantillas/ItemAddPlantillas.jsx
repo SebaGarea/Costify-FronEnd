@@ -39,6 +39,7 @@ import {
   useGetTiposProyectoUnicos,
 } from "../../hooks/index.js";
 import { useAddProduct } from "../../hooks/productos/useAddProduct.js";
+import { usePerfilesPintura } from "../../hooks/perfilesPintura/usePerfilesPintura.js";
 import {
   Button,
   Flex,
@@ -65,6 +66,7 @@ import {
   CardHeader,
   useColorModeValue,
   Checkbox,
+  Switch,
   NumberInput,
   NumberInputField,
   NumberInputStepper,
@@ -195,6 +197,10 @@ const createEmptyItem = () => ({
   nombreMadera: "",
   selectedMaterialId: "",
   gananciaIndividual: "",
+  pinturaAlHorno: false,
+  perfilPinturaId: "",
+  perfilPinturaPerimetro: 0,
+  costoPintura: 0,
 });
 
 const createDefaultExtrasState = () => ({
@@ -284,6 +290,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   });
 
   const [extras, setExtras] = useState(createDefaultExtrasState);
+  const [precioPinturaM2, setPrecioPinturaM2] = useState(15000);
+
+  const { perfiles: perfilesPintura } = usePerfilesPintura();
 
   // Hook para obtener tipos de proyecto únicos dinámicamente
   const { tiposProyecto, loading: loadingTipos, refetch: refetchTipos } = useGetTiposProyectoUnicos();
@@ -533,6 +542,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               otros: porcentajesGuardados.otros ?? 100,
             },
           });
+
+          setPrecioPinturaM2(plantilla.precioPinturaM2 ?? 15000);
 
           // Cargar consumibles si existen
           const consumiblesGuardados = plantilla.consumibles || {};
@@ -1375,6 +1386,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
         if (!descripcion) return null;
 
+        const costoPinturaCustom = (item.pinturaAlHorno && item.perfilPinturaPerimetro)
+          ? item.perfilPinturaPerimetro * cantidad * precioPinturaM2
+          : 0;
         return {
           categoria,
           cantidad,
@@ -1387,6 +1401,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           medidaMP: item.medidaMP || "",
           espesorMP: item.espesorMP || "",
           nombreMadera: item.nombreMadera || "",
+          pinturaAlHorno: Boolean(item.pinturaAlHorno),
+          perfilPinturaId: item.perfilPinturaId || null,
+          costoPintura: costoPinturaCustom,
           ...(gananciaIndividualLimpia !== null
             ? { gananciaIndividual: gananciaIndividualLimpia }
             : {}),
@@ -1412,6 +1429,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         return null;
       }
 
+      const costoPinturaCalc = (item.pinturaAlHorno && item.perfilPinturaPerimetro)
+        ? item.perfilPinturaPerimetro * cantidad * precioPinturaM2
+        : 0;
       return {
         categoria,
         materiaPrima: materiaPrimaId,
@@ -1422,6 +1442,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         medidaMP: item.medidaMP || "",
         espesorMP: item.espesorMP || "",
         nombreMadera: item.nombreMadera || "",
+        pinturaAlHorno: Boolean(item.pinturaAlHorno),
+        perfilPinturaId: item.perfilPinturaId || null,
+        costoPintura: costoPinturaCalc,
         ...(gananciaIndividualLimpia !== null
           ? { gananciaIndividual: gananciaIndividualLimpia }
           : {}),
@@ -1516,11 +1539,12 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     const plantillaData = {
       nombre: form.nombre.trim(),
       tipoProyecto: form.tipoProyecto?.trim() || "Otro",
-      items: allItems, // Array de items con ObjectIds de materiaPrima
+      items: allItems,
       porcentajesPorCategoria: porcentajesLimpios,
       consumibles: consumiblesLimpios,
       extras: extrasPayload,
-      tags: [], // Agregar tags vacío por defecto
+      tags: [],
+      precioPinturaM2: parseFloat(precioPinturaM2) || 15000,
     };
 
     // Remover cualquier campo undefined o null
@@ -2188,6 +2212,49 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                     />
                   </FormControl>
                 )}
+
+                {isHerreria && (
+                  <Box borderTop="1px" borderColor="orange.200" pt={2}>
+                    <HStack spacing={3} align="center" mb={item.pinturaAlHorno ? 2 : 0}>
+                      <FormLabel fontSize="sm" mb={0}>🔥 Pintura al horno</FormLabel>
+                      <Switch
+                        colorScheme="orange"
+                        isChecked={item.pinturaAlHorno}
+                        onChange={(e) =>
+                          handleItemChange(categoria, index, "pinturaAlHorno", e.target.checked)
+                        }
+                      />
+                    </HStack>
+                    {item.pinturaAlHorno && (
+                      <HStack spacing={3} align="flex-end" flexWrap="wrap">
+                        <FormControl flex="2" minW="180px">
+                          <FormLabel fontSize="xs">Perfil de caño</FormLabel>
+                          <Select
+                            size="sm"
+                            placeholder="Seleccionar perfil..."
+                            value={item.perfilPinturaId}
+                            onChange={(e) => {
+                              const perfil = perfilesPintura.find((p) => p._id === e.target.value);
+                              handleItemChange(categoria, index, "perfilPinturaId", e.target.value);
+                              handleItemChange(categoria, index, "perfilPinturaPerimetro", perfil?.perimetro ?? 0);
+                            }}
+                          >
+                            {perfilesPintura.map((p) => (
+                              <option key={p._id} value={p._id}>
+                                {p.nombre} ({p.perimetro} m/m)
+                              </option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        {item.perfilPinturaId && (
+                          <Badge colorScheme="orange" fontSize="sm" px={3} py={1}>
+                            Pintura: ${(item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * precioPinturaM2).toLocaleString("es-AR")}
+                          </Badge>
+                        )}
+                      </HStack>
+                    )}
+                  </Box>
+                )}
               </VStack>
             </Box>
             );
@@ -2497,6 +2564,19 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
           {/* Secciones en columna */}
           <VStack spacing={6} align="stretch">
+            <HStack justify="flex-end" align="center" spacing={3}>
+              <Text fontSize="sm" color="orange.500" fontWeight="semibold">
+                🔥 Pintura al horno ($/m²):
+              </Text>
+              <Input
+                size="sm"
+                type="number"
+                value={precioPinturaM2}
+                onChange={(e) => setPrecioPinturaM2(Number(e.target.value))}
+                w="120px"
+                min={0}
+              />
+            </HStack>
             {renderCategorySection(
               "herreria",
               herreria,
