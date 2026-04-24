@@ -35,7 +35,7 @@ import { RiArrowRightLine } from "react-icons/ri";
 
 import { useGetAllPlantillas, useDeletePlantilla, useDuplicatePlantilla, useGetTiposProyectoUnicos } from "../../hooks/index.js";
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10;
 
 export const ItemListPlantillas = () => {
   const navigate = useNavigate();
@@ -80,11 +80,14 @@ export const ItemListPlantillas = () => {
   const colorBg = useColorModeValue("white", "gray.800");
   const colorBgBox = useColorModeValue("gray.100", "gray.700");
 
-  // Debounce para la búsqueda
+  // Debounce para la búsqueda (solo actualiza si el valor realmente cambió)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setFiltros(prev => ({ ...prev, search: searchInput }));
-      setCurrentPage(1);
+      setFiltros(prev => {
+        if (prev.search === searchInput) return prev;
+        setCurrentPage(1);
+        return { ...prev, search: searchInput };
+      });
     }, 1000);
 
     return () => clearTimeout(timeoutId);
@@ -215,7 +218,7 @@ export const ItemListPlantillas = () => {
     }
   };
 
-  if (loadingGetAll) {
+  if (loadingGetAll && plantillasData.length === 0) {
     return <Loader />;
   }
 

@@ -14,7 +14,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("costify-token");
       localStorage.removeItem("costify-user");
-      window.location.href = "/login";
+      window.dispatchEvent(new CustomEvent("auth:unauthorized"));
     }
     return Promise.reject(error);
   }

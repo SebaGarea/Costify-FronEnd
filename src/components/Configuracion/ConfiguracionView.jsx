@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
   Badge,
   Box,
   Button,
@@ -37,7 +43,10 @@ import { useAuth } from "../../hooks/auth/useAuth.jsx";
 import { createInvitation, listInvitations } from "../../services/invitations.service";
 import { changePassword } from "../../services/auth.service";
 import { usePerfilesPintura } from "../../hooks/perfilesPintura/usePerfilesPintura.js";
+import { useItemsMateriasPrimas } from "../../hooks/materiasPrimas/index.js";
 import { createPerfilPintura, updatePerfilPintura, deletePerfilPintura } from "../../services/perfilesPintura.service.js";
+import { useConfiguracion } from "../../hooks/configuracion/useConfiguracion.js";
+import { updateConfiguracion, aplicarPrecioPinturaATodas } from "../../services/configuracion.service.js";
 import { FiTrash2, FiEdit2, FiCheck, FiX } from "react-icons/fi";
 
 const formatDateTime = (value) => {
@@ -410,11 +419,172 @@ export const ConfiguracionView = () => {
   );
 };
 
+const PrecioPinturaGlobalSection = () => {
+  const { config, loading } = useConfiguracion();
+  const { rawsMaterialData } = useItemsMateriasPrimas(100, { fetchAll: true });
+  const toast = useToast();
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
+  const cancelRef = useRef();
+
+  const [selectedMpId, setSelectedMpId] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [applying, setApplying] = useState(false);
+
+  // Materias primas de tipo Pintura al Horno
+  const mpsPintura = rawsMaterialData.filter(
+    (mp) => mp.categoria === "Proteccion" && mp.type === "Pintura al Horno"
+  );
+
+  // Inicializar desde config cuando carga
+  useEffect(() => {
+    if (loading) return;
+    const mpId = config?.materiaPrimaPinturaId?._id ?? config?.materiaPrimaPinturaId ?? "";
+    setSelectedMpId(mpId?.toString() ?? "");
+    setPrecio((config?.precioPinturaM2 ?? 15000).toString());
+  }, [config, loading]);
+
+  // Al seleccionar una MP, auto-llenar el precio
+  const handleSelectMp = (id) => {
+    setSelectedMpId(id);
+    if (!id) return;
+    const mp = mpsPintura.find((m) => m._id === id);
+    if (mp?.precio) setPrecio(mp.precio.toString());
+  };
+
+  const handleSave = async () => {
+    const num = parseFloat(precio);
+    if (!num || num <= 0) {
+      toast({ status: "warning", title: "Ingresá un precio válido mayor a 0" });
+      return;
+    }
+    try {
+      setSaving(true);
+      await updateConfiguracion({
+        precioPinturaM2: num,
+        materiaPrimaPinturaId: selectedMpId || null,
+      });
+      toast({ status: "success", title: "Configuración guardada", duration: 2000 });
+    } catch {
+      toast({ status: "error", title: "No se pudo guardar" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAplicarATodas = async () => {
+    const num = parseFloat(precio);
+    if (!num || num <= 0) {
+      toast({ status: "warning", title: "Ingresá un precio válido mayor a 0" });
+      return;
+    }
+    try {
+      setApplying(true);
+      await updateConfiguracion({ precioPinturaM2: num, materiaPrimaPinturaId: selectedMpId || null });
+      const { data } = await aplicarPrecioPinturaATodas(num);
+      toast({
+        status: "success",
+        title: `Precio aplicado a ${data.modificadas} plantilla${data.modificadas !== 1 ? "s" : ""}`,
+        duration: 3000,
+      });
+    } catch {
+      toast({ status: "error", title: "No se pudo aplicar el precio" });
+    } finally {
+      setApplying(false);
+      onAlertClose();
+    }
+  };
+
+  return (
+    <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" mb={6}>
+      <CardHeader pb={2}>
+        <Heading size="sm">🔥 Precio global — Pintura al Horno ($/m²)</Heading>
+      </CardHeader>
+      <CardBody pt={2}>
+        <Text fontSize="sm" color="gray.500" mb={4}>
+          Vinculá el precio a una materia prima: se usará su precio actual cada vez que se abra una plantilla, sin necesidad de actualizar plantilla por plantilla.
+        </Text>
+        <Stack spacing={3}>
+          <HStack spacing={3} align="flex-end" flexWrap="wrap">
+            <FormControl flex="2" minW="220px">
+              <FormLabel fontSize="sm">Materia prima vinculada</FormLabel>
+              <Select
+                size="sm"
+                value={selectedMpId}
+                onChange={(e) => handleSelectMp(e.target.value)}
+                placeholder="Sin vincular (precio manual)"
+              >
+                {mpsPintura.map((mp) => (
+                  <option key={mp._id} value={mp._id}>
+                    {mp.nombre || `${mp.categoria} — ${mp.type}`} (${Number(mp.precio).toLocaleString("es-AR")}/m²)
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl maxW="160px">
+              <FormLabel fontSize="sm">Precio por m²</FormLabel>
+              <Input
+                type="number"
+                value={precio}
+                onChange={(e) => setPrecio(e.target.value)}
+                placeholder="15000"
+                size="sm"
+                isReadOnly={!!selectedMpId}
+                bg={selectedMpId ? "gray.100" : undefined}
+                _dark={{ bg: selectedMpId ? "gray.700" : undefined }}
+                title={selectedMpId ? "El precio viene de la materia prima vinculada" : ""}
+              />
+            </FormControl>
+          </HStack>
+          <HStack spacing={3}>
+            <Button size="sm" colorScheme="teal" onClick={handleSave} isLoading={saving}>
+              Guardar
+            </Button>
+            <Button size="sm" colorScheme="orange" variant="outline" onClick={onAlertOpen}>
+              Aplicar a todas las plantillas
+            </Button>
+          </HStack>
+        </Stack>
+      </CardBody>
+
+      <AlertDialog isOpen={isAlertOpen} leastDestructiveRef={cancelRef} onClose={onAlertClose}>
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Aplicar precio a todas las plantillas
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              Se escribirá <strong>${parseFloat(precio || 0).toLocaleString("es-AR")}/m²</strong> en todas las plantillas existentes.
+              {selectedMpId && (
+                <Text mt={2} fontSize="sm" color="gray.500">
+                  Las plantillas también cargarán el precio actualizado automáticamente cada vez que las abras, gracias a la materia prima vinculada.
+                </Text>
+              )}
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onAlertClose}>Cancelar</Button>
+              <Button colorScheme="orange" onClick={handleAplicarATodas} isLoading={applying} ml={3}>
+                Aplicar a todas
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </Card>
+  );
+};
+
 const TIPO_OPTIONS = [
   { value: "cuadrado", label: "Cuadrado" },
   { value: "rectangular", label: "Rectangular" },
   { value: "redondo", label: "Redondo" },
-  { value: "L", label: "En L (ángulo)" },
+  { value: "L", label: "Ángulo" },
+  { value: "planchuela", label: "Planchuela" },
+  { value: "tee", label: "Tee" },
+  { value: "cuadMacizo", label: "Cuadrado Macizo" },
+  { value: "redMacizo", label: "Redondo Macizo" },
 ];
 
 const emptyForm = { nombre: "", tipo: "cuadrado", perimetro: "" };
@@ -515,46 +685,92 @@ const PerfilesPinturaSection = () => {
               </Stack>
             </Box>
 
-            {/* Lista de perfiles */}
+            {/* Lista de perfiles agrupados por tipo */}
             {loading ? (
               <Text fontSize="sm" color="gray.500">Cargando perfiles...</Text>
+            ) : perfiles.length === 0 ? (
+              <Text fontSize="sm" color="gray.400">No hay perfiles cargados.</Text>
             ) : (
               <Stack spacing={2}>
-                {perfiles.map((p) => (
-                  <Box key={p._id} p={2} border="1px" borderColor="gray.200" borderRadius="md">
-                    {editingId === p._id ? (
-                      <Stack direction={{ base: "column", md: "row" }} spacing={2} align="flex-end">
-                        <Input size="sm" value={editForm.nombre} onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))} />
-                        <Select size="sm" value={editForm.tipo} onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value }))}>
-                          {TIPO_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </Select>
-                        <Input size="sm" type="number" step="0.001" value={editForm.perimetro} onChange={(e) => setEditForm((f) => ({ ...f, perimetro: e.target.value }))} w="100px" />
-                        <HStack>
-                          <IconButton icon={<FiCheck />} size="sm" colorScheme="green" onClick={() => handleSaveEdit(p._id)} isLoading={saving} aria-label="Guardar" />
-                          <IconButton icon={<FiX />} size="sm" onClick={() => setEditingId(null)} aria-label="Cancelar" />
-                        </HStack>
-                      </Stack>
-                    ) : (
-                      <HStack justify="space-between">
-                        <HStack spacing={3}>
-                          <Text fontSize="sm" fontWeight="semibold">{p.nombre}</Text>
-                          <Badge colorScheme="orange" fontSize="xs">{p.tipo}</Badge>
-                          <Text fontSize="sm" color="gray.500">{p.perimetro} m/m</Text>
-                        </HStack>
-                        <HStack>
-                          <IconButton icon={<FiEdit2 />} size="xs" variant="ghost" onClick={() => handleEdit(p)} aria-label="Editar" />
-                          <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDelete(p._id)} aria-label="Eliminar" />
-                        </HStack>
-                      </HStack>
-                    )}
-                  </Box>
-                ))}
-                {perfiles.length === 0 && <Text fontSize="sm" color="gray.400">No hay perfiles cargados.</Text>}
+                {TIPO_OPTIONS.map(({ value: tipo, label }) => {
+                  const grupo = perfiles.filter((p) => p.tipo === tipo);
+                  if (grupo.length === 0) return null;
+                  return (
+                    <GrupoPerfil
+                      key={tipo}
+                      label={label}
+                      perfiles={grupo}
+                      editingId={editingId}
+                      editForm={editForm}
+                      saving={saving}
+                      onEdit={handleEdit}
+                      onSaveEdit={handleSaveEdit}
+                      onDelete={handleDelete}
+                      onCancelEdit={() => setEditingId(null)}
+                      setEditForm={setEditForm}
+                    />
+                  );
+                })}
               </Stack>
             )}
           </Stack>
         </CardBody>
       </Collapse>
     </Card>
+  );
+};
+
+const GrupoPerfil = ({ label, perfiles, editingId, editForm, saving, onEdit, onSaveEdit, onDelete, onCancelEdit, setEditForm }) => {
+  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: false });
+  const borderColor = useColorModeValue("gray.200", "gray.600");
+
+  return (
+    <Box border="1px" borderColor={borderColor} borderRadius="md" overflow="hidden">
+      <HStack
+        px={3} py={2}
+        justify="space-between"
+        cursor="pointer"
+        onClick={onToggle}
+        _hover={{ bg: useColorModeValue("gray.50", "gray.700") }}
+      >
+        <HStack spacing={2}>
+          <Text fontSize="sm" fontWeight="semibold">{label}</Text>
+          <Badge colorScheme="orange" fontSize="xs">{perfiles.length}</Badge>
+        </HStack>
+        {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+      </HStack>
+      <Collapse in={isOpen}>
+        <Stack spacing={1} px={2} pb={2}>
+          {perfiles.map((p) => (
+            <Box key={p._id} p={2} borderRadius="md" bg={useColorModeValue("gray.50", "gray.700")}>
+              {editingId === p._id ? (
+                <Stack direction={{ base: "column", md: "row" }} spacing={2} align="flex-end">
+                  <Input size="sm" value={editForm.nombre} onChange={(e) => setEditForm((f) => ({ ...f, nombre: e.target.value }))} />
+                  <Select size="sm" value={editForm.tipo} onChange={(e) => setEditForm((f) => ({ ...f, tipo: e.target.value }))}>
+                    {TIPO_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </Select>
+                  <Input size="sm" type="number" step="0.001" value={editForm.perimetro} onChange={(e) => setEditForm((f) => ({ ...f, perimetro: e.target.value }))} w="100px" />
+                  <HStack>
+                    <IconButton icon={<FiCheck />} size="sm" colorScheme="green" onClick={() => onSaveEdit(p._id)} isLoading={saving} aria-label="Guardar" />
+                    <IconButton icon={<FiX />} size="sm" onClick={onCancelEdit} aria-label="Cancelar" />
+                  </HStack>
+                </Stack>
+              ) : (
+                <HStack justify="space-between">
+                  <HStack spacing={3}>
+                    <Text fontSize="sm" fontWeight="semibold">{p.nombre}</Text>
+                    <Text fontSize="sm" color="gray.500">{p.perimetro} m/m</Text>
+                  </HStack>
+                  <HStack>
+                    <IconButton icon={<FiEdit2 />} size="xs" variant="ghost" onClick={() => onEdit(p)} aria-label="Editar" />
+                    <IconButton icon={<FiTrash2 />} size="xs" colorScheme="red" variant="ghost" onClick={() => onDelete(p._id)} aria-label="Eliminar" />
+                  </HStack>
+                </HStack>
+              )}
+            </Box>
+          ))}
+        </Stack>
+      </Collapse>
+    </Box>
   );
 };

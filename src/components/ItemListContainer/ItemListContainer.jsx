@@ -30,7 +30,7 @@ const resolveImageUrl = (imagenes) => {
   return first.startsWith("http") ? first : `${BASE_URL}${first}`;
 };
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10;
 
 export const ItemListContainer = ({ products }) => {
   const [selectedCatalogo, setSelectedCatalogo] = useState(null);

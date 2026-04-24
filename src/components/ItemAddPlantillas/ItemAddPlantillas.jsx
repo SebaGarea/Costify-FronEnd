@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 
 // Custom hook para debouncing (evita cálculos excesivos)
 const useDebounce = (value, delay) => {
@@ -233,6 +233,8 @@ const shouldIncludeCategoria = (section, categoria) => {
 };
 
 
+const METROS_POR_UNIDAD = 6;
+
 export const ItemAddPlantillas = ({ PlantillasId }) => {
   const [form, setForm] = useState({
     nombre: "",
@@ -294,6 +296,42 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
   const { perfiles: perfilesPintura } = usePerfilesPintura();
 
+  const draftKey = `plantilla_draft_${PlantillasId || "new"}`;
+  const isDraftLoaded = useRef(!PlantillasId);
+
+  // Save form state to sessionStorage (safety net against tab-switch / browser reloads)
+  useEffect(() => {
+    if (!isDraftLoaded.current) return;
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(
+          draftKey,
+          JSON.stringify({ form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, modoPersonalizado })
+        );
+      } catch { /* sessionStorage lleno o deshabilitado */ }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, modoPersonalizado, draftKey]);
+
+  // Restaurar borrador al montar (solo para plantillas nuevas)
+  useEffect(() => {
+    if (PlantillasId) return;
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.form) setForm(draft.form);
+      if (draft.herreria?.length) setHerreria(draft.herreria);
+      if (draft.carpinteria?.length) setCarpinteria(draft.carpinteria);
+      if (draft.pintura?.length) setPintura(draft.pintura);
+      if (draft.otros?.length) setOtros(draft.otros);
+      if (draft.consumibles) setConsumibles(draft.consumibles);
+      if (draft.extras) setExtras(draft.extras);
+      if (draft.precioPinturaM2 !== undefined) setPrecioPinturaM2(draft.precioPinturaM2);
+      if (draft.modoPersonalizado !== undefined) setModoPersonalizado(draft.modoPersonalizado);
+    } catch { /* borrador corrupto, ignorar */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Hook para obtener tipos de proyecto únicos dinámicamente
   const { tiposProyecto, loading: loadingTipos, refetch: refetchTipos } = useGetTiposProyectoUnicos();
   
@@ -336,6 +374,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   } = useUpdatePlantilla();
 
   const { rawsMaterialData, loading: materiasLoading } = useItemsMateriasPrimas(100, { fetchAll: true });
+
 
   // Variables de color para modo claro/oscuro
   const cardBg = useColorModeValue("teal.50", "gray.700");
@@ -493,17 +532,25 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     [subtotalOtros, form.porcentajesPorCategoria.otros]
   );
 
-  // Total general (incluyendo extras)
+  // Total pintura al horno (suma de todos los ítems de herrería con pintura activa)
+  const totalPinturaHorno = debouncedHerreria.reduce((sum, item) => {
+    if (!item.pinturaAlHorno || !item.perfilPinturaPerimetro) return sum;
+    return sum + item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * METROS_POR_UNIDAD * precioPinturaM2;
+  }, 0);
+
+  // Total general (incluyendo extras y pintura al horno)
   const costoTotal =
     subtotalHerreria +
     subtotalCarpinteria +
     subtotalPintura +
+    totalPinturaHorno +
     subtotalOtros +
     subtotalExtras;
   const precioFinalTotal =
     precioFinalHerreria +
     precioFinalCarpinteria +
     precioFinalPintura +
+    totalPinturaHorno +
     precioFinalOtros +
     subtotalExtras;
   const gananciaTotal = precioFinalTotal - costoTotal;
@@ -525,9 +572,12 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     [precioFinalTotal, porcentajesPlataformas]
   );
 
+  const plantillaLoadedRef = useRef(false);
+
   useEffect(() => {
-    if (PlantillasId) {
-      getPlantillaById(PlantillasId)
+    if (!PlantillasId || plantillaLoadedRef.current || !rawsMaterialData.length) return;
+    plantillaLoadedRef.current = true;
+    getPlantillaById(PlantillasId)
         .then((res) => {
           const plantilla = res.data.plantilla || res.data;
           const porcentajesGuardados = plantilla.porcentajesPorCategoria || {};
@@ -543,8 +593,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             },
           });
 
-          setPrecioPinturaM2(plantilla.precioPinturaM2 ?? 15000);
-
+          // Precio base guardado en la plantilla
           // Cargar consumibles si existen
           const consumiblesGuardados = plantilla.consumibles || {};
           setConsumibles({
@@ -739,6 +788,24 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           );
           setPintura(pinturaItems.length > 0 ? pinturaItems : [createEmptyItem()]);
           setOtros(otrosItems.length > 0 ? otrosItems : [createEmptyItem()]);
+
+          // Restaurar borrador con cambios no guardados (seguridad ante recargas por cambio de pestaña)
+          isDraftLoaded.current = true;
+          try {
+            const raw = sessionStorage.getItem(draftKey);
+            if (raw) {
+              const draft = JSON.parse(raw);
+              if (draft.form) setForm(draft.form);
+              if (draft.herreria?.length) setHerreria(draft.herreria);
+              if (draft.carpinteria?.length) setCarpinteria(draft.carpinteria);
+              if (draft.pintura?.length) setPintura(draft.pintura);
+              if (draft.otros?.length) setOtros(draft.otros);
+              if (draft.consumibles) setConsumibles(draft.consumibles);
+              if (draft.extras) setExtras(draft.extras);
+              if (draft.precioPinturaM2 !== undefined) setPrecioPinturaM2(draft.precioPinturaM2);
+              if (draft.modoPersonalizado !== undefined) setModoPersonalizado(draft.modoPersonalizado);
+            }
+          } catch { /* borrador corrupto, ignorar */ }
         })
         .catch((error) => {
           console.error("Error al cargar la plantilla:", error);
@@ -750,8 +817,18 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             isClosable: true,
           });
         });
-    }
   }, [PlantillasId, toast, rawsMaterialData, tiposProyectoOptions]);
+
+  // Precio live de la MP "Pintura al Horno" — corre DESPUÉS del efecto de carga para tener prioridad
+  useEffect(() => {
+    if (!rawsMaterialData.length) return;
+    const mp = rawsMaterialData.find(
+      (m) =>
+        m.categoria?.toLowerCase() === "proteccion" &&
+        m.type?.toLowerCase().includes("pintura al horno")
+    );
+    if (mp?.precio != null) setPrecioPinturaM2(Number(mp.precio));
+  }, [rawsMaterialData]);
 
   // useEffect para auto-llenar datos del producto cuando cambian los datos de la plantilla
   useEffect(() => {
@@ -1387,7 +1464,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         if (!descripcion) return null;
 
         const costoPinturaCustom = (item.pinturaAlHorno && item.perfilPinturaPerimetro)
-          ? item.perfilPinturaPerimetro * cantidad * precioPinturaM2
+          ? item.perfilPinturaPerimetro * cantidad * METROS_POR_UNIDAD * precioPinturaM2
           : 0;
         return {
           categoria,
@@ -1403,6 +1480,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           nombreMadera: item.nombreMadera || "",
           pinturaAlHorno: Boolean(item.pinturaAlHorno),
           perfilPinturaId: item.perfilPinturaId || null,
+          perfilPinturaPerimetro: item.perfilPinturaPerimetro ?? 0,
           costoPintura: costoPinturaCustom,
           ...(gananciaIndividualLimpia !== null
             ? { gananciaIndividual: gananciaIndividualLimpia }
@@ -1444,6 +1522,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         nombreMadera: item.nombreMadera || "",
         pinturaAlHorno: Boolean(item.pinturaAlHorno),
         perfilPinturaId: item.perfilPinturaId || null,
+        perfilPinturaPerimetro: item.perfilPinturaPerimetro ?? 0,
         costoPintura: costoPinturaCalc,
         ...(gananciaIndividualLimpia !== null
           ? { gananciaIndividual: gananciaIndividualLimpia }
@@ -1567,6 +1646,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     }
 
     if (ok) {
+      sessionStorage.removeItem(draftKey);
       // Refrescar la lista de tipos de proyecto para que aparezcan los nuevos tipos
       refetchTipos();
 
@@ -1700,11 +1780,45 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             .replace(/×/g, "x")
             .replace(/\s+/g, "")
             .replace(/[^a-z0-9x]/g, "");
+
+        const tipoLabel = getMaterialTypeLabel(item.tipoMP) || item.tipoMP || "";
+        const tipoNorm = tipoLabel.toLowerCase();
+        const categoriaNorm = item.categoriaMP?.toLowerCase() ?? "";
+        const esCanio = categoriaNorm.includes("caño") || categoriaNorm.includes("cano");
+
+        const detectarTipo = (t) => {
+          if (t.includes("angulo") || t.includes("ángulo"))  return "L";
+          if (t.includes("planchuela"))                       return "planchuela";
+          if (t.includes("tee"))                              return "tee";
+          if (t.includes("cuadrado macizo") || t.includes("cuadmacizo")) return "cuadMacizo";
+          if (t.includes("redondo macizo") || t.includes("redmacizo"))   return "redMacizo";
+          // Si la categoría es CAÑO → mm matching (null)
+          if (esCanio) return null;
+          // Hierros sin caño
+          if (t.includes("cuadrado")) return "cuadMacizo";
+          if (t.includes("redondo"))  return "redMacizo";
+          return null;
+        };
+        const tipoDetectado = detectarTipo(tipoNorm);
+        const tiposEnPulgadas = ["L", "planchuela", "tee", "cuadMacizo", "redMacizo"];
+        const esPulgadas = tiposEnPulgadas.includes(tipoDetectado);
+        const tiposPermitidos = tipoDetectado ? [tipoDetectado] : ["cuadrado", "rectangular", "redondo"];
+
+        const candidatos = perfilesPintura.filter((p) => tiposPermitidos.includes(p.tipo));
+
+        // Tipos en pulgadas: comparar medida exacta (ej. "1,1/2")
+        // Tipos en mm (caños): buscar dimensiones "40x40" en el nombre del perfil
+        // Normaliza "1 1/4", "1,1/4", "1-1/4" → todos a "11/4" para comparar igual
+        const extractNum = (s) => s?.replace(/[^0-9\/]/g, "") ?? "";
         const medida = norm(item.medidaMP);
-        const perfil = perfilesPintura.find((p) => {
-          const dims = norm(p.nombre).match(/\d+x\d+/);
-          return dims && medida.includes(dims[0]);
-        });
+        const perfil = esPulgadas
+          ? candidatos.find((p) => extractNum(p.nombre) === extractNum(item.medidaMP) && extractNum(item.medidaMP).length > 0)
+          : candidatos.find((p) => {
+              const dims = norm(p.nombre).match(/(\d+)x(\d+)/);
+              if (!dims) return false;
+              const reversed = `${dims[2]}x${dims[1]}`;
+              return medida.includes(dims[0]) || medida.includes(reversed);
+            });
         item.perfilPinturaId = perfil?._id ?? "";
         item.perfilPinturaPerimetro = perfil?.perimetro ?? 0;
       } else if (!checked) {
@@ -2245,42 +2359,30 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
                 {isHerreria && (
                   <Box borderTop="1px" borderColor="orange.200" pt={2}>
-                    <HStack spacing={3} align="center" mb={item.pinturaAlHorno ? 2 : 0}>
-                      <FormLabel fontSize="sm" mb={0}>🔥 Pintura al horno</FormLabel>
+                    <HStack spacing={3} align="center" width="100%">
+                      <FormLabel fontSize="sm" mb={0} whiteSpace="nowrap">🔥 Pintura al horno</FormLabel>
                       <Switch
                         colorScheme="orange"
                         isChecked={item.pinturaAlHorno}
                         onChange={(e) => handlePinturaToggle(index, e.target.checked)}
                       />
+                      {item.pinturaAlHorno && (
+                        item.perfilPinturaId && item.perfilPinturaPerimetro > 0 ? (
+                          <>
+                            <Text fontSize="xs" color="orange.500" whiteSpace="nowrap">
+                              {perfilesPintura.find((p) => p._id === item.perfilPinturaId)?.nombre ?? "Perfil detectado"}
+                            </Text>
+                            <Badge colorScheme="orange" fontSize="sm" px={3} py={1} ml="auto" whiteSpace="nowrap">
+                              {formatPrice(item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * METROS_POR_UNIDAD * precioPinturaM2)}
+                            </Badge>
+                          </>
+                        ) : (
+                          <Text fontSize="xs" color="gray.400" fontStyle="italic">
+                            Sin perfil detectado
+                          </Text>
+                        )
+                      )}
                     </HStack>
-                    {item.pinturaAlHorno && (
-                      <HStack spacing={3} align="flex-end" flexWrap="wrap">
-                        <FormControl flex="2" minW="180px">
-                          <FormLabel fontSize="xs">Perfil de caño</FormLabel>
-                          <Select
-                            size="sm"
-                            placeholder="Seleccionar perfil..."
-                            value={item.perfilPinturaId}
-                            onChange={(e) => {
-                              const perfil = perfilesPintura.find((p) => p._id === e.target.value);
-                              handleItemChange(categoria, index, "perfilPinturaId", e.target.value);
-                              handleItemChange(categoria, index, "perfilPinturaPerimetro", perfil?.perimetro ?? 0);
-                            }}
-                          >
-                            {perfilesPintura.map((p) => (
-                              <option key={p._id} value={p._id}>
-                                {p.nombre} ({p.perimetro} m/m)
-                              </option>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        {item.perfilPinturaId && (
-                          <Badge colorScheme="orange" fontSize="sm" px={3} py={1}>
-                            Pintura: ${(item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * precioPinturaM2).toLocaleString("es-AR")}
-                          </Badge>
-                        )}
-                      </HStack>
-                    )}
                   </Box>
                 )}
               </VStack>
@@ -2335,6 +2437,14 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   {formatPrice(parseFloat(consumibles[categoria] || 0))}
                 </Text>
               </HStack>
+              {categoria === "pintura" && totalPinturaHorno > 0 && (
+                <HStack justify="space-between">
+                  <Text fontSize="sm">🔥 Pintura al horno (herrería):</Text>
+                  <Text fontSize="sm" color="orange.500" fontWeight="semibold">
+                    {formatPrice(totalPinturaHorno)}
+                  </Text>
+                </HStack>
+              )}
               <Divider />
               <HStack justify="space-between">
                 <Text fontWeight="bold">Costo Total:</Text>
@@ -2647,8 +2757,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               "pintura",
               pintura,
               "blue.400",
-              subtotalPintura,
-              precioFinalPintura
+              subtotalPintura + totalPinturaHorno,
+              precioFinalPintura + totalPinturaHorno
             )}
             <Button
               onClick={() => savePlantilla(false)}

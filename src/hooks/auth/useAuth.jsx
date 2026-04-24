@@ -126,6 +126,14 @@ export function AuthProvider({ children }) {
     persistUser(null);
   };
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      persistUser(null);
+    };
+    window.addEventListener("auth:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth:unauthorized", handleUnauthorized);
+  }, [persistUser]);
+
   return (
     <AuthContext.Provider value={{ user, initializing, signIn, signOut, setUserData: persistUser }}>
       {children}
