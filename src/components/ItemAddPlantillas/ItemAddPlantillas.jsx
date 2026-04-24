@@ -1688,6 +1688,36 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     }
   };
 
+  const handlePinturaToggle = useCallback((index, checked) => {
+    setHerreria((prev) => {
+      const newItems = [...prev];
+      const item = { ...newItems[index] };
+      item.pinturaAlHorno = checked;
+
+      if (checked && item.medidaMP) {
+        const norm = (s) =>
+          s?.toString().toLowerCase()
+            .replace(/×/g, "x")
+            .replace(/\s+/g, "")
+            .replace(/[^a-z0-9x]/g, "");
+        const medida = norm(item.medidaMP);
+        const perfil = perfilesPintura.find((p) => {
+          const dims = norm(p.nombre).match(/\d+x\d+/);
+          return dims && medida.includes(dims[0]);
+        });
+        item.perfilPinturaId = perfil?._id ?? "";
+        item.perfilPinturaPerimetro = perfil?.perimetro ?? 0;
+      } else if (!checked) {
+        item.perfilPinturaId = "";
+        item.perfilPinturaPerimetro = 0;
+        item.costoPintura = 0;
+      }
+
+      newItems[index] = item;
+      return newItems;
+    });
+  }, [perfilesPintura]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     savePlantilla(true);
@@ -2220,9 +2250,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                       <Switch
                         colorScheme="orange"
                         isChecked={item.pinturaAlHorno}
-                        onChange={(e) =>
-                          handleItemChange(categoria, index, "pinturaAlHorno", e.target.checked)
-                        }
+                        onChange={(e) => handlePinturaToggle(index, e.target.checked)}
                       />
                     </HStack>
                     {item.pinturaAlHorno && (
