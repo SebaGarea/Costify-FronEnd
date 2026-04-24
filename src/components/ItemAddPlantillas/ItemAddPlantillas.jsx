@@ -1326,9 +1326,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const savePlantilla = async (shouldRedirect = true) => {
     // Función para encontrar el ObjectId real de la materia prima
     const encontrarMateriaPrimaId = (
       categoriaMP,
@@ -1540,13 +1538,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         // console.log('=== CREANDO NUEVA PLANTILLA ===', plantillaData.nombre);
         ok = await addPlantilla(plantillaData);
       }
-    } catch (error) {
-      console.error("=== ERROR COMPLETO ===");
-      console.error("Error:", error);
-                  nombreMadera: item.nombreMadera || "",
-      console.error("Response:", error.response);
-      console.error("Response data:", error.response?.data);
-      console.error("Status:", error.response?.status);
+    } catch {
       ok = false;
     }
 
@@ -1656,9 +1648,11 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         mostrarToastPlantilla();
       }
 
-      setTimeout(() => {
-        navigate("/plantillas");
-      }, 1000);
+      if (shouldRedirect) {
+        setTimeout(() => { navigate("/plantillas"); }, 1000);
+      } else if (!PlantillasId && plantillaGuardadaId) {
+        navigate(`/plantillas/plantillaAdd/${plantillaGuardadaId}`, { replace: true });
+      }
     } else {
       toast({
         title: "Error",
@@ -1668,6 +1662,11 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         isClosable: true,
       });
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    savePlantilla(true);
   };
 
   // Función para renderizar una sección de categoría
@@ -2505,6 +2504,18 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               subtotalHerreria,
               precioFinalHerreria
             )}
+            <Button
+              onClick={() => savePlantilla(false)}
+              colorScheme="teal"
+              variant="outline"
+              size="sm"
+              alignSelf="flex-end"
+              isLoading={addLoading || updateLoading}
+              loadingText="Guardando..."
+            >
+              Guardar cambios
+            </Button>
+
             {renderCategorySection(
               "carpinteria",
               carpinteria,
@@ -2512,6 +2523,18 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               subtotalCarpinteria,
               precioFinalCarpinteria
             )}
+            <Button
+              onClick={() => savePlantilla(false)}
+              colorScheme="teal"
+              variant="outline"
+              size="sm"
+              alignSelf="flex-end"
+              isLoading={addLoading || updateLoading}
+              loadingText="Guardando..."
+            >
+              Guardar cambios
+            </Button>
+
             {renderCategorySection(
               "pintura",
               pintura,
@@ -2519,6 +2542,18 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               subtotalPintura,
               precioFinalPintura
             )}
+            <Button
+              onClick={() => savePlantilla(false)}
+              colorScheme="teal"
+              variant="outline"
+              size="sm"
+              alignSelf="flex-end"
+              isLoading={addLoading || updateLoading}
+              loadingText="Guardando..."
+            >
+              Guardar cambios
+            </Button>
+
             {renderCategorySection(
               "otros",
               otros,
@@ -2526,6 +2561,17 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               subtotalOtros,
               precioFinalOtros
             )}
+            <Button
+              onClick={() => savePlantilla(false)}
+              colorScheme="teal"
+              variant="outline"
+              size="sm"
+              alignSelf="flex-end"
+              isLoading={addLoading || updateLoading}
+              loadingText="Guardando..."
+            >
+              Guardar cambios
+            </Button>
 
             {/* Sección Extras */}
             <Card>
@@ -2960,6 +3006,18 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             </CardBody>
           </Card>
 
+          <Button
+            onClick={() => savePlantilla(false)}
+            colorScheme="teal"
+            variant="outline"
+            size="sm"
+            alignSelf="flex-end"
+            isLoading={addLoading || updateLoading}
+            loadingText="Guardando..."
+          >
+            Guardar cambios
+          </Button>
+
           {/* Botón de envío */}
           <Button
             type="submit"
@@ -2968,7 +3026,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             isLoading={addLoading || updateLoading}
             loadingText={PlantillasId ? "Actualizando..." : "Creando..."}
           >
-            {PlantillasId ? "Actualizar Plantilla" : "Crear Plantilla"}
+            {PlantillasId ? "Actualizar y volver" : "Crear Plantilla"}
           </Button>
         </VStack>
       </form>

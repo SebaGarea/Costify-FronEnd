@@ -35,6 +35,8 @@ import { RiArrowRightLine } from "react-icons/ri";
 
 import { useGetAllPlantillas, useDeletePlantilla, useDuplicatePlantilla, useGetTiposProyectoUnicos } from "../../hooks/index.js";
 
+const ITEMS_PER_PAGE = 20;
+
 export const ItemListPlantillas = () => {
   const navigate = useNavigate();
 
@@ -46,6 +48,7 @@ export const ItemListPlantillas = () => {
 
   // Estado local para el input de búsqueda (sin debounce)
   const [searchInput, setSearchInput] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     plantillasData,
@@ -81,7 +84,8 @@ export const ItemListPlantillas = () => {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setFiltros(prev => ({ ...prev, search: searchInput }));
-    }, 1000); // 1 segundo de delay
+      setCurrentPage(1);
+    }, 1000);
 
     return () => clearTimeout(timeoutId);
   }, [searchInput]);
@@ -108,6 +112,7 @@ export const ItemListPlantillas = () => {
   // Funciones para manejar los filtros
   const handleTipoProyectoSelect = (tipoProyecto) => {
     setFiltros(prev => ({ ...prev, tipoProyecto }));
+    setCurrentPage(1);
   };
 
 
@@ -118,10 +123,8 @@ export const ItemListPlantillas = () => {
 
   const handleClearFilters = () => {
     setSearchInput('');
-    setFiltros({
-      tipoProyecto: 'todos',
-      search: ''
-    });
+    setFiltros({ tipoProyecto: 'todos', search: '' });
+    setCurrentPage(1);
   };
 
   // Función para abrir modal de confirmación
@@ -224,6 +227,13 @@ export const ItemListPlantillas = () => {
     );
   }
 
+  const sortedPlantillas = [...plantillasData].sort((a, b) => (b._id > a._id ? 1 : -1));
+  const totalPages = Math.max(1, Math.ceil(sortedPlantillas.length / ITEMS_PER_PAGE));
+  const paginatedPlantillas = sortedPlantillas.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <>
       <Box mb={2} p={4} bg={colorBgBox} borderRadius="lg">
@@ -297,7 +307,7 @@ export const ItemListPlantillas = () => {
       {/* Indicador de resultados */}
       <Box mb={4} textAlign="center">
         <Text fontSize="sm" color="gray.600">
-          {plantillasData.length === 0 
+          {plantillasData.length === 0
             ? "No se encontraron plantillas con los filtros aplicados"
             : `Se encontraron ${plantillasData.length} plantilla${plantillasData.length !== 1 ? 's' : ''}`
           }
@@ -320,8 +330,9 @@ export const ItemListPlantillas = () => {
             </Button>
           </VStack>
         ) : (
+          <>
           <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8}>
-            {plantillasData.map((plantilla) => (
+            {paginatedPlantillas.map((plantilla) => (
             <Box
               key={plantilla._id}
               p={6}
@@ -418,6 +429,29 @@ export const ItemListPlantillas = () => {
             </Box>
             ))}
           </SimpleGrid>
+
+          {totalPages > 1 && (
+            <HStack justify="center" spacing={4} pt={8}>
+              <Button
+                onClick={() => setCurrentPage((p) => p - 1)}
+                isDisabled={currentPage === 1}
+                size="sm"
+              >
+                Anterior
+              </Button>
+              <Text fontSize="sm">
+                Página {currentPage} de {totalPages}
+              </Text>
+              <Button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                isDisabled={currentPage === totalPages}
+                size="sm"
+              >
+                Siguiente
+              </Button>
+            </HStack>
+          )}
+          </>
         )}
       </Center>
 

@@ -30,9 +30,12 @@ const resolveImageUrl = (imagenes) => {
   return first.startsWith("http") ? first : `${BASE_URL}${first}`;
 };
 
+const ITEMS_PER_PAGE = 20;
+
 export const ItemListContainer = ({ products }) => {
   const [selectedCatalogo, setSelectedCatalogo] = useState(null);
   const [selectedModelo, setSelectedModelo] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const colorBg = useColorModeValue("white", "gray.800");
   const colorBgBox = useColorModeValue("gray.100", "gray.700");
 
@@ -64,6 +67,12 @@ export const ItemListContainer = ({ products }) => {
     return true;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <>
       <Box mb={2} p={2} bg={colorBgBox} borderRadius="lg">
@@ -84,7 +93,8 @@ export const ItemListContainer = ({ products }) => {
                   key={cat}
                   onClick={() => {
                     setSelectedCatalogo(cat);
-                    setSelectedModelo(null); // Reset modelo al cambiar catálogo
+                    setSelectedModelo(null);
+                    setCurrentPage(1);
                   }}
                   justifyContent="center"
                   textTransform="uppercase"
@@ -112,7 +122,7 @@ export const ItemListContainer = ({ products }) => {
                 modelosUnicos.map((modelo) => (
                   <MenuItem
                     key={modelo}
-                    onClick={() => setSelectedModelo(modelo)}
+                    onClick={() => { setSelectedModelo(modelo); setCurrentPage(1); }}
                     justifyContent="center"
                     textTransform="uppercase"
                   >
@@ -130,6 +140,7 @@ export const ItemListContainer = ({ products }) => {
               onClick={() => {
                 setSelectedCatalogo(null);
                 setSelectedModelo(null);
+                setCurrentPage(1);
               }}
               size={{ base: "sm", md: "md" }}
             >
@@ -152,7 +163,7 @@ export const ItemListContainer = ({ products }) => {
 
       <Center py={12}>
         <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8}>
-          {filteredProducts.map((product) => {
+          {paginatedProducts.map((product) => {
             const planilla = product?.planillaCosto ?? null;
             const costoPlanilla = Number(planilla?.costoTotal ?? 0);
             const precioPlanilla = Number(planilla?.precioFinal ?? 0);
@@ -298,6 +309,28 @@ export const ItemListContainer = ({ products }) => {
           })}
         </SimpleGrid>
       </Center>
+
+      {totalPages > 1 && (
+        <HStack justify="center" spacing={4} pb={8}>
+          <Button
+            onClick={() => setCurrentPage((p) => p - 1)}
+            isDisabled={currentPage === 1}
+            size="sm"
+          >
+            Anterior
+          </Button>
+          <Text fontSize="sm">
+            Página {currentPage} de {totalPages}
+          </Text>
+          <Button
+            onClick={() => setCurrentPage((p) => p + 1)}
+            isDisabled={currentPage === totalPages}
+            size="sm"
+          >
+            Siguiente
+          </Button>
+        </HStack>
+      )}
     </>
   );
 };
