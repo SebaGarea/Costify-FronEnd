@@ -7,7 +7,7 @@ export const useItemsByCatalogo = (catalogo) => {
   useEffect(() => {
     getProductsByCatalogo(catalogo)
       .then((res) => setProduct(res.data.catalogo))
-      .catch((error) => console.log(error));
+      .catch(() => {});
   }, [catalogo]);
 
   return {product};

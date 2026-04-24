@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useState, useEffect } from "react";
 import { getProductsByModelo } from "../../services/products.service.js";
 
@@ -13,7 +13,6 @@ export const useItemsByModelo = (modelo) => {
         setLoading(false);
       })
       .catch((error) => {
-        console.log(error);
       })
       .finally(() => setLoading(false));
   }, [modelo]);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { getPlantillaById } from "../../services/plantillas.service.js";
 
 export const useGetPlantillaById = (id) => {
@@ -9,7 +9,7 @@ export const useGetPlantillaById = (id) => {
   useEffect(() => {
     if (!id) {
       setLoading(false);
-      setError("No se proporcionó un ID válido");
+      setError("No se proporcionÃ³ un ID vÃ¡lido");
       return;
     }
 
@@ -23,7 +23,6 @@ export const useGetPlantillaById = (id) => {
         setError(
           error.response?.data?.error || "Error al obtener la plantilla"
         );
-        console.error("Error al obtener la plantilla:", error);
       } finally {
         setLoading(false);
       }

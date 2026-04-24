@@ -61,6 +61,7 @@ export const MainRouter = () => {
               <Route path="/tareas" element={<Tareas />} />
               <Route path="/configuracion" element={<Configuracion />} />
               <Route path="/perfil" element={<Perfil />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </PrivateRoute>
         }

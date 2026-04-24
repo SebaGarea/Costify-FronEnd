@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { getAllVentas } from "../../services/ventas.service.js";
 //hook
 const BASE_URL = import.meta.env.VITE_API_URL;
@@ -17,9 +17,7 @@ export const useGetAllVentas = () => {
 
         setVentasData(response || []);
       } catch (error) {
-        console.error("❌ Error:", error);
         setError(error.response?.data?.error || "Error al cargar las ventas");
-        console.error("Error al cargar las ventas:", error);
       } finally {
         setLoading(false);
       }

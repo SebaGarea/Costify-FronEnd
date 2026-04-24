@@ -35,6 +35,32 @@ export const ItemAddVenta = () => {
   const toast = useToast();
   const { id: ventaId } = useParams();
   const loadedRef = useRef(false);
+  const isDraftLoaded = useRef(!ventaId);
+  const draftKey = `venta_draft_${ventaId || "new"}`;
+
+  // Guardar borrador en sessionStorage (seguridad ante recargas)
+  useEffect(() => {
+    if (!isDraftLoaded.current) return;
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(draftKey, JSON.stringify({ form, searchProducto, searchPlantilla }));
+      } catch { /* sessionStorage lleno o deshabilitado */ }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form, searchProducto, searchPlantilla, draftKey]);
+
+  // Restaurar borrador al montar (solo para ventas nuevas)
+  useEffect(() => {
+    if (ventaId) return;
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.form) setForm(draft.form);
+      if (draft.searchProducto) setSearchProducto(draft.searchProducto);
+      if (draft.searchPlantilla) setSearchPlantilla(draft.searchPlantilla);
+    } catch { /* borrador corrupto, ignorar */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const card = useColorModeValue("gray.100", "gray.800");
   const border = useColorModeValue("gray.500", "gray.600");
@@ -261,6 +287,7 @@ export const ItemAddVenta = () => {
         if (!ok) throw new Error("No se pudo crear la venta");
         toast({ status: "success", title: "Venta creada" });
       }
+      sessionStorage.removeItem(draftKey);
       navigate("/ventas");
     } catch (err) {
       toast({ status: "error", title: err.message || "Error al guardar" });
@@ -301,7 +328,17 @@ export const ItemAddVenta = () => {
         if (v.plantilla?.nombre) {
           setSearchPlantilla(v.plantilla.nombre);
         }
+        isDraftLoaded.current = true;
         loadedRef.current = true;
+        try {
+          const raw = sessionStorage.getItem(draftKey);
+          if (raw) {
+            const draft = JSON.parse(raw);
+            if (draft.form) setForm(draft.form);
+            if (draft.searchProducto) setSearchProducto(draft.searchProducto);
+            if (draft.searchPlantilla) setSearchPlantilla(draft.searchPlantilla);
+          }
+        } catch { /* borrador corrupto, ignorar */ }
       } catch (err) {
         console.error("Error cargando venta:", err);
       }

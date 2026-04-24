@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { deleteVenta } from "../../services/ventas.service.js";
 
 export const useDeleteVenta = () => {
@@ -12,7 +12,6 @@ export const useDeleteVenta = () => {
       const res = await deleteVenta(id);
       return res;
     } catch (err) {
-      console.error("Error al eliminar venta:", err);
       setError(err.response?.data?.error || "Error al eliminar la venta");
       throw err;
     } finally {

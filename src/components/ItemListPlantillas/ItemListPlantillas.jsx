@@ -35,6 +35,8 @@ import { RiArrowRightLine } from "react-icons/ri";
 
 import { useGetAllPlantillas, useDeletePlantilla, useDuplicatePlantilla, useGetTiposProyectoUnicos } from "../../hooks/index.js";
 
+const ITEMS_PER_PAGE = 10;
+
 export const ItemListPlantillas = () => {
   const navigate = useNavigate();
 
@@ -46,6 +48,7 @@ export const ItemListPlantillas = () => {
 
   // Estado local para el input de búsqueda (sin debounce)
   const [searchInput, setSearchInput] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const {
     plantillasData,
@@ -77,11 +80,15 @@ export const ItemListPlantillas = () => {
   const colorBg = useColorModeValue("white", "gray.800");
   const colorBgBox = useColorModeValue("gray.100", "gray.700");
 
-  // Debounce para la búsqueda
+  // Debounce para la búsqueda (solo actualiza si el valor realmente cambió)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setFiltros(prev => ({ ...prev, search: searchInput }));
-    }, 1000); // 1 segundo de delay
+      setFiltros(prev => {
+        if (prev.search === searchInput) return prev;
+        setCurrentPage(1);
+        return { ...prev, search: searchInput };
+      });
+    }, 1000);
 
     return () => clearTimeout(timeoutId);
   }, [searchInput]);
@@ -108,6 +115,7 @@ export const ItemListPlantillas = () => {
   // Funciones para manejar los filtros
   const handleTipoProyectoSelect = (tipoProyecto) => {
     setFiltros(prev => ({ ...prev, tipoProyecto }));
+    setCurrentPage(1);
   };
 
 
@@ -118,10 +126,8 @@ export const ItemListPlantillas = () => {
 
   const handleClearFilters = () => {
     setSearchInput('');
-    setFiltros({
-      tipoProyecto: 'todos',
-      search: ''
-    });
+    setFiltros({ tipoProyecto: 'todos', search: '' });
+    setCurrentPage(1);
   };
 
   // Función para abrir modal de confirmación
@@ -212,7 +218,7 @@ export const ItemListPlantillas = () => {
     }
   };
 
-  if (loadingGetAll) {
+  if (loadingGetAll && plantillasData.length === 0) {
     return <Loader />;
   }
 
@@ -223,6 +229,13 @@ export const ItemListPlantillas = () => {
       </Center>
     );
   }
+
+  const sortedPlantillas = [...plantillasData].sort((a, b) => (b._id > a._id ? 1 : -1));
+  const totalPages = Math.max(1, Math.ceil(sortedPlantillas.length / ITEMS_PER_PAGE));
+  const paginatedPlantillas = sortedPlantillas.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   return (
     <>
@@ -297,7 +310,7 @@ export const ItemListPlantillas = () => {
       {/* Indicador de resultados */}
       <Box mb={4} textAlign="center">
         <Text fontSize="sm" color="gray.600">
-          {plantillasData.length === 0 
+          {plantillasData.length === 0
             ? "No se encontraron plantillas con los filtros aplicados"
             : `Se encontraron ${plantillasData.length} plantilla${plantillasData.length !== 1 ? 's' : ''}`
           }
@@ -321,7 +334,7 @@ export const ItemListPlantillas = () => {
           </VStack>
         ) : (
           <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={8}>
-            {plantillasData.map((plantilla) => (
+            {paginatedPlantillas.map((plantilla) => (
             <Box
               key={plantilla._id}
               p={6}
@@ -420,6 +433,28 @@ export const ItemListPlantillas = () => {
           </SimpleGrid>
         )}
       </Center>
+
+      {totalPages > 1 && plantillasData.length > 0 && (
+        <HStack justify="center" spacing={4} pb={8}>
+          <Button
+            onClick={() => setCurrentPage((p) => p - 1)}
+            isDisabled={currentPage === 1}
+            size="sm"
+          >
+            Anterior
+          </Button>
+          <Text fontSize="sm">
+            Página {currentPage} de {totalPages}
+          </Text>
+          <Button
+            onClick={() => setCurrentPage((p) => p + 1)}
+            isDisabled={currentPage === totalPages}
+            size="sm"
+          >
+            Siguiente
+          </Button>
+        </HStack>
+      )}
 
       {/* Modal de confirmación para eliminar */}
       <AlertDialog

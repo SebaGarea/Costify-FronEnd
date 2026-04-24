@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { getUpdateVentas } from "../../services/ventas.service.js";
 
 export const useUpdateVentas = () => {
@@ -12,7 +12,6 @@ export const useUpdateVentas = () => {
       const res = await getUpdateVentas(id, ventasData);
       return res.data || res;
     } catch (err) {
-      console.error("Error actualizando venta:", err);
       setError(err.response?.data?.error || "Error al actualizar la venta");
       throw err;
     } finally {

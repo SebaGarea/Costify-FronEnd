@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { duplicatePlantilla as duplicatePlantillaService } from "../../services/plantillas.service.js";
 
 export const useDuplicatePlantilla = () => {
@@ -14,7 +14,6 @@ export const useDuplicatePlantilla = () => {
       return response.data;
     } catch (error) {
       setError(error.response?.data?.error || "Error al duplicar la plantilla");
-      console.error("Error al duplicar la plantilla:", error);
       return null;
     } finally {
       setLoading(false);
