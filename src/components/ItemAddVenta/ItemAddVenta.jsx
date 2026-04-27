@@ -38,30 +38,6 @@ export const ItemAddVenta = () => {
   const isDraftLoaded = useRef(!ventaId);
   const draftKey = `venta_draft_${ventaId || "new"}`;
 
-  // Guardar borrador en sessionStorage (seguridad ante recargas)
-  useEffect(() => {
-    if (!isDraftLoaded.current) return;
-    const timer = setTimeout(() => {
-      try {
-        sessionStorage.setItem(draftKey, JSON.stringify({ form, searchProducto, searchPlantilla }));
-      } catch { /* sessionStorage lleno o deshabilitado */ }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [form, searchProducto, searchPlantilla, draftKey]);
-
-  // Restaurar borrador al montar (solo para ventas nuevas)
-  useEffect(() => {
-    if (ventaId) return;
-    try {
-      const raw = sessionStorage.getItem(draftKey);
-      if (!raw) return;
-      const draft = JSON.parse(raw);
-      if (draft.form) setForm(draft.form);
-      if (draft.searchProducto) setSearchProducto(draft.searchProducto);
-      if (draft.searchPlantilla) setSearchPlantilla(draft.searchPlantilla);
-    } catch { /* borrador corrupto, ignorar */ }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const card = useColorModeValue("gray.100", "gray.800");
   const border = useColorModeValue("gray.500", "gray.600");
 
@@ -88,6 +64,30 @@ export const ItemAddVenta = () => {
   // Sugerencias de plantillas
   const [showPlantillaSuggestions, setShowPlantillaSuggestions] = useState(false);
   const [searchPlantilla, setSearchPlantilla] = useState("");
+
+  // Restaurar borrador al montar (solo para ventas nuevas)
+  useEffect(() => {
+    if (ventaId) return;
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.form) setForm(draft.form);
+      if (draft.searchProducto) setSearchProducto(draft.searchProducto);
+      if (draft.searchPlantilla) setSearchPlantilla(draft.searchPlantilla);
+    } catch { /* borrador corrupto, ignorar */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Guardar borrador en sessionStorage (seguridad ante recargas)
+  useEffect(() => {
+    if (!isDraftLoaded.current) return;
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(draftKey, JSON.stringify({ form, searchProducto, searchPlantilla }));
+      } catch { /* sessionStorage lleno o deshabilitado */ }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form, searchProducto, searchPlantilla, draftKey]);
 
   const priceFormatter = useMemo(
     () =>
