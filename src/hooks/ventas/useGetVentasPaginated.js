@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { getAllVentasPaginated } from "../../services/ventas.service.js";
 
 export const useGetVentasPaginated = (initialPage = 1, initialLimit = 10) => {
@@ -27,7 +27,6 @@ export const useGetVentasPaginated = (initialPage = 1, initialLimit = 10) => {
       setDueSoonCountGlobal(res.dueSoonCountGlobal ?? 0);
       setDueSoonListGlobal(res.dueSoonListGlobal ?? []);
     } catch (err) {
-      console.error("❌ Error:", err);
       setError(err.response?.data?.error || "Error al cargar las ventas");
     } finally {
       if (!silent) setLoading(false);

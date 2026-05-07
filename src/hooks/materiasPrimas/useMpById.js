@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { getRawMaterialById } from "../../services/rawMaterials.service.js";
 
 export const useMpById = (id) => {
@@ -17,7 +17,6 @@ export const useMpById = (id) => {
         setLoading(false);
       })
       .catch((error) => {
-        console.log("Error al obtener MP:", error);
         setLoading(false);
         setMpById(null);
       });

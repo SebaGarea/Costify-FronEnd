@@ -8,7 +8,7 @@ export const useMpByCategories = (category) => {
   useEffect(() => {
     getMpByCategory(category)
         .then((res) => setMp(res.data.materiasPrimas))
-        .catch((error) => console.log(error))
+        .catch(() => {})
         .finally(() => setLoading(false));
   }, [category])
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+﻿import { useEffect, useState, useCallback } from 'react'
 import { getAllPlantillas } from '../../services/plantillas.service.js';
 
 export const useGetTiposProyectoUnicos = () => {
@@ -14,7 +14,7 @@ export const useGetTiposProyectoUnicos = () => {
       const response = await getAllPlantillas({});
       const plantillas = response.data;
       
-      // Extraemos los tipos de proyecto únicos
+      // Extraemos los tipos de proyecto Ãºnicos
       const tiposUnicos = [...new Set(
         plantillas
           .map(plantilla => plantilla.tipoProyecto)
@@ -23,7 +23,6 @@ export const useGetTiposProyectoUnicos = () => {
       
       setTiposProyecto(tiposUnicos);
     } catch (error) {
-      console.error("Error al cargar los tipos de proyecto:", error);
       setError(error.response?.data?.error || "Error al cargar los tipos de proyecto");
     } finally {
       setLoading(false);
@@ -34,7 +33,7 @@ export const useGetTiposProyectoUnicos = () => {
     fetchTiposProyecto();
   }, [fetchTiposProyecto]);
 
-  // Refrescar automáticamente cuando la ventana recibe foco (útil cuando se navega entre páginas)
+  // Refrescar automÃ¡ticamente cuando la ventana recibe foco (Ãºtil cuando se navega entre pÃ¡ginas)
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {

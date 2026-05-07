@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+﻿import { useState, useEffect, useCallback } from "react";
 import { getAllMateriasPrimas, getMateriasPrimasMeta } from "../../services/rawMaterials.service.js";
 import {
   getCodesForMaterialTypeLabel,
@@ -42,7 +42,6 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
             medida: medidaParam,
             nombreMadera: nombreMaderaParam,
           }).catch((metaError) => {
-            console.error("Error al obtener metadatos de materias primas", metaError);
             return null;
           });
 
@@ -131,7 +130,6 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
           availableNombresMadera: rawMeta.availableNombresMadera || [],
         });
       } catch (error) {
-        console.error("Error al cargar materias primas", error);
         setRawsMaterialData([]);
       } finally {
         setLoading(false);

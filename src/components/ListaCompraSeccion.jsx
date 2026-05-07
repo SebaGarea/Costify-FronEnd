@@ -17,8 +17,62 @@ import {
   Flex,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { AddIcon, DeleteIcon } from "@chakra-ui/icons";
+import { AddIcon, DeleteIcon, RepeatIcon } from "@chakra-ui/icons";
 import { getMaterialTypeLabel } from "../constants/materialTypes";
+
+const ValorInput = memo(({ precioOverride, rawPrice, onCommit }) => {
+  const effectivePrice = precioOverride ?? rawPrice ?? 0;
+  const [value, setValue] = useState(String(effectivePrice));
+  const hasOverride = precioOverride != null;
+
+  return (
+    <Flex align="center" gap={1}>
+      <NumberInput
+        min={0}
+        value={value}
+        onChange={(str) => setValue(str)}
+        onBlur={() => {
+          const num = parseFloat(String(value).replace(",", "."));
+          onCommit(Number.isFinite(num) && num > 0 ? num : null);
+        }}
+        size="sm"
+        flex="1"
+      >
+        <NumberInputField
+          borderColor={hasOverride ? "orange.300" : undefined}
+          _focus={{ borderColor: hasOverride ? "orange.400" : undefined }}
+        />
+      </NumberInput>
+      {hasOverride && (
+        <IconButton
+          aria-label="Restablecer precio de materia prima"
+          icon={<RepeatIcon />}
+          size="xs"
+          variant="ghost"
+          colorScheme="orange"
+          title="Restablecer al precio de la materia prima"
+          onClick={() => {
+            setValue(String(rawPrice ?? 0));
+            onCommit(null);
+          }}
+        />
+      )}
+    </Flex>
+  );
+});
+
+const DetalleInput = memo(({ initialValue, onCommit }) => {
+  const [value, setValue] = useState(initialValue ?? "");
+  return (
+    <Input
+      size="sm"
+      placeholder="Ej: Belgrano"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => onCommit(value)}
+    />
+  );
+});
 
 const currencyFormatter = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -58,6 +112,8 @@ const buildEmptyItem = (overrides = {}) => ({
   nombreMadera: "",
   cantidad: "1",
   descripcion: "",
+  detalle: "",
+  precioOverride: null,
   esPersonalizado: false,
   nombrePersonalizado: "",
   valorPersonalizado: 0,
@@ -466,6 +522,10 @@ const ListaCompraSeccion = ({
       const manualValue = Number(item?.valorPersonalizado ?? 0);
       return Number.isFinite(manualValue) ? manualValue : 0;
     }
+    if (item?.precioOverride != null) {
+      const override = Number(item.precioOverride);
+      return Number.isFinite(override) ? override : getMaterialPrice(item?.materiaId);
+    }
     return getMaterialPrice(item?.materiaId);
   };
 
@@ -661,7 +721,7 @@ const ListaCompraSeccion = ({
                       />
                     </FormControl>
                   </GridItem>
-                  <GridItem colSpan={{ base: 12, lg: 4 }}>
+                  <GridItem colSpan={{ base: 6, lg: 2 }}>
                     <FormControl>
                       <FormLabel fontSize="sm">Valor unitario</FormLabel>
                       <NumberInput
@@ -680,7 +740,7 @@ const ListaCompraSeccion = ({
                       </NumberInput>
                     </FormControl>
                   </GridItem>
-                  <GridItem colSpan={{ base: 12, lg: 2 }}>
+                  <GridItem colSpan={{ base: 6, lg: 1 }}>
                     <FormControl>
                       <FormLabel fontSize="sm">Cantidad</FormLabel>
                       <Input
@@ -700,38 +760,45 @@ const ListaCompraSeccion = ({
                       />
                     </FormControl>
                   </GridItem>
-                  <GridItem colSpan={{ base: 12, lg: 2 }}>
+                  <GridItem colSpan={{ base: 6, lg: 2 }}>
                     <FormControl>
                       <FormLabel fontSize="sm">Sub-total</FormLabel>
-                      <Flex gap={2} align="center">
-                        <Input
-                          value={currencyFormatter.format(lineTotal(item))}
-                          readOnly
-                          placeholder="$0"
-                          size="sm"
-                          flex="1"
-                        />
-                        <IconButton
-                          aria-label="Eliminar"
-                          icon={<DeleteIcon />}
-                          colorScheme="red"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleRemove(idx)}
-                        />
-                      </Flex>
+                      <Input
+                        value={currencyFormatter.format(lineTotal(item))}
+                        readOnly
+                        placeholder="$0"
+                        size="sm"
+                      />
                     </FormControl>
+                  </GridItem>
+                  <GridItem colSpan={{ base: 6, lg: 2 }}>
+                    <FormControl>
+                      <FormLabel fontSize="sm">Detalle</FormLabel>
+                      <DetalleInput
+                        initialValue={item.detalle || ""}
+                        onCommit={(val) => handleChange(idx, "detalle", val)}
+                      />
+                    </FormControl>
+                  </GridItem>
+                  <GridItem colSpan={{ base: 12, lg: 1 }} display="flex" alignItems="flex-end">
+                    <IconButton
+                      aria-label="Eliminar"
+                      icon={<DeleteIcon />}
+                      colorScheme="red"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRemove(idx)}
+                    />
                   </GridItem>
                 </Grid>
               ) : (
-                <>
-                  <Grid
+                <Grid
                     templateColumns={
                       showMaterialField
-                        ? { base: "repeat(1, 1fr)", lg: "repeat(18, 1fr)" }
+                        ? { base: "repeat(1, 1fr)", lg: "repeat(20, 1fr)" }
                         : isHerreria
-                        ? { base: "repeat(1, 1fr)", lg: "repeat(14, 1fr)" }
-                        : { base: "repeat(1, 1fr)", lg: "repeat(12, 1fr)" }
+                        ? { base: "repeat(1, 1fr)", lg: "repeat(16, 1fr)" }
+                        : { base: "repeat(1, 1fr)", lg: "repeat(14, 1fr)" }
                     }
                     gap={2}
                     alignItems="flex-end"
@@ -835,7 +902,7 @@ const ListaCompraSeccion = ({
                         </FormControl>
                       </GridItem>
                     )}
-                    <GridItem colSpan={{ base: 12, lg: 1 }}>
+                    <GridItem colSpan={{ base: 6, lg: 1 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Cantidad</FormLabel>
                         <Input
@@ -855,41 +922,49 @@ const ListaCompraSeccion = ({
                         />
                       </FormControl>
                     </GridItem>
-                    <GridItem colSpan={{ base: 12, lg: showMaterialField ? 2 : 2 }}>
+                    <GridItem colSpan={{ base: 6, lg: 2 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Valor</FormLabel>
+                        <ValorInput
+                          precioOverride={item.precioOverride ?? null}
+                          rawPrice={getMaterialPrice(item.materiaId)}
+                          onCommit={(val) => handleChange(idx, "precioOverride", val)}
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem colSpan={{ base: 6, lg: 2 }}>
+                      <FormControl>
+                        <FormLabel fontSize="sm">Sub-total</FormLabel>
                         <Input
-                          value={currencyFormatter.format(getUnitPrice(item) || 0)}
+                          value={currencyFormatter.format(lineTotal(item))}
                           readOnly
                           placeholder="$0"
                           size="sm"
                         />
                       </FormControl>
                     </GridItem>
-                    <GridItem colSpan={{ base: 12, lg: showMaterialField ? 3 : 2 }}>
+                    <GridItem colSpan={{ base: 6, lg: 2 }}>
                       <FormControl>
-                        <FormLabel fontSize="sm">Sub-total</FormLabel>
-                        <Flex gap={2} align="center">
-                          <Input
-                            value={currencyFormatter.format(lineTotal(item))}
-                            readOnly
-                            placeholder="$0"
-                            size="sm"
-                            flex="1"
-                          />
-                          <IconButton
-                            aria-label="Eliminar"
-                            icon={<DeleteIcon />}
-                            colorScheme="red"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleRemove(idx)}
-                          />
-                        </Flex>
+                        <FormLabel fontSize="sm">Detalle</FormLabel>
+                        <Input
+                          placeholder="Ej: Belgrano"
+                          value={item.detalle || ""}
+                          onChange={(e) => handleChange(idx, "detalle", e.target.value)}
+                          size="sm"
+                        />
                       </FormControl>
                     </GridItem>
+                    <GridItem colSpan={{ base: 12, lg: 1 }} display="flex" alignItems="flex-end">
+                      <IconButton
+                        aria-label="Eliminar"
+                        icon={<DeleteIcon />}
+                        colorScheme="red"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRemove(idx)}
+                      />
+                    </GridItem>
                   </Grid>
-                </>
               )}
 
             </Stack>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { getAllTareasPaginated } from "../../services/tareas.service.js";
 
 export const useGetTareasPaginated = (initialPage = 1, initialLimit = 15) => {
@@ -20,7 +20,6 @@ export const useGetTareasPaginated = (initialPage = 1, initialLimit = 15) => {
         setTotalPages(res.totalPages || 1);
         setError(null);
       } catch (err) {
-        console.error("❌ Error:", err);
         setError(err.response?.data?.error || "Error al cargar las tareas");
       } finally {
         setLoading(false);

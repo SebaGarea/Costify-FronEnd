@@ -11,10 +11,9 @@ import {
   HStack,
 } from "@chakra-ui/react";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAddMp, useUpdateRawMaterials } from "../../hooks/index.js";
-import { useEffect } from "react";
 import { getRawMaterialById } from "../../services/rawMaterials.service.js";
 
 export const ItemAddRawMaterials = ({ RawMaterialId }) => {
@@ -29,6 +28,31 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
     precio: "",
     stock: "",
   });
+
+  const isDraftLoaded = useRef(!RawMaterialId);
+  const draftKey = `rawmaterial_draft_${RawMaterialId || "new"}`;
+
+  // Guardar borrador en sessionStorage (seguridad ante recargas)
+  useEffect(() => {
+    if (!isDraftLoaded.current) return;
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(draftKey, JSON.stringify({ form }));
+      } catch { /* sessionStorage lleno o deshabilitado */ }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form, draftKey]);
+
+  // Restaurar borrador al montar (solo para materias primas nuevas)
+  useEffect(() => {
+    if (RawMaterialId) return;
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.form) setForm(draft.form);
+    } catch { /* borrador corrupto, ignorar */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toast = useToast();
   const navigate = useNavigate();
@@ -117,6 +141,16 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
             precio: materiaPrima.precio || "",
             stock: materiaPrima.stock || "",
           });
+
+          // Restaurar borrador con cambios no guardados (seguridad ante recargas)
+          isDraftLoaded.current = true;
+          try {
+            const raw = sessionStorage.getItem(draftKey);
+            if (raw) {
+              const draft = JSON.parse(raw);
+              if (draft.form) setForm(draft.form);
+            }
+          } catch { /* borrador corrupto, ignorar */ }
         })
         .catch((error) => {
           console.error("Error al cargar materia prima:", error);
@@ -180,6 +214,7 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
       ok = await addRawMaterial(form);
     }
     if (ok) {
+      sessionStorage.removeItem(draftKey);
       toast({
         title: RawMaterialId
           ? "Materia Prima Actualizada"

@@ -16,7 +16,7 @@ import {
   HStack,
   Divider,
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getProductById,
   updateProduct,
@@ -52,6 +52,30 @@ export const ItemAddProduct = ({ productId }) => {
   const { addProduct, loading, error } = useAddProduct();
   const [imagenes, setImagenes] = useState([]);
   const [imagenesActuales, setImagenesActuales] = useState([]);
+  const isDraftLoaded = useRef(!productId);
+  const draftKey = `product_draft_${productId || "new"}`;
+
+  // Guardar borrador en sessionStorage (seguridad ante recargas)
+  useEffect(() => {
+    if (!isDraftLoaded.current) return;
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(draftKey, JSON.stringify({ form }));
+      } catch { /* sessionStorage lleno o deshabilitado */ }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [form, draftKey]);
+
+  // Restaurar borrador al montar (solo para productos nuevos)
+  useEffect(() => {
+    if (productId) return;
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft.form) setForm(draft.form);
+    } catch { /* borrador corrupto, ignorar */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Cargar datos si es edición
   useEffect(() => {
     if (productId) {
@@ -75,6 +99,16 @@ export const ItemAddProduct = ({ productId }) => {
         if (res.data.planillaCosto) {
           setPlantillaSeleccionada(res.data.planillaCosto);
         }
+
+        // Restaurar borrador con cambios no guardados (seguridad ante recargas)
+        isDraftLoaded.current = true;
+        try {
+          const raw = sessionStorage.getItem(draftKey);
+          if (raw) {
+            const draft = JSON.parse(raw);
+            if (draft.form) setForm(draft.form);
+          }
+        } catch { /* borrador corrupto, ignorar */ }
       });
     }
   }, [productId]);
@@ -113,6 +147,7 @@ export const ItemAddProduct = ({ productId }) => {
     }
     
     if (result) {
+      sessionStorage.removeItem(draftKey);
       // Actualizar las imágenes actuales con las devueltas por el servidor
       if (result.imagenes) {
         setImagenesActuales(result.imagenes);

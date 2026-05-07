@@ -528,6 +528,10 @@ export const ListaDeComprasView = () => {
         const manualValue = Number(item.valorPersonalizado);
         return Number.isFinite(manualValue) ? manualValue : 0;
       }
+      if (item.precioOverride != null) {
+        const override = Number(item.precioOverride);
+        if (Number.isFinite(override)) return override;
+      }
       const material = materialsById.get(item.materiaId);
       const parsed = Number(material?.precio ?? 0);
       return Number.isFinite(parsed) ? parsed : 0;
@@ -598,7 +602,7 @@ export const ListaDeComprasView = () => {
           Number(item.cantidad) || 0,
           getUnitPrice(item) || 0,
           getLineTotal(item) || 0,
-          item.descripcion || "",
+          item.detalle || "",
         ]);
       });
     });
