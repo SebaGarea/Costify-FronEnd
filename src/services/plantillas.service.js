@@ -41,3 +41,7 @@ export const calculatePlantillaCost = async (plantillaData) => {
   return await api.post("/api/plantillas/calculate", plantillaData);
 };
 
+export const syncPinturaPrice = async () => {
+  return await api.post("/api/plantillas/sync-pintura-price");
+};
+
