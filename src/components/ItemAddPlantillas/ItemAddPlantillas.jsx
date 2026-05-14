@@ -1476,6 +1476,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         materiaPrima: materiaPrimaId,
         cantidad,
         valor: parseFloat(item.valor) || 0,
+        isPriceAuto: Boolean(item.isPriceAuto),
         categoriaMP: item.categoriaMP || "",
         tipoMP: item.tipoMP || "",
         medidaMP: item.medidaMP || "",
