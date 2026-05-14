@@ -657,7 +657,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               nombreMadera: item.nombreMadera || "",
               selectedMaterialId: item.selectedMaterialId || materiaPrimaId,
               isCustomMaterial: esPersonalizado || Boolean(item.isCustomMaterial),
-              isPriceAuto: esPersonalizado ? false : Boolean(item.isPriceAuto),
+              // Items viejos sin isPriceAuto en BD se tratan como auto (true)
+              isPriceAuto: esPersonalizado ? false : (item.isPriceAuto !== false),
               gananciaIndividual: toInputString(item.gananciaIndividual, ""),
             };
 
@@ -680,6 +681,12 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             // Si materiaPrima es un OBJETO (populate del backend)
             if (item.materiaPrima && typeof item.materiaPrima === "object") {
               const selectedId = item.materiaPrima?._id?.toString() || materiaPrimaId;
+              // Si es auto-priced (default true para items viejos), priorizar precio LIVE de la MP
+              const esAuto = !esPersonalizado && item.isPriceAuto !== false;
+              const precioLive = item.materiaPrima.precio;
+              const valorFinal = esAuto && precioLive != null
+                ? toInputString(precioLive, "")
+                : (toInputString(item.valor, "") || toInputString(precioLive, ""));
               return {
                 ...baseItem,
                 categoriaMP:
@@ -694,9 +701,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   item.materiaPrima.espesorMP ||
                   item.materiaPrima.espesor ||
                   "",
-                valor: toInputString(item.valor, "") || toInputString(item.materiaPrima.precio, ""),
+                valor: valorFinal,
                 cantidad: toInputString(item.cantidad, ""),
-                isPriceAuto: true, // Marcar como automático ya que viene del backend
+                isPriceAuto: esAuto,
                 isCustomMaterial: esPersonalizado,
                 descripcionPersonalizada: item.descripcionPersonalizada || "",
                 nombreMadera:
@@ -712,15 +719,19 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                 (mp) => mp._id === item.materiaPrima
               );
               if (material) {
+                const esAuto = !esPersonalizado && item.isPriceAuto !== false;
+                const valorFinal = esAuto && material.precio != null
+                  ? toInputString(material.precio, "")
+                  : (toInputString(item.valor, "") || toInputString(material.precio, ""));
                 return {
                   ...baseItem,
                   categoriaMP: material.categoria || "",
                   tipoMP: material.type || "",
                   medidaMP: material.medida || "",
                   espesorMP: material.espesor || "",
-                  valor: toInputString(item.valor, "") || toInputString(material.precio, ""),
+                  valor: valorFinal,
                   cantidad: toInputString(item.cantidad, ""),
-                  isPriceAuto: false,
+                  isPriceAuto: esAuto,
                   isCustomMaterial: esPersonalizado,
                   descripcionPersonalizada: item.descripcionPersonalizada || "",
                   nombreMadera: item.nombreMadera || material.nombreMadera || "",
