@@ -47,6 +47,7 @@ import { useItemsMateriasPrimas } from "../../hooks/materiasPrimas/index.js";
 import { createPerfilPintura, updatePerfilPintura, deletePerfilPintura } from "../../services/perfilesPintura.service.js";
 import { useConfiguracion } from "../../hooks/configuracion/useConfiguracion.js";
 import { updateConfiguracion, aplicarPrecioPinturaATodas } from "../../services/configuracion.service.js";
+import { MERCADO_LIBRE_PLANS, buildDefaultPlataformasConfig } from "../../constants/platformPricing.js";
 import { FiTrash2, FiEdit2, FiCheck, FiX } from "react-icons/fi";
 
 const formatDateTime = (value) => {
@@ -414,8 +415,133 @@ export const ConfiguracionView = () => {
         </Card>
       )}
 
+      <PrecioPinturaGlobalSection />
+
+      <PlataformasSection />
+
       <PerfilesPinturaSection />
     </Box>
+  );
+};
+
+const PlataformasSection = () => {
+  const { config, loading, refetch } = useConfiguracion();
+  const toast = useToast();
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: false });
+
+  const [valores, setValores] = useState(buildDefaultPlataformasConfig());
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (loading) return;
+    setValores({
+      ...buildDefaultPlataformasConfig(),
+      ...(config?.porcentajesPlataformas ?? {}),
+    });
+  }, [config, loading]);
+
+  const handleChange = (key, value) => {
+    setValores((prev) => ({ ...prev, [key]: parseFloat(value) || 0 }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateConfiguracion({ porcentajesPlataformas: valores });
+      await refetch();
+      toast({ status: "success", title: "Configuración de plataformas guardada", duration: 2000 });
+    } catch {
+      toast({ status: "error", title: "No se pudo guardar" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = () => {
+    setValores(buildDefaultPlataformasConfig());
+  };
+
+  return (
+    <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" mb={6}>
+      <CardHeader>
+        <Flex justify="space-between" align="center">
+          <Heading size="md">⚙️ Configuración de Plataformas</Heading>
+          <IconButton
+            aria-label="Expandir"
+            variant="ghost"
+            icon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            onClick={onToggle}
+          />
+        </Flex>
+        <Text color="gray.500" fontSize="sm" mt={1}>
+          Porcentajes globales usados para calcular precios en todas las plantillas.
+        </Text>
+      </CardHeader>
+      <Collapse in={isOpen} animateOpacity>
+        <CardBody pt={2}>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={4}>
+            {/* Mercado Libre */}
+            <Box p={3} borderWidth="1px" borderRadius="md" borderColor={borderColor}>
+              <Text fontWeight="bold" fontSize="sm" mb={3} textAlign="center">Mercado Libre</Text>
+              <Stack spacing={2}>
+                <FormControl>
+                  <FormLabel fontSize="xs">Cargo de Venta (%)</FormLabel>
+                  <Input
+                    size="sm" type="number" step="0.01" textAlign="center"
+                    value={valores.mercadoLibreBase ?? ""}
+                    onChange={(e) => handleChange("mercadoLibreBase", e.target.value)}
+                  />
+                </FormControl>
+                {MERCADO_LIBRE_PLANS.map((plan) => (
+                  <FormControl key={plan.key}>
+                    <FormLabel fontSize="xs">{plan.helper || plan.label} (%)</FormLabel>
+                    <Input
+                      size="sm" type="number" step="0.01" textAlign="center"
+                      value={valores[plan.key] ?? ""}
+                      onChange={(e) => handleChange(plan.key, e.target.value)}
+                    />
+                  </FormControl>
+                ))}
+              </Stack>
+            </Box>
+
+            {/* Tienda Nube */}
+            <Box p={3} borderWidth="1px" borderRadius="md" borderColor={borderColor}>
+              <Text fontWeight="bold" fontSize="sm" mb={3} textAlign="center">Tienda Nube</Text>
+              <Stack spacing={2}>
+                <FormControl>
+                  <FormLabel fontSize="xs">Cargo de Venta (%)</FormLabel>
+                  <Input
+                    size="sm" type="number" step="0.01" textAlign="center"
+                    value={valores.nubeVentaBase ?? ""}
+                    onChange={(e) => handleChange("nubeVentaBase", e.target.value)}
+                  />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="xs">Cargo por Cuotas (%)</FormLabel>
+                  <Input
+                    size="sm" type="number" step="0.01" textAlign="center"
+                    value={valores.nubeCuotasExtra ?? ""}
+                    onChange={(e) => handleChange("nubeCuotasExtra", e.target.value)}
+                  />
+                </FormControl>
+              </Stack>
+            </Box>
+          </SimpleGrid>
+
+          <HStack spacing={3}>
+            <Button size="sm" colorScheme="teal" onClick={handleSave} isLoading={saving}>
+              Guardar
+            </Button>
+            <Button size="sm" variant="outline" colorScheme="gray" onClick={handleReset} leftIcon={<FiRefreshCw />}>
+              Reset defaults
+            </Button>
+          </HStack>
+        </CardBody>
+      </Collapse>
+    </Card>
   );
 };
 

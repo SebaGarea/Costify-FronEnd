@@ -80,13 +80,10 @@ import { getPlantillaById } from "../../services/plantillas.service.js";
 import { getMaterialTypeLabel } from "../../constants/materialTypes.js";
 import {
   MERCADO_LIBRE_PLANS,
-  buildDefaultPlataformasConfig,
-  computePriceWithCommission,
   getMercadoLibrePrices,
   getNubePrices,
-  parseStoredPlataformasConfig,
-  PLATAFORMAS_CONFIG_STORAGE_KEY,
 } from "../../constants/platformPricing.js";
+import { useConfiguracion } from "../../hooks/configuracion/useConfiguracion.js";
 
 // Función para formatear números con formato peso argentino similar a las cards
 const formatCurrency = (value) => {
@@ -261,21 +258,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     stock: 0
   });
 
-  // Función para cargar configuración de plataformas desde localStorage
-  const cargarConfiguracionPlataformas = () => {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return buildDefaultPlataformasConfig();
-    }
-    const configGuardada = window.localStorage.getItem(
-      PLATAFORMAS_CONFIG_STORAGE_KEY
-    );
-    return parseStoredPlataformasConfig(configGuardada);
-  };
-
-  // Estado para porcentajes de plataformas de venta
-  const [porcentajesPlataformas, setPorcentajesPlataformas] = useState(
-    cargarConfiguracionPlataformas
-  );
+  // Porcentajes de plataformas desde configuración global
+  const { config: configuracionGlobal } = useConfiguracion();
+  const porcentajesPlataformas = configuracionGlobal.porcentajesPlataformas;
 
   // Estados separados para cada categoría
   const [herreria, setHerreria] = useState([createEmptyItem()]);
@@ -1208,15 +1193,6 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           [categoria]: parseFloat(value) || 0,
         },
       });
-    } else if (name.includes("plataforma_")) {
-      const plataforma = name.replace("plataforma_", "");
-      const nuevaConfig = {
-        ...porcentajesPlataformas,
-        [plataforma]: parseFloat(value) || 0,
-      };
-      setPorcentajesPlataformas(nuevaConfig);
-      // Guardar automáticamente en localStorage
-      guardarConfiguracionPlataformas(nuevaConfig);
     }
   };
 
@@ -1228,29 +1204,6 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       [categoria]: unformatted,
     }));
   }, []);
-
-  // Función para guardar configuración de plataformas en localStorage
-  const guardarConfiguracionPlataformas = (nuevaConfig) => {
-    if (typeof window === "undefined" || !window.localStorage) return;
-    window.localStorage.setItem(
-      PLATAFORMAS_CONFIG_STORAGE_KEY,
-      JSON.stringify(nuevaConfig)
-    );
-  };
-
-  // Función para resetear configuración de plataformas a valores originales
-  const resetearConfiguracionPlataformas = () => {
-    const valoresOriginales = buildDefaultPlataformasConfig();
-    setPorcentajesPlataformas(valoresOriginales);
-    guardarConfiguracionPlataformas(valoresOriginales);
-    toast({
-      title: "Configuración Reseteada",
-      description: "Los porcentajes volvieron a los valores originales",
-      status: "info",
-      duration: 2000,
-      isClosable: true,
-    });
-  };
 
   // Funciones para manejar tipo de proyecto
   const handleTipoProyectoChange = (e) => {
@@ -3071,124 +3024,6 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                     {formatPrice(precioFinalTotal)}
                   </Badge>
                 </HStack>
-
-                <Divider />
-
-                {/* Configuración de Porcentajes de Plataformas */}
-                <HStack justify="space-between" align="center">
-                  <Text fontSize="lg" fontWeight="bold" color={titleColor}>
-                    ⚙️ CONFIGURACIÓN DE PLATAFORMAS
-                  </Text>
-                  <Button
-                    size="xs"
-                    colorScheme="gray"
-                    variant="outline"
-                    onClick={resetearConfiguracionPlataformas}
-                    title="Volver a valores originales"
-                  >
-                    🔄 Reset
-                  </Button>
-                </HStack>
-
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1} w="75%">
-                  <Box
-                    borderWidth="1px"
-                    borderRadius="lg"
-                    borderColor={cardBorder}
-                    bg={useColorModeValue("white", "gray.800")}
-                    p={3}
-                  >
-                    <Text fontWeight="bold" fontSize="sm" mb={1} textAlign={"center"}>
-                      Mercado Libre
-                    </Text>
-                    <VStack spacing={2} align="stretch">
-                      <FormControl>
-                        <FormLabel fontSize="xs">Cargo de Venta (%)</FormLabel>
-                        <Input
-                          name="plataforma_mercadoLibreBase"
-                          type="number"
-                          step="0.01"
-                          value={porcentajesPlataformas.mercadoLibreBase ?? ""}
-                          onChange={handleChange}
-                          size="sm"
-                          textAlign="center"
-                          py={1}
-                        />
-                        <FormHelperText fontSize="xs" textAlign="center">
-                          Comisión fija aplicada a todas las ventas
-                        </FormHelperText>
-                      </FormControl>
-
-                      {MERCADO_LIBRE_PLANS.map((plan) => (
-                        <FormControl key={plan.key}>
-                          <FormLabel fontSize="xs">
-                            {plan.helper || plan.label} (%)
-                          </FormLabel>
-                          <Input
-                            name={`plataforma_${plan.key}`}
-                            type="number"
-                            step="0.01"
-                            value={porcentajesPlataformas[plan.key] ?? ""}
-                            onChange={handleChange}
-                            size="sm"
-                            textAlign="center"
-                            py={1}
-                          />
-                          <FormHelperText fontSize="xs" textAlign={"center"}>
-                            Cargo adicional del plan de cuotas
-                          </FormHelperText>
-                        </FormControl>
-                      ))}
-                    </VStack>
-                  </Box>
-
-                  <Box
-                    borderWidth="1px"
-                    borderRadius="lg"
-                    borderColor={cardBorder}
-                    bg={useColorModeValue("white", "gray.800")}
-                    p={3}
-                  >
-                    <Text fontWeight="bold" fontSize="sm" mb={1} textAlign={"center"}>
-                      Tienda Nube
-                    </Text>
-                    <VStack spacing={2} align="stretch">
-                      <FormControl>
-                        <FormLabel fontSize="xs">Cargo de Venta (%)</FormLabel>
-                        <Input
-                          name="plataforma_nubeVentaBase"
-                          type="number"
-                          step="0.01"
-                          value={porcentajesPlataformas.nubeVentaBase ?? ""}
-                          onChange={handleChange}
-                          size="sm"
-                          textAlign="center"
-                          py={1}
-                        />
-                        <FormHelperText fontSize="xs" textAlign={"center"}>
-                          Comisión base aplicada a cada venta
-                        </FormHelperText>
-                      </FormControl>
-
-                      <FormControl>
-                        <FormLabel fontSize="xs">Cargo por Cuotas (%)</FormLabel>
-                        <Input
-                          name="plataforma_nubeCuotasExtra"
-                          type="number"
-                          step="0.01"
-                          value={porcentajesPlataformas.nubeCuotasExtra ?? ""}
-                          onChange={handleChange}
-                          size="sm"
-                          textAlign="center"
-                          py={1}
-                        />
-                        <FormHelperText fontSize="xs" textAlign={"center"}>
-                          Recargo adicional cuando ofrecés cuotas
-                        </FormHelperText>
-                      </FormControl>
-                    </VStack>
-                  </Box>
-                </SimpleGrid>
 
                 <Divider />
 
