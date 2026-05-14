@@ -37,8 +37,8 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   getMercadoLibrePrices,
   getNubePrices,
-  loadPlataformasConfigFromStorage,
 } from "../../constants/platformPricing.js";
+import { useConfiguracion } from "../../hooks/configuracion/useConfiguracion.js";
 
 const formatPrice = (value) => {
   const amount = Number(value) || 0;
@@ -89,10 +89,8 @@ export const ItemDetailProduct = ({ products }) => {
     ? `/plantillas/plantillaAdd/${plantillaId}`
     : null;
 
-  const plataformasConfig = useMemo(
-    () => loadPlataformasConfigFromStorage(),
-    []
-  );
+  const { config: configuracionGlobal } = useConfiguracion();
+  const plataformasConfig = configuracionGlobal.porcentajesPlataformas;
   const precioCalculado = useMemo(
     () =>
       Number(
