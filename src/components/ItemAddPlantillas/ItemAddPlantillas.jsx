@@ -293,6 +293,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
   const [extras, setExtras] = useState(createDefaultExtrasState);
   const [precioPinturaM2, setPrecioPinturaM2] = useState(15000);
+  const [precioPinturaPersonalizado, setPrecioPinturaPersonalizado] = useState(false);
 
   const { perfiles: perfilesPintura } = usePerfilesPintura();
 
@@ -306,12 +307,12 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       try {
         sessionStorage.setItem(
           draftKey,
-          JSON.stringify({ form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, modoPersonalizado })
+          JSON.stringify({ form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, precioPinturaPersonalizado, modoPersonalizado })
         );
       } catch { /* sessionStorage lleno o deshabilitado */ }
     }, 800);
     return () => clearTimeout(timer);
-  }, [form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, modoPersonalizado, draftKey]);
+  }, [form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, precioPinturaPersonalizado, modoPersonalizado, draftKey]);
 
   // Restaurar borrador al montar (solo para plantillas nuevas)
   useEffect(() => {
@@ -328,6 +329,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       if (draft.consumibles) setConsumibles(draft.consumibles);
       if (draft.extras) setExtras(draft.extras);
       if (draft.precioPinturaM2 !== undefined) setPrecioPinturaM2(draft.precioPinturaM2);
+      if (draft.precioPinturaPersonalizado !== undefined) setPrecioPinturaPersonalizado(draft.precioPinturaPersonalizado);
       if (draft.modoPersonalizado !== undefined) setModoPersonalizado(draft.modoPersonalizado);
     } catch { /* borrador corrupto, ignorar */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -594,6 +596,11 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           });
 
           // Precio base guardado en la plantilla
+          if (plantilla.precioPinturaPersonalizado && plantilla.precioPinturaM2 != null) {
+            setPrecioPinturaM2(plantilla.precioPinturaM2);
+            setPrecioPinturaPersonalizado(true);
+          }
+
           // Cargar consumibles si existen
           const consumiblesGuardados = plantilla.consumibles || {};
           setConsumibles({
@@ -819,16 +826,17 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         });
   }, [PlantillasId, toast, rawsMaterialData, tiposProyectoOptions]);
 
-  // Precio live de la MP "Pintura al Horno" — corre DESPUÉS del efecto de carga para tener prioridad
+  // Precio live de la MP "Pintura al Horno" — se aplica solo cuando no hay un valor personalizado
   useEffect(() => {
     if (!rawsMaterialData.length) return;
+    if (precioPinturaPersonalizado) return;
     const mp = rawsMaterialData.find(
       (m) =>
         m.categoria?.toLowerCase() === "proteccion" &&
         m.type?.toLowerCase().includes("pintura al horno")
     );
     if (mp?.precio != null) setPrecioPinturaM2(Number(mp.precio));
-  }, [rawsMaterialData]);
+  }, [rawsMaterialData, precioPinturaPersonalizado]);
 
   // useEffect para auto-llenar datos del producto cuando cambian los datos de la plantilla
   useEffect(() => {
@@ -1624,6 +1632,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       extras: extrasPayload,
       tags: [],
       precioPinturaM2: parseFloat(precioPinturaM2) || 15000,
+      precioPinturaPersonalizado: Boolean(precioPinturaPersonalizado),
     };
 
     // Remover cualquier campo undefined o null
@@ -2706,14 +2715,34 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               <Text fontSize="sm" color="orange.500" fontWeight="semibold">
                 🔥 Pintura al horno ($/m²):
               </Text>
+              {precioPinturaPersonalizado && (
+                <Badge colorScheme="yellow" fontSize="xs" variant="subtle">
+                  Personalizado
+                </Badge>
+              )}
               <Input
                 size="sm"
                 type="number"
                 value={precioPinturaM2}
-                onChange={(e) => setPrecioPinturaM2(Number(e.target.value))}
+                onChange={(e) => {
+                  setPrecioPinturaM2(Number(e.target.value));
+                  setPrecioPinturaPersonalizado(true);
+                }}
                 w="120px"
                 min={0}
               />
+              {precioPinturaPersonalizado && (
+                <IconButton
+                  icon={<FiRefreshCw />}
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="gray"
+                  title="Resetear al valor de la base de datos"
+                  onClick={() => {
+                    setPrecioPinturaPersonalizado(false);
+                  }}
+                />
+              )}
             </HStack>
             {renderCategorySection(
               "herreria",
