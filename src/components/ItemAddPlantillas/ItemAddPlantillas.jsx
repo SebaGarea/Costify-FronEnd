@@ -38,6 +38,7 @@ import {
   useUpdatePlantilla,
   useGetTiposProyectoUnicos,
 } from "../../hooks/index.js";
+import { usePlantillaPreview } from "../../hooks/plantillas/usePlantillaPreview.js";
 import { useAddProduct } from "../../hooks/productos/useAddProduct.js";
 import { usePerfilesPintura } from "../../hooks/perfilesPintura/usePerfilesPintura.js";
 import {
@@ -423,124 +424,112 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const debouncedOtros = useDebounce(otros, 300);
   const debouncedConsumibles = useDebounce(consumibles, 300);
 
-  // Memoizar cálculos pesados de subtotales con valores debounced
-  const subtotalHerreria = useMemo(
-    () =>
-      calcularSubtotal(debouncedHerreria) +
-      parseFloat(debouncedConsumibles.herreria || 0),
-    [debouncedHerreria, debouncedConsumibles.herreria]
-  );
-  const subtotalCarpinteria = useMemo(
-    () =>
-      calcularSubtotal(debouncedCarpinteria) +
-      parseFloat(debouncedConsumibles.carpinteria || 0),
-    [debouncedCarpinteria, debouncedConsumibles.carpinteria]
-  );
-  const subtotalPintura = useMemo(
-    () =>
-      calcularSubtotal(debouncedPintura) +
-      parseFloat(debouncedConsumibles.pintura || 0),
-    [debouncedPintura, debouncedConsumibles.pintura]
-  );
-  const subtotalOtros = useMemo(
-    () =>
-      calcularSubtotal(debouncedOtros) +
-      parseFloat(debouncedConsumibles.otros || 0),
-    [debouncedOtros, debouncedConsumibles.otros]
-  );
+  // Construir items con el shape que espera el backend (mismo que limpiarItem usa al guardar)
+  const previewItems = useMemo(() => {
+    const convertir = (items, categoria) =>
+      items
+        .map((item) => {
+          const cantidad = parseFloat(item.cantidad) || 0;
+          if (cantidad <= 0) return null;
 
-  // Calcular subtotal de extras con porcentajes aplicados
-  const subtotalExtras =
-    parseFloat(extras.creditoCamioneta.valor || 0) *
-      (1 + parseFloat(extras.creditoCamioneta.porcentaje || 0) / 100) +
-    parseFloat(extras.envio.valor || 0) *
-      (1 + parseFloat(extras.envio.porcentaje || 0) / 100) +
-    extras.camposPersonalizados.reduce((total, campo) => {
-      const valorBase = parseFloat(campo.valor || 0);
-      const valorConPorcentaje =
-        valorBase * (1 + parseFloat(campo.porcentaje || 0) / 100);
-      return total + valorConPorcentaje;
-    }, 0);
+          const base = {
+            categoria,
+            cantidad,
+            valor: parseFloat(item.valor) || 0,
+            isPriceAuto: Boolean(item.isPriceAuto),
+            esPersonalizado: Boolean(item.isCustomMaterial),
+            pinturaAlHorno: Boolean(item.pinturaAlHorno),
+            perfilPinturaPerimetro: parseFloat(item.perfilPinturaPerimetro) || 0,
+            costoPintura: parseFloat(item.costoPintura) || 0,
+            gananciaIndividual:
+              item.gananciaIndividual !== undefined &&
+              item.gananciaIndividual !== "" &&
+              item.gananciaIndividual !== null
+                ? parseFloat(item.gananciaIndividual) || 0
+                : null,
+          };
 
-  // Memoizar cálculos de precios finales
-  const precioFinalHerreria = useMemo(
-    () =>
-      calcularPrecioFinal(
-        subtotalHerreria,
-        form.porcentajesPorCategoria.herreria
-      ),
-    [subtotalHerreria, form.porcentajesPorCategoria.herreria]
-  );
-  const precioFinalCarpinteria = useMemo(
-    () =>
-      calcularPrecioFinal(
-        subtotalCarpinteria,
-        form.porcentajesPorCategoria.carpinteria
-      ),
-    [subtotalCarpinteria, form.porcentajesPorCategoria.carpinteria]
-  );
-  const precioFinalPintura = useMemo(() => {
-    const porcentajeCategoria = parseFloat(
-      form.porcentajesPorCategoria.pintura || 0
-    );
+          if (item.isCustomMaterial) return base;
 
-    const precioConGanancia = debouncedPintura.reduce((total, item) => {
-      const cantidad = parseFloat(item.cantidad) || 0;
-      if (cantidad <= 0) {
-        return total;
-      }
-      const base = obtenerPrecioUnitario(item) * cantidad;
-      if (base <= 0) {
-        return total;
-      }
-      const porcentajeItem =
-        item.gananciaIndividual !== undefined && item.gananciaIndividual !== ""
-          ? parseFloat(item.gananciaIndividual) || 0
-          : porcentajeCategoria;
-      return total + base * (1 + porcentajeItem / 100);
-    }, 0);
+          // Buscar el _id de la materia prima por la cascada (igual que limpiarItem en save).
+          // Incluye nombreMadera porque varias maderas pueden compartir cat/tipo/medida/espesor.
+          if (!item.categoriaMP || !item.tipoMP || !item.medidaMP) return base;
 
-    const consumiblesPintura = parseFloat(debouncedConsumibles.pintura || 0);
-    const consumiblesConGanancia =
-      consumiblesPintura * (1 + porcentajeCategoria / 100);
+          const material = rawsMaterialData.find(
+            (mp) =>
+              mp.categoria === item.categoriaMP &&
+              mp.type === item.tipoMP &&
+              mp.medida === item.medidaMP &&
+              (item.espesorMP
+                ? mp.espesor === item.espesorMP
+                : !mp.espesor || mp.espesor === "") &&
+              (item.nombreMadera
+                ? (mp.nombreMadera || "") === item.nombreMadera
+                : true)
+          );
 
-    return precioConGanancia + consumiblesConGanancia;
+          if (!material) return base;
+          return { ...base, materiaPrima: material._id };
+        })
+        .filter(Boolean);
+
+    return [
+      ...convertir(debouncedHerreria, "herreria"),
+      ...convertir(debouncedCarpinteria, "carpinteria"),
+      ...convertir(debouncedPintura, "pintura"),
+      ...convertir(debouncedOtros, "otros"),
+    ];
   }, [
+    debouncedHerreria,
+    debouncedCarpinteria,
     debouncedPintura,
-    debouncedConsumibles.pintura,
-    form.porcentajesPorCategoria.pintura,
+    debouncedOtros,
+    rawsMaterialData,
   ]);
-  const precioFinalOtros = useMemo(
-    () =>
-      calcularPrecioFinal(
-        subtotalOtros,
-        form.porcentajesPorCategoria.otros
-      ),
-    [subtotalOtros, form.porcentajesPorCategoria.otros]
+
+  const previewPayload = useMemo(
+    () => ({
+      items: previewItems,
+      porcentajesPorCategoria: {
+        herreria: parseFloat(form.porcentajesPorCategoria.herreria) || 0,
+        carpinteria: parseFloat(form.porcentajesPorCategoria.carpinteria) || 0,
+        pintura: parseFloat(form.porcentajesPorCategoria.pintura) || 0,
+        otros: parseFloat(form.porcentajesPorCategoria.otros) || 0,
+      },
+      consumibles: {
+        herreria: parseFloat(debouncedConsumibles.herreria) || 0,
+        carpinteria: parseFloat(debouncedConsumibles.carpinteria) || 0,
+        pintura: parseFloat(debouncedConsumibles.pintura) || 0,
+        otros: parseFloat(debouncedConsumibles.otros) || 0,
+      },
+      extras,
+      precioPinturaM2: parseFloat(precioPinturaM2) || 15000,
+    }),
+    [
+      previewItems,
+      form.porcentajesPorCategoria,
+      debouncedConsumibles,
+      extras,
+      precioPinturaM2,
+    ]
   );
 
-  // Total pintura al horno (suma de todos los ítems de herrería con pintura activa)
-  const totalPinturaHorno = debouncedHerreria.reduce((sum, item) => {
-    if (!item.pinturaAlHorno || !item.perfilPinturaPerimetro) return sum;
-    return sum + item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * METROS_POR_UNIDAD * precioPinturaM2;
-  }, 0);
+  const { preview } = usePlantillaPreview(previewPayload, 350);
 
-  // Total general (incluyendo extras y pintura al horno)
-  const costoTotal =
-    subtotalHerreria +
-    subtotalCarpinteria +
-    subtotalPintura +
-    totalPinturaHorno +
-    subtotalOtros +
-    subtotalExtras;
-  const precioFinalTotal =
-    precioFinalHerreria +
-    precioFinalCarpinteria +
-    precioFinalPintura +
-    totalPinturaHorno +
-    precioFinalOtros +
-    subtotalExtras;
-  const gananciaTotal = precioFinalTotal - costoTotal;
+  // Todos los totales vienen ahora del backend (single source of truth).
+  const subtotalHerreria = preview.subtotalesPorCategoria?.herreria ?? 0;
+  const subtotalCarpinteria = preview.subtotalesPorCategoria?.carpinteria ?? 0;
+  const subtotalPintura = preview.subtotalesPorCategoria?.pintura ?? 0;
+  const subtotalOtros = preview.subtotalesPorCategoria?.otros ?? 0;
+  const subtotalExtras = preview.extrasTotal ?? 0;
+  const precioFinalHerreria = preview.precioFinalesPorCategoria?.herreria ?? 0;
+  const precioFinalCarpinteria = preview.precioFinalesPorCategoria?.carpinteria ?? 0;
+  const precioFinalPintura = preview.precioFinalesPorCategoria?.pintura ?? 0;
+  const precioFinalOtros = preview.precioFinalesPorCategoria?.otros ?? 0;
+  const totalPinturaHorno = preview.totalPinturaHorno ?? 0;
+  const costoTotal = preview.costoTotal ?? 0;
+  const precioFinalTotal = preview.precioFinal ?? 0;
+  const gananciaTotal = preview.ganancia ?? 0;
 
   // Cálculos para plataformas de venta
   const preciosMercadoLibre = useMemo(
@@ -669,6 +658,37 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                 item.espesorMP ||
                 item.nombreMadera
             );
+
+            // Si el item es auto-priced, sobrescribir valor con el precio live de la MP
+            // (matchea el cálculo del backend que siempre usa el precio actual).
+            const esAutoPriced = !esPersonalizado && item.isPriceAuto !== false;
+            if (esAutoPriced) {
+              let precioLive = null;
+              if (
+                item.materiaPrima &&
+                typeof item.materiaPrima === "object" &&
+                item.materiaPrima.precio != null
+              ) {
+                precioLive = item.materiaPrima.precio;
+              } else if (item.categoriaMP && item.tipoMP && item.medidaMP) {
+                const match = rawsMaterialData.find(
+                  (mp) =>
+                    mp.categoria === item.categoriaMP &&
+                    mp.type === item.tipoMP &&
+                    mp.medida === item.medidaMP &&
+                    (item.espesorMP
+                      ? mp.espesor === item.espesorMP
+                      : !mp.espesor || mp.espesor === "") &&
+                    (item.nombreMadera
+                      ? (mp.nombreMadera || "") === item.nombreMadera
+                      : true)
+                );
+                if (match && match.precio != null) precioLive = match.precio;
+              }
+              if (precioLive != null) {
+                baseItem.valor = toInputString(precioLive, "");
+              }
+            }
 
             if (esPersonalizado && tieneMetadatosCascada) {
               return baseItem;
@@ -1387,12 +1407,15 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   };
 
   const savePlantilla = async (shouldRedirect = true) => {
-    // Función para encontrar el ObjectId real de la materia prima
+    // Función para encontrar el ObjectId real de la materia prima.
+    // Incluye nombreMadera porque dos maderas distintas (ej: Petiribí vs Paraíso)
+    // pueden compartir categoría/tipo/medida/espesor y solo diferenciarse por nombre.
     const encontrarMateriaPrimaId = (
       categoriaMP,
       tipoMP,
       medidaMP,
-      espesorMP
+      espesorMP,
+      nombreMadera
     ) => {
       const material = rawsMaterialData.find(
         (mp) =>
@@ -1401,7 +1424,10 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           mp.medida === medidaMP &&
           (espesorMP
             ? mp.espesor === espesorMP
-            : !mp.espesor || mp.espesor === "")
+            : !mp.espesor || mp.espesor === "") &&
+          (nombreMadera
+            ? (mp.nombreMadera || "") === nombreMadera
+            : true)
       );
 
       return material ? material._id : null;
@@ -1472,7 +1498,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         item.categoriaMP,
         item.tipoMP,
         item.medidaMP,
-        item.espesorMP
+        item.espesorMP,
+        item.nombreMadera
       );
 
       if (!materiaPrimaId) {
