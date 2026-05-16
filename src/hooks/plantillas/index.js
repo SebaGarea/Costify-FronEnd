@@ -5,4 +5,5 @@ export * from './useGetAllPlantillas.js';
 export * from './useGetPlantillaById.js';
 export * from './useGetTiposProyectoUnicos.js';
 export * from './useUpdatePlantilla.js';
+export * from './usePlantillaPreview.js';
 

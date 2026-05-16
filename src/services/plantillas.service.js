@@ -45,3 +45,7 @@ export const syncPinturaPrice = async () => {
   return await api.post("/api/plantillas/sync-pintura-price");
 };
 
+export const previewPlantilla = async (payload) => {
+  return await api.post("/api/plantillas/preview", payload);
+};
+
