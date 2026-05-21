@@ -1,0 +1,118 @@
+/* Ajustes finos para que FullCalendar quede mejor integrado con Chakra/Costify */
+
+.unified-calendar-wrapper .fc {
+  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+}
+
+/* Botones del toolbar */
+.unified-calendar-wrapper .fc .fc-button {
+  background-color: #319795;
+  border-color: #319795;
+  font-weight: 500;
+  text-transform: capitalize;
+  box-shadow: none;
+}
+
+.unified-calendar-wrapper .fc .fc-button:hover {
+  background-color: #2C7A7B;
+  border-color: #2C7A7B;
+}
+
+.unified-calendar-wrapper .fc .fc-button:disabled {
+  background-color: #A0AEC0;
+  border-color: #A0AEC0;
+  opacity: 0.6;
+}
+
+.unified-calendar-wrapper .fc .fc-button-primary:not(:disabled).fc-button-active,
+.unified-calendar-wrapper .fc .fc-button-primary:not(:disabled):active {
+  background-color: #234E52;
+  border-color: #234E52;
+  box-shadow: none;
+}
+
+/* Título del mes */
+.unified-calendar-wrapper .fc .fc-toolbar-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Eventos: hover, pointer y un poco más de padding */
+.unified-calendar-wrapper .fc .fc-event {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 4px;
+  font-weight: 500;
+  font-size: 0.78rem;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.unified-calendar-wrapper .fc .fc-event:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+/* Día del calendario: pointer y feedback al pasar */
+.unified-calendar-wrapper .fc .fc-daygrid-day-frame {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.unified-calendar-wrapper .fc .fc-daygrid-day-frame:hover {
+  background-color: rgba(49, 151, 149, 0.06);
+}
+
+/* Día actual destacado */
+.unified-calendar-wrapper .fc .fc-day-today {
+  background-color: rgba(49, 151, 149, 0.08) !important;
+}
+
+/* Dark mode: heredar colores Chakra */
+.chakra-ui-dark .unified-calendar-wrapper .fc {
+  color: #E2E8F0;
+}
+
+.chakra-ui-dark .unified-calendar-wrapper .fc .fc-daygrid-day-frame:hover {
+  background-color: rgba(49, 151, 149, 0.15);
+}
+
+.chakra-ui-dark .unified-calendar-wrapper .fc .fc-day-today {
+  background-color: rgba(49, 151, 149, 0.2) !important;
+}
+
+.chakra-ui-dark .unified-calendar-wrapper .fc th,
+.chakra-ui-dark .unified-calendar-wrapper .fc td {
+  border-color: #2D3748;
+}
+
+/* "+more" link */
+.unified-calendar-wrapper .fc .fc-daygrid-more-link {
+  font-weight: 500;
+  color: #319795;
+}
+
+/* --- Safety net: FullCalendar 6 + React 18 a veces deja DOM duplicado
+   al cambiar de vista (Mes/Semana/Día). Oculta cualquier duplicado.
+   Estos selectores SOLO matchean elementos hermanos que vinieron de un
+   render previo no limpiado: en operación normal hay exactamente uno. */
+
+/* número de día: solo el primer <a class="fc-daygrid-day-number"> */
+.unified-calendar-wrapper .fc-daygrid-day-top > a.fc-daygrid-day-number ~ a.fc-daygrid-day-number {
+  display: none !important;
+}
+
+/* botones de cambio de vista: solo el primer grupo de botones */
+.unified-calendar-wrapper .fc-toolbar-chunk .fc-button-group ~ .fc-button-group {
+  display: none !important;
+}
+
+/* títulos del toolbar duplicados */
+.unified-calendar-wrapper .fc-toolbar-chunk .fc-toolbar-title ~ .fc-toolbar-title {
+  display: none !important;
+}
+
+/* encabezados de día de semana (Lun, Mar, ...) duplicados */
+.unified-calendar-wrapper .fc-col-header-cell-cushion ~ .fc-col-header-cell-cushion {
+  display: none !important;
+}

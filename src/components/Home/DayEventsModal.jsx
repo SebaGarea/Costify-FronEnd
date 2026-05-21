@@ -112,7 +112,8 @@ export const DayEventsModal = ({
 
   const startEdit = (evento) => {
     const raw = evento.raw || {};
-    setEditingId(evento.id);
+    // Usar el _id real de mongo (no el id prefijado con "evento-")
+    setEditingId(raw._id || null);
     setForm({
       title: raw.title || "",
       description: raw.description || "",
@@ -173,7 +174,14 @@ export const DayEventsModal = ({
       }
       setForm(initialFormState(date));
       setEditingId(null);
-      onChanged?.();
+      // Cerrar el modal primero para evitar overlay con DOM inconsistente
+      // tras el refetch (el modal queda en estado limbo y se ve "pantalla negra").
+      onClose?.();
+      // Diferir el refetch al siguiente tick para que el unmount del modal
+      // ocurra antes que el re-render por nuevos datos.
+      setTimeout(() => {
+        onChanged?.();
+      }, 0);
     } catch (err) {
       toast({
         title: editingId ? "No se pudo actualizar" : "No se pudo crear",
@@ -186,18 +194,22 @@ export const DayEventsModal = ({
   };
 
   const handleDelete = async (evento) => {
-    if (!evento?.id) return;
+    const realId = evento?.raw?._id;
+    if (!realId) return;
     if (!window.confirm("¿Eliminar este evento?")) return;
     try {
-      await removeEvento(evento.id);
+      await removeEvento(realId);
       toast({
         title: "Evento eliminado",
         status: "success",
         duration: 2000,
         isClosable: true,
       });
-      if (editingId === evento.id) cancelEdit();
-      onChanged?.();
+      if (editingId === realId) cancelEdit();
+      // Diferir el refetch para evitar re-render del modal con DOM inconsistente
+      setTimeout(() => {
+        onChanged?.();
+      }, 0);
     } catch (err) {
       toast({
         title: "No se pudo eliminar",
@@ -269,6 +281,9 @@ export const DayEventsModal = ({
                             {it.raw.estado}
                           </Badge>
                         )}
+                        <Text fontSize="xs" color={mutedText} mt={2}>
+                          Creado por: <strong>{renderAutor(it.raw?.createdBy)}</strong>
+                        </Text>
                       </Box>
                       {it.raw?._id && (
                         <Button
@@ -323,6 +338,9 @@ export const DayEventsModal = ({
                             Prioridad {it.raw.priority}
                           </Badge>
                         )}
+                        <Text fontSize="xs" color={mutedText} mt={2}>
+                          Creado por: <strong>{renderAutor(it.raw?.createdBy)}</strong>
+                        </Text>
                       </Box>
                       <Button
                         as={RouterLink}
