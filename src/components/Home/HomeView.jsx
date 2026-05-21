@@ -47,8 +47,9 @@ import {
   useItemsMateriasPrimas,
 } from "../../hooks";
 import { useGetTareasPaginated } from "../../hooks/tareas/useGetTareasPaginated.js";
-import { useGetEventos } from "../../hooks/eventosCalendario/useGetEventos.js";
+import { useCalendarEvents } from "../../hooks/calendar/useCalendarEvents.js";
 import { DayEventsModal } from "./DayEventsModal.jsx";
+import { UnifiedCalendar } from "../Calendar/UnifiedCalendar.jsx";
 
 const getProductLabel = (venta = {}) => {
   if (venta?.productoNombre) return venta.productoNombre;
@@ -199,35 +200,6 @@ export const HomeView = () => {
 
   const [dateFilterMode, setDateFilterMode] = useState("last30");
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
-  const [calendarDate, setCalendarDate] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  });
-
-  // Rango del calendario visible (6 semanas centradas en el mes mostrado)
-  const calendarRange = useMemo(() => {
-    const startOfMonth = new Date(
-      calendarDate.getFullYear(),
-      calendarDate.getMonth(),
-      1
-    );
-    const firstWeekday = (startOfMonth.getDay() + 6) % 7;
-    const rangeStart = new Date(startOfMonth);
-    rangeStart.setDate(rangeStart.getDate() - firstWeekday);
-    rangeStart.setHours(0, 0, 0, 0);
-    const rangeEnd = new Date(rangeStart);
-    rangeEnd.setDate(rangeEnd.getDate() + 42);
-    rangeEnd.setHours(23, 59, 59, 999);
-    return { start: rangeStart, end: rangeEnd };
-  }, [calendarDate]);
-
-  const {
-    items: eventosCalendario = [],
-    refetch: refetchEventos,
-  } = useGetEventos({
-    desde: calendarRange.start.toISOString(),
-    hasta: calendarRange.end.toISOString(),
-  });
 
   const dayModal = useDisclosure();
   const [selectedDay, setSelectedDay] = useState(null);
@@ -280,23 +252,15 @@ export const HomeView = () => {
   const deliveryAccentBorder = useColorModeValue("red.200", "red.400");
   const deliveryText = useColorModeValue("red.600", "red.200");
 
-  const calendarMonthLabel = useMemo(
-    () =>
-      capitalizeLabel(
-        calendarDate.toLocaleDateString("es-AR", {
-          month: "long",
-          year: "numeric",
-        })
-      ),
-    [calendarDate]
-  );
-
-  const handlePrevMonth = () =>
-    setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  const handleNextMonth = () =>
-    setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-
   const ventas = useMemo(() => (Array.isArray(ventasData) ? ventasData : []), [ventasData]);
+
+  // Calendario unificado: misma fuente de verdad que /tareas para evitar inconsistencias
+  const {
+    events: fcEvents,
+    itemsByDay: calendarItemsByDay,
+    buildDayKey,
+    refetchAll: refetchCalendar,
+  } = useCalendarEvents({ ventasDataExt: ventas });
 
   const pendingHistoric = useMemo(() => {
     if (!ventas.length) return { pendingCount: 0, pendingAmount: 0 };
@@ -402,116 +366,6 @@ export const HomeView = () => {
     }
   };
 
-  const calendarItemsByDay = useMemo(() => {
-    const map = new Map();
-    const push = (key, item) => {
-      const arr = map.get(key) || [];
-      arr.push(item);
-      map.set(key, arr);
-    };
-    const buildKey = (date) =>
-      `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-
-    // 1) Entregas de ventas (no despachadas)
-    (ventas || []).forEach((venta) => {
-      if (venta?.estado === "despachada") return;
-      const entregaRaw = venta?.fechaEntrega || venta?.fechaLimite;
-      if (!entregaRaw) return;
-      const entregaDate = new Date(entregaRaw);
-      if (Number.isNaN(entregaDate.getTime())) return;
-
-      const clienteNombre =
-        venta?.cliente?.nombre ||
-        venta?.clienteNombre ||
-        (typeof venta?.cliente === "string" ? venta.cliente : "");
-      const estadoLabel =
-        typeof venta?.estado === "string"
-          ? capitalizeLabel(venta.estado.replace(/_/g, " "))
-          : "";
-
-      push(buildKey(entregaDate), {
-        id: `venta-${venta?._id || buildKey(entregaDate)}`,
-        type: "venta",
-        title: getProductLabel(venta),
-        subtitle: [clienteNombre && `Cliente: ${clienteNombre}`]
-          .filter(Boolean)
-          .join(""),
-        raw: { ...venta, estado: estadoLabel },
-      });
-    });
-
-    // 2) Tareas pendientes con dueDate
-    (tareasItems || []).forEach((t) => {
-      if (t?.status !== "pendiente" || !t?.dueDate) return;
-      const fecha = new Date(t.dueDate);
-      if (Number.isNaN(fecha.getTime())) return;
-      push(buildKey(fecha), {
-        id: `tarea-${t?._id}`,
-        type: "tarea",
-        title: t.title || "Tarea",
-        subtitle: t.notes || "",
-        raw: t,
-      });
-    });
-
-    // 3) Eventos manuales
-    (eventosCalendario || []).forEach((ev) => {
-      if (!ev?.fecha) return;
-      const fecha = new Date(ev.fecha);
-      if (Number.isNaN(fecha.getTime())) return;
-      push(buildKey(fecha), {
-        id: `evento-${ev?._id}`,
-        type: "evento",
-        title: ev.title,
-        subtitle: ev.hora ? `Hora: ${ev.hora}` : "",
-        raw: ev,
-      });
-    });
-
-    return map;
-  }, [ventas, tareasItems, eventosCalendario]);
-
-  const calendarDays = useMemo(() => {
-    const startOfMonth = new Date(
-      calendarDate.getFullYear(),
-      calendarDate.getMonth(),
-      1
-    );
-    const firstWeekday = (startOfMonth.getDay() + 6) % 7;
-    const totalCells = 42;
-    const cells = [];
-
-    for (let i = 0; i < totalCells; i += 1) {
-      const cellDate = new Date(
-        calendarDate.getFullYear(),
-        calendarDate.getMonth(),
-        i - firstWeekday + 1
-      );
-      const key = `${cellDate.getFullYear()}-${cellDate.getMonth()}-${cellDate.getDate()}`;
-      const items = calendarItemsByDay.get(key) || [];
-      const hasVenta = items.some((it) => it.type === "venta");
-      const hasTarea = items.some((it) => it.type === "tarea");
-      const hasEvento = items.some((it) => it.type === "evento");
-
-      cells.push({
-        key,
-        date: cellDate,
-        day: cellDate.getDate(),
-        isCurrentMonth: cellDate.getMonth() === calendarDate.getMonth(),
-        isToday:
-          cellDate.getFullYear() === today.year &&
-          cellDate.getMonth() === today.month &&
-          cellDate.getDate() === today.day,
-        items,
-        hasVenta,
-        hasTarea,
-        hasEvento,
-      });
-    }
-
-    return cells;
-  }, [calendarDate, today, calendarItemsByDay]);
-
   const openDayModal = (cellOrDate) => {
     const date = cellOrDate instanceof Date ? cellOrDate : cellOrDate?.date;
     if (!date) return;
@@ -521,9 +375,20 @@ export const HomeView = () => {
 
   const selectedDayItems = useMemo(() => {
     if (!selectedDay) return [];
-    const key = `${selectedDay.getFullYear()}-${selectedDay.getMonth()}-${selectedDay.getDate()}`;
-    return calendarItemsByDay.get(key) || [];
-  }, [selectedDay, calendarItemsByDay]);
+    return calendarItemsByDay.get(buildDayKey(selectedDay)) || [];
+  }, [selectedDay, calendarItemsByDay, buildDayKey]);
+
+  const handleCalendarEventClick = (info) => {
+    const dayKey = info.event.extendedProps?.dayKey;
+    if (dayKey) {
+      const [y, m, d] = dayKey.split("-").map(Number);
+      openDayModal(new Date(y, m, d));
+      return;
+    }
+    if (info.event.start) {
+      openDayModal(new Date(info.event.start));
+    }
+  };
 
   const currencyFormatter = useMemo(
     () =>
@@ -1080,201 +945,15 @@ export const HomeView = () => {
 
           <Box
             w="100%"
-            maxW={{ base: "100%", xl: "340px" }}
-            p={5}
-            borderRadius="xl"
-            bg={cardBg}
-            borderWidth="1px"
-            borderColor={borderColor}
-            boxShadow="lg"
+            maxW={{ base: "100%", xl: "620px" }}
+            flexShrink={0}
           >
-            <Flex justify="space-between" align="center" mb={4}>
-              <Box>
-                <Text
-                  fontSize="xs"
-                  textTransform="uppercase"
-                  letterSpacing="0.2em"
-                  color={mutedText}
-                >
-                  Calendario
-                </Text>
-                <Heading size="md" fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
-                  {calendarMonthLabel}
-                </Heading>
-              </Box>
-              <HStack spacing={1}>
-                <IconButton
-                  aria-label="Mes anterior"
-                  icon={<FiChevronLeft />}
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="teal"
-                  onClick={handlePrevMonth}
-                />
-                <IconButton
-                  aria-label="Mes siguiente"
-                  icon={<FiChevronRight />}
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="teal"
-                  onClick={handleNextMonth}
-                />
-              </HStack>
-            </Flex>
-            <SimpleGrid columns={7} spacing={1} mb={2}>
-              {weekDayLabels.map((day) => (
-                <Text
-                  key={day}
-                  textAlign="center"
-                  fontSize="xs"
-                  fontWeight="bold"
-                  color={mutedText}
-                >
-                  {day}
-                </Text>
-              ))}
-            </SimpleGrid>
-            <SimpleGrid columns={7} spacing={1}>
-              {calendarDays.map((cell) => {
-                const hasItems = cell.items.length > 0;
-                const isInactive = !cell.isCurrentMonth;
-                const bg = cell.isToday
-                  ? accentTealBg
-                  : hasItems
-                    ? deliveryAccentBg
-                    : isInactive
-                      ? channelRankBg
-                      : "transparent";
-                const borderColorValue = cell.isToday
-                  ? accentTeal
-                  : hasItems
-                    ? deliveryAccentBorder
-                    : "transparent";
-                const borderWidthValue = borderColorValue === "transparent" ? "0px" : "1px";
-                const colorValue = isInactive
-                  ? mutedText
-                  : hasItems
-                    ? deliveryText
-                    : primaryText;
-
-                const dotColors = [];
-                if (cell.hasVenta) dotColors.push("red.500");
-                if (cell.hasTarea) dotColors.push("orange.400");
-                if (cell.hasEvento) dotColors.push("teal.400");
-
-                const renderDayBox = (keyValue, additionalProps = {}) => (
-                  <Box
-                    key={keyValue}
-                    textAlign="center"
-                    py={2}
-                    borderRadius="md"
-                    fontSize="sm"
-                    fontWeight={cell.isToday ? "bold" : "medium"}
-                    color={colorValue}
-                    bg={bg}
-                    borderWidth={borderWidthValue}
-                    borderColor={borderColorValue}
-                    opacity={isInactive ? 0.6 : 1}
-                    position="relative"
-                    cursor="pointer"
-                    tabIndex={0}
-                    onClick={() => openDayModal(cell)}
-                    _hover={{
-                      transform: "translateY(-1px)",
-                      boxShadow: "sm",
-                    }}
-                    transition="all 0.15s"
-                    {...additionalProps}
-                  >
-                    {cell.day}
-                    {dotColors.length > 0 && (
-                      <HStack
-                        spacing={0.5}
-                        position="absolute"
-                        bottom={1}
-                        left="50%"
-                        transform="translateX(-50%)"
-                      >
-                        {dotColors.map((c, idx) => (
-                          <Box
-                            key={`${cell.key}-dot-${idx}`}
-                            w={1.5}
-                            h={1.5}
-                            borderRadius="full"
-                            bg={c}
-                          />
-                        ))}
-                      </HStack>
-                    )}
-                  </Box>
-                );
-
-                if (!hasItems) {
-                  return renderDayBox(cell.key);
-                }
-
-                const grupos = [
-                  {
-                    label: "Entregas",
-                    color: "red.600",
-                    items: cell.items.filter((i) => i.type === "venta"),
-                  },
-                  {
-                    label: "Tareas",
-                    color: "orange.600",
-                    items: cell.items.filter((i) => i.type === "tarea"),
-                  },
-                  {
-                    label: "Eventos",
-                    color: "teal.600",
-                    items: cell.items.filter((i) => i.type === "evento"),
-                  },
-                ].filter((g) => g.items.length > 0);
-
-                const tooltipContent = (
-                  <Box color="gray.900" maxW="240px">
-                    <Text fontWeight="bold" fontSize="sm" mb={2}>
-                      {cell.items.length} item{cell.items.length > 1 ? "s" : ""}
-                    </Text>
-                    <Stack spacing={2}>
-                      {grupos.map((g) => (
-                        <Box key={g.label}>
-                          <Text fontWeight="bold" fontSize="xs" color={g.color}>
-                            {g.label} ({g.items.length})
-                          </Text>
-                          {g.items.slice(0, 3).map((it) => (
-                            <Text key={it.id} fontSize="xs" color="gray.700" noOfLines={1}>
-                              · {it.title}
-                            </Text>
-                          ))}
-                          {g.items.length > 3 && (
-                            <Text fontSize="xs" color="gray.500" fontStyle="italic">
-                              + {g.items.length - 3} más…
-                            </Text>
-                          )}
-                        </Box>
-                      ))}
-                    </Stack>
-                  </Box>
-                );
-
-                return (
-                  <Tooltip
-                    key={cell.key}
-                    label={tooltipContent}
-                    hasArrow
-                    placement="top"
-                    openDelay={150}
-                    closeOnClick
-                  >
-                    {renderDayBox(undefined)}
-                  </Tooltip>
-                );
-              })}
-            </SimpleGrid>
-            <Text fontSize="xs" color={mutedText} mt={3} fontStyle="italic">
-              Hoy: {todayLabel}
-            </Text>
+            <UnifiedCalendar
+              events={fcEvents}
+              onDateClick={openDayModal}
+              onEventClick={handleCalendarEventClick}
+              height={400}
+            />
           </Box>
         </Flex>
 
@@ -1504,7 +1183,7 @@ export const HomeView = () => {
         onClose={dayModal.onClose}
         date={selectedDay}
         items={selectedDayItems}
-        onChanged={refetchEventos}
+        onChanged={refetchCalendar}
       />
     </Box>
   );

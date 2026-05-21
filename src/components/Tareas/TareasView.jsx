@@ -14,6 +14,7 @@ import {
   Textarea,
   VStack,
   useColorModeValue,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { useMemo, useState } from "react";
 import { FiEdit2, FiSave, FiTrash2, FiX, FiPlus } from "react-icons/fi";
@@ -22,6 +23,10 @@ import { useAddTarea } from "../../hooks/tareas/useAddTarea.js";
 import { useDeleteTarea } from "../../hooks/tareas/useDeleteTarea.js";
 import { useGetTareasPaginated } from "../../hooks/tareas/useGetTareasPaginated.js";
 import { useUpdateTarea } from "../../hooks/tareas/useUpdateTarea.js";
+import { useAddEvento } from "../../hooks/eventosCalendario/useAddEvento.js";
+import { UnifiedCalendar } from "../Calendar/UnifiedCalendar.jsx";
+import { useCalendarEvents } from "../../hooks/calendar/useCalendarEvents.js";
+import { DayEventsModal } from "../Home/DayEventsModal.jsx";
 
 const TAG_OPTIONS = [
   { value: "presupuesto", label: "Presupuesto" },
@@ -33,6 +38,13 @@ const getPriorityBadge = (priority) => {
   if (priority === "alta") return { scheme: "red", label: "Alta" };
   if (priority === "baja") return { scheme: "gray", label: "Baja" };
   return { scheme: "orange", label: "Media" };
+};
+
+const renderAutor = (createdBy) => {
+  if (!createdBy) return "Desconocido";
+  if (typeof createdBy === "string") return "Usuario";
+  const nombre = `${createdBy.first_name || ""} ${createdBy.last_name || ""}`.trim();
+  return nombre || createdBy.email || "Usuario";
 };
 
 export const TareasView = () => {
@@ -56,6 +68,7 @@ export const TareasView = () => {
   const { addTarea, loading: adding } = useAddTarea();
   const { editTarea, loading: updating } = useUpdateTarea();
   const { removeTarea, loading: deleting } = useDeleteTarea();
+  const { addEvento, loading: addingEvento } = useAddEvento();
 
   const [draft, setDraft] = useState({
     title: "",
@@ -84,6 +97,24 @@ export const TareasView = () => {
     const title = draft.title.trim();
     if (!title) return;
 
+    if (draft.tag === "evento") {
+      // El form de tareas también puede crear eventos de calendario.
+      // Mapeo: notes→description, dueDate→fecha. La fecha es requerida.
+      if (!draft.dueDate) {
+        window.alert("Para crear un evento de calendario necesitás una fecha (campo 'Vence').");
+        return;
+      }
+      await addEvento({
+        title,
+        description: (draft.notes || "").trim(),
+        fecha: draft.dueDate,
+        hora: "",
+      });
+      setDraft({ title: "", notes: "", priority: "media", dueDate: "", tag: "otros" });
+      refetchAll();
+      return;
+    }
+
     const payload = {
       title,
       notes: (draft.notes || "").trim(),
@@ -95,6 +126,7 @@ export const TareasView = () => {
     await addTarea(payload);
     setDraft({ title: "", notes: "", priority: "media", dueDate: "", tag: "otros" });
     await refetch();
+    refetchAll();
   };
 
   const startEdit = (t) => {
@@ -145,6 +177,37 @@ export const TareasView = () => {
     return "Error al cargar las tareas";
   }, [error]);
 
+  // Calendario unificado (ventas + tareas + eventos)
+  const { events: calendarEvents, itemsByDay, buildDayKey, refetchAll } =
+    useCalendarEvents();
+  const dayModal = useDisclosure();
+  const [selectedDay, setSelectedDay] = useState(null);
+  const selectedDayItems = useMemo(() => {
+    if (!selectedDay) return [];
+    return itemsByDay.get(buildDayKey(selectedDay)) || [];
+  }, [selectedDay, itemsByDay, buildDayKey]);
+
+  const handleCalendarDateClick = (date) => {
+    setSelectedDay(date);
+    dayModal.onOpen();
+  };
+
+  const handleCalendarEventClick = (info) => {
+    const dayKey = info.event.extendedProps?.dayKey;
+    if (dayKey) {
+      const [y, m, d] = dayKey.split("-").map(Number);
+      setSelectedDay(new Date(y, m, d));
+    } else if (info.event.start) {
+      setSelectedDay(new Date(info.event.start));
+    }
+    dayModal.onOpen();
+  };
+
+  const handleCalendarChanged = () => {
+    refetchAll();
+    refetch();
+  };
+
   if (loading && items.length === 0) return <Loader />;
 
   return (
@@ -158,6 +221,15 @@ export const TareasView = () => {
             Compartidas — Total: {total}
           </Text>
         </Flex>
+
+        <Box maxW="900px" mx="auto" w="100%">
+          <UnifiedCalendar
+            events={calendarEvents}
+            onDateClick={handleCalendarDateClick}
+            onEventClick={handleCalendarEventClick}
+            height={460}
+          />
+        </Box>
 
         <Box bg={cardBg} borderWidth="1px" borderColor={border} borderRadius="xl" p={{ base: 3, md: 4 }}>
           <SimpleGrid columns={{ base: 1, md: 4 }} spacing={3} alignItems="end">
@@ -217,6 +289,7 @@ export const TareasView = () => {
                 <option value="presupuesto">Presupuesto</option>
                 <option value="cliente">Cliente</option>
                 <option value="otros">Otros</option>
+                <option value="evento">Evento (calendario)</option>
               </Select>
             </Box>
           </SimpleGrid>
@@ -240,10 +313,10 @@ export const TareasView = () => {
               leftIcon={<FiPlus />}
               colorScheme="blue"
               onClick={handleAdd}
-              isLoading={adding}
+              isLoading={adding || addingEvento}
               isDisabled={!draft.title.trim()}
             >
-              Agregar
+              {draft.tag === "evento" ? "Agregar evento" : "Agregar"}
             </Button>
           </Flex>
         </Box>
@@ -310,6 +383,9 @@ export const TareasView = () => {
                                   {t.notes}
                                 </Text>
                               ) : null}
+                              <Text mt={1} fontSize="xs" color={muted}>
+                                Creado por: <strong>{renderAutor(t?.createdBy)}</strong>
+                              </Text>
                             </>
                           ) : (
                             <VStack align="stretch" spacing={2}>
@@ -442,6 +518,14 @@ export const TareasView = () => {
           </Flex>
         </Box>
       </VStack>
+
+      <DayEventsModal
+        isOpen={dayModal.isOpen}
+        onClose={dayModal.onClose}
+        date={selectedDay}
+        items={selectedDayItems}
+        onChanged={handleCalendarChanged}
+      />
     </Box>
   );
 };
