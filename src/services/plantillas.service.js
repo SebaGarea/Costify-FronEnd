@@ -49,3 +49,7 @@ export const previewPlantilla = async (payload) => {
   return await api.post("/api/plantillas/preview", payload);
 };
 
+export const renameTipoProyecto = async (tipoActual, tipoNuevo) => {
+  return await api.put("/api/plantillas/renombrar-tipo", { tipoActual, tipoNuevo });
+};
+

@@ -40,6 +40,7 @@ import {
 } from "../../hooks/index.js";
 import { usePlantillaPreview } from "../../hooks/plantillas/usePlantillaPreview.js";
 import { useAddProduct } from "../../hooks/productos/useAddProduct.js";
+import { useItems } from "../../hooks/productos/useItems.js";
 import { usePerfilesPintura } from "../../hooks/perfilesPintura/usePerfilesPintura.js";
 import {
   Button,
@@ -323,22 +324,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   // Hook para obtener tipos de proyecto únicos dinámicamente
   const { tiposProyecto, loading: loadingTipos, refetch: refetchTipos } = useGetTiposProyectoUnicos();
   
-  // Opciones dinámicas para tipos de proyecto (memoizadas para optimizar rendimiento)
   const tiposProyectoOptions = useMemo(() => [
-    // Opciones del enum del backend
-    { value: "Puerta", label: "Puerta" },
-    { value: "Ventana", label: "Ventana" },
-    { value: "Portón", label: "Portón" },
-    { value: "Mueble", label: "Mueble" },
-    { value: "Estructura", label: "Estructura" },
-    { value: "Decorativo", label: "Decorativo" },
-    { value: "Otro", label: "Otro" },
-    // Opciones dinámicas de plantillas existentes (filtradas para evitar duplicados)
-    ...tiposProyecto.filter(tipo => 
-      !["Puerta", "Ventana", "Portón", "Mueble", "Estructura", "Decorativo", "Otro"].includes(tipo)
-    ).map(tipo => ({ value: tipo, label: tipo })),
-    // Opción personalizada al final
-    { value: "personalizado", label: "Personalizado" }
+    ...tiposProyecto.map(tipo => ({ value: tipo, label: tipo })),
   ], [tiposProyecto]);
 
   const toast = useToast();
@@ -362,6 +349,11 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   } = useUpdatePlantilla();
 
   const { rawsMaterialData, loading: materiasLoading } = useItemsMateriasPrimas(100, { fetchAll: true });
+  const { productsData } = useItems();
+  const catalogosExistentes = useMemo(
+    () => [...new Set(productsData.map((p) => p.catalogo).filter(Boolean))].sort(),
+    [productsData]
+  );
 
 
   // Variables de color para modo claro/oscuro
@@ -2610,7 +2602,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                       <FormControl isRequired>
                         <FormLabel fontSize="sm">Catálogo</FormLabel>
                         <Input
-                          placeholder="Catálogo del producto"
+                          list="catalogos-existentes"
+                          placeholder="Elegí uno o escribí uno nuevo"
                           value={datosProducto.catalogo}
                           onChange={(e) =>
                             setDatosProducto(prev => ({
@@ -2619,7 +2612,13 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                             }))
                           }
                           bg={inputBg}
+                          autoComplete="off"
                         />
+                        <datalist id="catalogos-existentes">
+                          {catalogosExistentes.map((cat) => (
+                            <option key={cat} value={cat} />
+                          ))}
+                        </datalist>
                       </FormControl>
 
                       <FormControl isRequired>
