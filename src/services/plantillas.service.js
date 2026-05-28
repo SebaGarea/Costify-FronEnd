@@ -53,3 +53,8 @@ export const renameTipoProyecto = async (tipoActual, tipoNuevo) => {
   return await api.put("/api/plantillas/renombrar-tipo", { tipoActual, tipoNuevo });
 };
 
+export const getTiposProyecto = async () => {
+  const response = await api.get('/api/plantillas/tipos');
+  return response.data;
+};
+
