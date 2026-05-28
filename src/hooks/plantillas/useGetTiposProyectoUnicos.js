@@ -1,52 +1,18 @@
-﻿import { useEffect, useState, useCallback } from 'react'
-import { getAllPlantillas } from '../../services/plantillas.service.js';
+import { useQuery } from '@tanstack/react-query';
+import { getTiposProyecto } from '../../services/plantillas.service.js';
 
 export const useGetTiposProyectoUnicos = () => {
-  const [tiposProyecto, setTiposProyecto] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['plantillas-tipos'],
+    queryFn: getTiposProyecto,
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: true,
+  });
 
-  const fetchTiposProyecto = useCallback(async() => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Obtenemos todas las plantillas sin filtros
-      const response = await getAllPlantillas({});
-      const plantillas = response.data;
-      
-      // Extraemos los tipos de proyecto Ãºnicos
-      const tiposUnicos = [...new Set(
-        plantillas
-          .map(plantilla => plantilla.tipoProyecto)
-          .filter(tipo => tipo && tipo.trim() !== '' && tipo !== 'Otro')
-      )].sort();
-      
-      setTiposProyecto(tiposUnicos);
-    } catch (error) {
-      setError(error.response?.data?.error || "Error al cargar los tipos de proyecto");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { 
-    fetchTiposProyecto();
-  }, [fetchTiposProyecto]);
-
-  // Refrescar automÃ¡ticamente cuando la ventana recibe foco (Ãºtil cuando se navega entre pÃ¡ginas)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        fetchTiposProyecto();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [fetchTiposProyecto]);
-
-  return { tiposProyecto, loading, error, refetch: fetchTiposProyecto };
+  return {
+    tiposProyecto: data ?? [],
+    loading: isLoading,
+    error: error?.response?.data?.error || (error ? 'Error al cargar los tipos de proyecto' : null),
+    refetch,
+  };
 };

@@ -1,31 +1,18 @@
-﻿
-
-import { useEffect, useState, useCallback } from 'react'
+import { useQuery } from '@tanstack/react-query';
 import { getAllPlantillas } from '../../services/plantillas.service.js';
 
-
 export const useGetAllPlantillas = (filtros) => {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['plantillas', filtros?.tipoProyecto, filtros?.search],
+    queryFn: () => getAllPlantillas(filtros || {}),
+    select: (response) => response.data,
+    staleTime: 30_000,
+  });
 
-const [plantillasData, setPlantillasData] = useState([]);
-const [loading, setLoading] = useState(false);
-const [error, setError] = useState(null);
-
-const fetchPlantillas = useCallback(async() => {
-  setLoading(true);
-  setError(null);
-  try {
-    const response = await getAllPlantillas(filtros || {});
-    setPlantillasData(response.data);
-  } catch (error) {
-    setError(error.response?.data?.error || "Error al cargar las plantillas");
-  } finally {
-    setLoading(false);
-  }
-}, [filtros?.tipoProyecto, filtros?.search]);
-
-  useEffect(() => { 
-    fetchPlantillas();
-  }, [fetchPlantillas]);
-
-  return { plantillasData, loading, error, refetch: fetchPlantillas };
+  return {
+    plantillasData: data ?? [],
+    loading: isLoading,
+    error: error?.response?.data?.error || (error ? 'Error al cargar las plantillas' : null),
+    refetch,
+  };
 };
