@@ -20,8 +20,7 @@ import {
 } from "@chakra-ui/react";
 import { FiChevronDown, FiPlus } from "react-icons/fi";
 import { RiArrowRightLine } from "react-icons/ri";
-import { Link } from "react-router-dom";
-import { useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 const BASE_URL = import.meta.env.VITE_API_URL;
 const resolveImageUrl = (imagenes) => {
   if (!imagenes) return "";
@@ -33,16 +32,32 @@ const resolveImageUrl = (imagenes) => {
 const ITEMS_PER_PAGE = 10;
 
 export const ItemListContainer = ({ products }) => {
-  const [selectedCatalogo, setSelectedCatalogo] = useState(null);
-  const [selectedModelo, setSelectedModelo] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedCatalogo = searchParams.get("catalogo") || null;
+  const selectedModelo = searchParams.get("modelo") || null;
+  const currentPage = parseInt(searchParams.get("pagina") || "1", 10);
+  const orden = searchParams.get("orden") || "recientes";
+
+  const updateParams = (updates) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === undefined) {
+          next.delete(key);
+        } else {
+          next.set(key, String(value));
+        }
+      });
+      return next;
+    }, { replace: true });
+  };
+
   const colorBg = useColorModeValue("white", "gray.800");
   const colorBgBox = useColorModeValue("gray.100", "gray.700");
 
-  // Catálogos únicos
   const catalogosUnicos = [
     ...new Set(products.map((p) => p.catalogo).filter(Boolean)),
-  ];
+  ].sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
 
   // Modelos únicos según catálogo seleccionado
   const modelosUnicos = selectedCatalogo
@@ -56,7 +71,6 @@ export const ItemListContainer = ({ products }) => {
       ]
     : [];
 
-  // Filtrar productos por catálogo y modelo
   const filteredProducts = products.filter((p) => {
     if (selectedCatalogo && selectedModelo) {
       return p.catalogo === selectedCatalogo && p.modelo === selectedModelo;
@@ -67,8 +81,35 @@ export const ItemListContainer = ({ products }) => {
     return true;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
-  const paginatedProducts = filteredProducts.slice(
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    // Stock 0 siempre al final
+    const asinStock = (a.stock ?? 0) === 0;
+    const bsinStock = (b.stock ?? 0) === 0;
+    if (asinStock !== bsinStock) return asinStock ? 1 : -1;
+
+    switch (orden) {
+      case "nombre-az":
+        return (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" });
+      case "precio-asc": {
+        const pa = Number(a.planillaCosto?.precioFinal ?? a.precioActual ?? a.precio ?? 0);
+        const pb = Number(b.planillaCosto?.precioFinal ?? b.precioActual ?? b.precio ?? 0);
+        return pa - pb;
+      }
+      case "precio-desc": {
+        const pa = Number(a.planillaCosto?.precioFinal ?? a.precioActual ?? a.precio ?? 0);
+        const pb = Number(b.planillaCosto?.precioFinal ?? b.precioActual ?? b.precio ?? 0);
+        return pb - pa;
+      }
+      case "stock-desc":
+        return (b.stock ?? 0) - (a.stock ?? 0);
+      case "recientes":
+      default:
+        return b._id > a._id ? 1 : -1;
+    }
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / ITEMS_PER_PAGE));
+  const paginatedProducts = sortedProducts.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
@@ -92,9 +133,7 @@ export const ItemListContainer = ({ products }) => {
                 <MenuItem
                   key={cat}
                   onClick={() => {
-                    setSelectedCatalogo(cat);
-                    setSelectedModelo(null);
-                    setCurrentPage(1);
+                    updateParams({ catalogo: cat, modelo: null, pagina: null });
                   }}
                   justifyContent="center"
                   textTransform="uppercase"
@@ -122,7 +161,7 @@ export const ItemListContainer = ({ products }) => {
                 modelosUnicos.map((modelo) => (
                   <MenuItem
                     key={modelo}
-                    onClick={() => { setSelectedModelo(modelo); setCurrentPage(1); }}
+                    onClick={() => { updateParams({ modelo, pagina: null }); }}
                     justifyContent="center"
                     textTransform="uppercase"
                   >
@@ -138,16 +177,50 @@ export const ItemListContainer = ({ products }) => {
               colorScheme="red"
               variant="outline"
               onClick={() => {
-                setSelectedCatalogo(null);
-                setSelectedModelo(null);
-                setCurrentPage(1);
+                updateParams({ catalogo: null, modelo: null, pagina: null });
               }}
               size={{ base: "sm", md: "md" }}
             >
               Borrar Filtros
             </Button>
           )}
+
           <Spacer display={{ base: "none", md: "block" }} />
+
+          {/* Dropdown Ordenar por */}
+          <Menu>
+            <MenuButton
+              as={Button}
+              rightIcon={<FiChevronDown />}
+              size={{ base: "sm", md: "md" }}
+              variant="outline"
+            >
+              {{
+                "recientes": "Más recientes",
+                "nombre-az": "Nombre A-Z",
+                "precio-asc": "Precio ↑",
+                "precio-desc": "Precio ↓",
+                "stock-desc": "Mayor stock",
+              }[orden]}
+            </MenuButton>
+            <MenuList>
+              {[
+                { value: "recientes", label: "Más recientes" },
+                { value: "nombre-az", label: "Nombre A-Z" },
+                { value: "precio-asc", label: "Precio: menor a mayor" },
+                { value: "precio-desc", label: "Precio: mayor a menor" },
+                { value: "stock-desc", label: "Mayor stock primero" },
+              ].map((op) => (
+                <MenuItem
+                  key={op.value}
+                  onClick={() => updateParams({ orden: op.value === "recientes" ? null : op.value, pagina: null })}
+                  fontWeight={orden === op.value ? "bold" : "normal"}
+                >
+                  {op.label}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </Menu>
 
           <Button
             as={Link}
@@ -313,7 +386,7 @@ export const ItemListContainer = ({ products }) => {
       {totalPages > 1 && (
         <HStack justify="center" spacing={4} pb={8}>
           <Button
-            onClick={() => setCurrentPage((p) => p - 1)}
+            onClick={() => updateParams({ pagina: currentPage - 1 })}
             isDisabled={currentPage === 1}
             size="sm"
           >
@@ -323,7 +396,7 @@ export const ItemListContainer = ({ products }) => {
             Página {currentPage} de {totalPages}
           </Text>
           <Button
-            onClick={() => setCurrentPage((p) => p + 1)}
+            onClick={() => updateParams({ pagina: currentPage + 1 })}
             isDisabled={currentPage === totalPages}
             size="sm"
           >

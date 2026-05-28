@@ -29,26 +29,39 @@ import {
 import { FiChevronDown, FiPlus, FiEdit2, FiTrash2, FiSearch, FiCopy } from "react-icons/fi";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader } from "../Loader/Loader.jsx";
 import { RiArrowRightLine } from "react-icons/ri";
 
-import { useGetAllPlantillas, useDeletePlantilla, useDuplicatePlantilla, useGetTiposProyectoUnicos } from "../../hooks/index.js";
+import { useGetAllPlantillas, useDeletePlantilla, useDuplicatePlantilla, useGetTiposProyectoUnicos, useRenameTipoProyecto } from "../../hooks/index.js";
 
 const ITEMS_PER_PAGE = 10;
 
 export const ItemListPlantillas = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Estados para filtros
-  const [filtros, setFiltros] = useState({
-    tipoProyecto: 'todos',
-    search: ''
-  });
+  const updateParams = (updates) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === undefined) {
+          next.delete(key);
+        } else {
+          next.set(key, String(value));
+        }
+      });
+      return next;
+    }, { replace: true });
+  };
 
-  // Estado local para el input de búsqueda (sin debounce)
-  const [searchInput, setSearchInput] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const filtros = {
+    tipoProyecto: searchParams.get("tipo") || "todos",
+    search: searchParams.get("busqueda") || "",
+  };
+
+  const [searchInput, setSearchInput] = useState(searchParams.get("busqueda") || "");
+  const currentPage = parseInt(searchParams.get("pagina") || "1", 10);
 
   const {
     plantillasData,
@@ -59,6 +72,16 @@ export const ItemListPlantillas = () => {
 
   const { deletePlantilla, loading: isDeleting, error: deleteError } = useDeletePlantilla();
   const { duplicatePlantilla, loading: isDuplicating, error: duplicateError } = useDuplicatePlantilla();
+  const { renameTipo, loading: isRenaming } = useRenameTipoProyecto();
+
+  const [tipoToRename, setTipoToRename] = useState(null);
+  const [nuevoNombreTipo, setNuevoNombreTipo] = useState("");
+  const {
+    isOpen: isRenameOpen,
+    onOpen: onRenameOpen,
+    onClose: onRenameClose,
+  } = useDisclosure();
+  const renameCancelRef = useRef();
   
   // Hook para obtener tipos de proyecto únicos
   const { tiposProyecto, loading: loadingTipos, refetch: refetchTipos } = useGetTiposProyectoUnicos();
@@ -80,16 +103,10 @@ export const ItemListPlantillas = () => {
   const colorBg = useColorModeValue("white", "gray.800");
   const colorBgBox = useColorModeValue("gray.100", "gray.700");
 
-  // Debounce para la búsqueda (solo actualiza si el valor realmente cambió)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setFiltros(prev => {
-        if (prev.search === searchInput) return prev;
-        setCurrentPage(1);
-        return { ...prev, search: searchInput };
-      });
+      updateParams({ busqueda: searchInput || null, pagina: null });
     }, 1000);
-
     return () => clearTimeout(timeoutId);
   }, [searchInput]);
 
@@ -114,8 +131,7 @@ export const ItemListPlantillas = () => {
 
   // Funciones para manejar los filtros
   const handleTipoProyectoSelect = (tipoProyecto) => {
-    setFiltros(prev => ({ ...prev, tipoProyecto }));
-    setCurrentPage(1);
+    updateParams({ tipo: tipoProyecto === "todos" ? null : tipoProyecto, pagina: null });
   };
 
 
@@ -126,8 +142,41 @@ export const ItemListPlantillas = () => {
 
   const handleClearFilters = () => {
     setSearchInput('');
-    setFiltros({ tipoProyecto: 'todos', search: '' });
-    setCurrentPage(1);
+    updateParams({ tipo: null, busqueda: null, pagina: null });
+  };
+
+  const handleRenameClick = (tipo) => {
+    setTipoToRename(tipo);
+    setNuevoNombreTipo(tipo);
+    onRenameOpen();
+  };
+
+  const handleConfirmRename = async () => {
+    if (!tipoToRename) return;
+    const nombre = nuevoNombreTipo.trim();
+    if (!nombre) {
+      toast({ title: "Nombre requerido", status: "warning", duration: 2000, isClosable: true });
+      return;
+    }
+    const count = await renameTipo(tipoToRename, nombre);
+    if (count !== null) {
+      toast({
+        title: "Tipo renombrado",
+        description: `"${tipoToRename}" → "${nombre}" (${count} plantilla${count !== 1 ? "s" : ""} actualizadas)`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      if (filtros.tipoProyecto === tipoToRename) {
+        updateParams({ tipo: nombre });
+      }
+      refetchTipos();
+      refetch();
+    } else {
+      toast({ title: "Error al renombrar", status: "error", duration: 3000, isClosable: true });
+    }
+    setTipoToRename(null);
+    onRenameClose();
   };
 
   // Función para abrir modal de confirmación
@@ -279,7 +328,19 @@ export const ItemListPlantillas = () => {
               />
             </InputGroup>
 
-            {/* Botón para limpiar filtros */}
+            {/* Botones contextuales cuando hay tipo seleccionado */}
+            {filtros.tipoProyecto !== 'todos' && (
+              <Button
+                colorScheme="blue"
+                variant="outline"
+                leftIcon={<FiEdit2 />}
+                onClick={() => handleRenameClick(filtros.tipoProyecto)}
+                size={{ base: "sm", md: "md" }}
+              >
+                Editar nombre proyecto
+              </Button>
+            )}
+
             {(filtros.tipoProyecto !== 'todos' || searchInput !== '') && (
               <Button
                 colorScheme="red"
@@ -437,7 +498,7 @@ export const ItemListPlantillas = () => {
       {totalPages > 1 && plantillasData.length > 0 && (
         <HStack justify="center" spacing={4} pb={8}>
           <Button
-            onClick={() => setCurrentPage((p) => p - 1)}
+            onClick={() => updateParams({ pagina: currentPage - 1 })}
             isDisabled={currentPage === 1}
             size="sm"
           >
@@ -447,7 +508,7 @@ export const ItemListPlantillas = () => {
             Página {currentPage} de {totalPages}
           </Text>
           <Button
-            onClick={() => setCurrentPage((p) => p + 1)}
+            onClick={() => updateParams({ pagina: currentPage + 1 })}
             isDisabled={currentPage === totalPages}
             size="sm"
           >
@@ -534,6 +595,51 @@ export const ItemListPlantillas = () => {
                 loadingText="Duplicando..."
               >
                 Duplicar
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {/* Modal para renombrar tipo de proyecto */}
+      <AlertDialog
+        isOpen={isRenameOpen}
+        leastDestructiveRef={renameCancelRef}
+        onClose={onRenameClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Renombrar Tipo de Proyecto
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              <Text mb={2}>
+                Renombrá{" "}
+                <Text as="span" fontWeight="bold">
+                  "{tipoToRename}"
+                </Text>
+                . El cambio se aplicará a todas las plantillas con ese tipo.
+              </Text>
+              <Input
+                value={nuevoNombreTipo}
+                onChange={(e) => setNuevoNombreTipo(e.target.value)}
+                placeholder="Nuevo nombre"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleConfirmRename(); }}
+              />
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={renameCancelRef} onClick={onRenameClose}>
+                Cancelar
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={handleConfirmRename}
+                ml={3}
+                isLoading={isRenaming}
+                loadingText="Renombrando..."
+              >
+                Renombrar
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
