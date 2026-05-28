@@ -21,7 +21,7 @@ const fetchPlantillas = useCallback(async() => {
   } finally {
     setLoading(false);
   }
-}, [filtros]);
+}, [filtros?.tipoProyecto, filtros?.search]);
 
   useEffect(() => { 
     fetchPlantillas();
