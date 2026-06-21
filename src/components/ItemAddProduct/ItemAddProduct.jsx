@@ -15,6 +15,7 @@ import {
   VStack,
   HStack,
   Divider,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { useEffect, useState, useRef } from "react";
 import {
@@ -201,6 +202,13 @@ export const ItemAddProduct = ({ productId }) => {
     });
   };
 
+  const surface = useColorModeValue("white", "gray.800");
+  const surfaceBorder = useColorModeValue("gray.200", "gray.700");
+  const infoBg = useColorModeValue("teal.50", "gray.900");
+  const infoBorder = useColorModeValue("teal.200", "teal.600");
+  const infoTitle = useColorModeValue("teal.700", "teal.200");
+  const infoMuted = useColorModeValue("gray.600", "gray.400");
+
   return (
     <Flex minH="auto" align="center" justify="center">
       <form onSubmit={handleSubmit}>
@@ -209,10 +217,11 @@ export const ItemAddProduct = ({ productId }) => {
           maxW="2xl"
           minW={{ base: '90vw', md: '700px' }}
           p={8}
-          border="1px"
-          borderRadius={20}
+          bg={surface}
+          borderWidth="1px"
+          borderColor={surfaceBorder}
+          borderRadius="xl"
           spacing={4}
-          boxShadow="md"
         >
           <FormControl>
             <FormLabel>Nombre del producto</FormLabel>
@@ -268,36 +277,36 @@ export const ItemAddProduct = ({ productId }) => {
 
           {/* Información de la plantilla seleccionada */}
           {plantillaSeleccionada && (
-            <Box p={4} border="1px" borderColor="blue.200" borderRadius="md" bg="blue.100" >
+            <Box p={4} borderWidth="1px" borderColor={infoBorder} borderRadius="xl" bg={infoBg} >
               <VStack align="stretch" spacing={3}  >
-                <Heading size="sm" color="blue.700" textAlign={"center"} >
-                  Información de la Plantilla: {plantillaSeleccionada.nombre}
+                <Heading size="sm" color={infoTitle} textAlign={"center"} >
+                  Información de la plantilla: {plantillaSeleccionada.nombre}
                 </Heading>
-                
+
                 <HStack justify="space-between">
-                  <Text fontSize="sm" color="blue.700">Tipo de Proyecto:</Text>
-                  <Badge color={"Black"}>{plantillaSeleccionada.tipoProyecto || 'N/A'}</Badge>
+                  <Text fontSize="sm" color={infoMuted}>Tipo de proyecto:</Text>
+                  <Badge colorScheme="gray" textTransform="none">{plantillaSeleccionada.tipoProyecto || 'N/A'}</Badge>
                 </HStack>
-                
+
                 <HStack justify="space-between">
-                  <Text fontSize="sm" color="blue.700">Costo Total:</Text>
-                  <Badge color={"Black"}>${plantillaSeleccionada.costoTotal || 0}</Badge>
+                  <Text fontSize="sm" color={infoMuted}>Costo total:</Text>
+                  <Badge colorScheme="gray" className="tnum">${(plantillaSeleccionada.costoTotal || 0).toLocaleString()}</Badge>
                 </HStack>
-                
+
                 <HStack justify="space-between">
-                  <Text fontSize="sm" color="blue.700">Precio Final:</Text>
-                  <Badge color={"Black"}>${plantillaSeleccionada.precioFinal || 0}</Badge>
+                  <Text fontSize="sm" color={infoMuted}>Precio final:</Text>
+                  <Badge colorScheme="teal" className="tnum">${(plantillaSeleccionada.precioFinal || 0).toLocaleString()}</Badge>
                 </HStack>
-                
+
                 <HStack justify="space-between">
-                  <Text fontSize="sm" color="blue.700">Ganancia:</Text>
-                  <Badge color={"Black"}>
-                    ${(plantillaSeleccionada.precioFinal || 0) - (plantillaSeleccionada.costoTotal || 0)}
+                  <Text fontSize="sm" color={infoMuted}>Ganancia:</Text>
+                  <Badge colorScheme="orange" className="tnum">
+                    ${((plantillaSeleccionada.precioFinal || 0) - (plantillaSeleccionada.costoTotal || 0)).toLocaleString()}
                   </Badge>
                 </HStack>
-                
+
                 <Divider />
-                <Text fontSize="xs" color="gray.600" textAlign={"center"}>
+                <Text fontSize="xs" color={infoMuted} textAlign={"center"}>
                   Esta plantilla se aplicará automáticamente al producto
                 </Text>
               </VStack>
@@ -348,11 +357,12 @@ export const ItemAddProduct = ({ productId }) => {
             <Button
               as="label"
               htmlFor="file-upload"
-              colorScheme="green"
+              colorScheme="teal"
+              variant="outline"
               mb={1}
               cursor="pointer"
             >
-              Elegir Imágenes
+              Elegir imágenes
             </Button>
             {/* Previsualización de imágenes actuales */}
             {imagenesActuales.length > 0 && (
