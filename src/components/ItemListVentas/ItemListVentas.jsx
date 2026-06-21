@@ -120,6 +120,7 @@ export const ItemListVentas = () => {
   const mutedText = useColorModeValue("gray.600", "gray.400");
   const errorColor = useColorModeValue("red.500", "red.300");
   const border = useColorModeValue("gray.200", "gray.700");
+  const despachadaBorder = useColorModeValue("red.400", "red.500");
   const filaMonetariaBg = useColorModeValue("gray.50", "gray.900");
   const descBg = useColorModeValue("gray.50", "gray.900");
   const heroBg = useColorModeValue(
@@ -631,23 +632,27 @@ export const ItemListVentas = () => {
                 : venta.estado === "en_proceso"
                 ? { label: "En proceso", scheme: "orange" }
                 : venta.estado === "despachada"
-                ? { label: "Despachada", scheme: "teal" }
+                ? { label: "Despachada", scheme: "red" }
                 : null;
             return (
               <Box
                 key={venta._id}
                 p={{ base: 2, md: 3 }}
-                borderWidth="1px"
+                borderWidth={venta.estado === "despachada" ? "2px" : "1px"}
                 borderRadius="xl"
                 bg={cardVentas}
-                borderColor={border}
+                backgroundImage={
+                  venta.estado === "despachada"
+                    ? "repeating-linear-gradient(135deg, transparent 0, transparent 13px, var(--chakra-colors-red-400) 13px, var(--chakra-colors-red-400) 14px)"
+                    : undefined
+                }
+                borderColor={venta.estado === "despachada" ? despachadaBorder : border}
                 transition="border-color 0.15s ease, transform 0.15s ease"
                 _hover={venta.estado !== "despachada" ? { borderColor: heading, transform: "translateY(-2px)" } : {}}
                 w="full"
                 minW={{ base: "280px", md: "640px" }}
                 alignSelf="stretch"
                 position="relative"
-                opacity={venta.estado === "despachada" ? 0.7 : 1}
               >
                 <HStack
                   spacing={1}
