@@ -23,7 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 tareas.txt
-PRODUCT.md
 
 # Archivos de entorno
 .env
