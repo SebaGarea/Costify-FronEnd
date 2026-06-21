@@ -250,7 +250,7 @@ export const ItemListContainer = ({ products }) => {
             <Box
               key={product._id}
               role={"group"}
-              p={6}
+              p={4}
               maxW={"330px"}
               w={"full"}
               bg={colorBg}
@@ -266,36 +266,19 @@ export const ItemListContainer = ({ products }) => {
                 rounded={"lg"}
                 mt={0}
                 pos={"relative"}
-                height={"230px"}
+                height={"160px"}
                 overflow={"hidden"}
-                _after={{
-                  transition: "all .3s ease",
-                  content: '""',
-                  w: "full",
-                  h: "full",
-                  pos: "absolute",
-                  top: 0,
-                  left: 0,
-                  backgroundImage: `url(${resolveImageUrl(product.imagenes)})`,
-                  filter: "blur(15px)",
-                  zIndex: -1,
-                }}
-                _groupHover={{
-                  _after: {
-                    filter: "blur(20px)",
-                  },
-                }}
               >
                 <Image
                   rounded={"lg"}
-                  height={230}
-                  width={282}
+                  height="160px"
+                  width="100%"
                   objectFit={"cover"}
                   src={resolveImageUrl(product.imagenes)}
                   alt={product.nombre}
                 />
               </Box>
-              <Stack pt={10} align={"center"} spacing={4}>
+              <Stack pt={4} align={"center"} spacing={2}>
                 <Text
                   fontSize={"md"}
                   fontWeight={600}
@@ -306,7 +289,7 @@ export const ItemListContainer = ({ products }) => {
 
                 {/* Información de la plantilla asociada */}
                 {planilla ? (
-                  <VStack spacing={3} w="full">
+                  <VStack spacing={2} w="full">
                     <Badge colorScheme="teal" fontSize="xs" px={2} py={1} textTransform="none">
                       Plantilla: {planilla.nombre}
                     </Badge>
@@ -348,12 +331,10 @@ export const ItemListContainer = ({ products }) => {
                   </Badge>
                 )}
                 
-                <Heading fontSize={"sm"} fontFamily={"body"} fontWeight={200} textAlign="center">
-                  {product.descripcion.length > 60
-                    ? product.descripcion.slice(0, 60) + "..."
-                    : product.descripcion}
-                </Heading>
-                
+                <Text fontSize={"sm"} color={muted} textAlign="center" noOfLines={2}>
+                  {product.descripcion}
+                </Text>
+
                 <Stack direction={"row"} align={"center"}>
                   <Text fontWeight={800} fontSize={"xl"} color={accentPrice} fontFamily="heading" className="tnum">
                     ${displayedPrice.toLocaleString()}
@@ -362,22 +343,19 @@ export const ItemListContainer = ({ products }) => {
                     Stock: {product.stock}
                   </Text>
                 </Stack>
-                <HStack>
-                  <Button
-                    as={Link}
-                    to={`/productos/${product._id}`}
-                    colorScheme="teal"
-                    variant="outline"
-                    m={2}
-                  >
-                    Ver Detalle
-                    <Box as="span" ml={2}>
-                      <RiArrowRightLine />
-                    </Box>
-                  </Button>
-                </HStack>
-                <Text m={2} color={muted} fontSize="xs">
-                  Id: {product._id}
+                <Button
+                  as={Link}
+                  to={`/productos/${product._id}`}
+                  colorScheme="teal"
+                  variant="outline"
+                  size="sm"
+                  w="full"
+                  rightIcon={<RiArrowRightLine />}
+                >
+                  Ver detalle
+                </Button>
+                <Text color={muted} fontSize="xs">
+                  Id: …{product._id.slice(-8)}
                 </Text>
               </Stack>
             </Box>
