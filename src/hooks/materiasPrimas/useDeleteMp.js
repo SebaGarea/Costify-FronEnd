@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { deleteRawMaterial as deleteRawMaterialService } from "../../services/rawMaterials.service.js";
+import { invalidateMateriasPrimasCache } from "./useItemsMateriasPrimas.js";
 
 export const useDeleteMp = () => {
   const [loading, setLoading] = useState(false);
@@ -11,6 +12,7 @@ export const useDeleteMp = () => {
 
     try {
       await deleteRawMaterialService(id);
+      invalidateMateriasPrimasCache();
         return true;
     } catch (error) {
       setError(error.response?.data?.error || "Error al eliminar la materia prima");

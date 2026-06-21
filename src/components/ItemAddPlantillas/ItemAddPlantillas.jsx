@@ -60,6 +60,8 @@ import {
   VStack,
   Text,
   IconButton,
+  Image,
+  Link,
   SimpleGrid,
   Divider,
   Badge,
@@ -78,7 +80,11 @@ import {
 } from "@chakra-ui/react";
 import { FiPlus, FiMinus, FiRefreshCw } from "react-icons/fi";
 import { useNavigate } from "react-router";
-import { getPlantillaById } from "../../services/plantillas.service.js";
+import {
+  getPlantillaById,
+  uploadArchivosPlantilla,
+  deleteArchivoPlantilla,
+} from "../../services/plantillas.service.js";
 import { getMaterialTypeLabel } from "../../constants/materialTypes.js";
 import {
   MERCADO_LIBRE_PLANS,
@@ -86,6 +92,23 @@ import {
   getNubePrices,
 } from "../../constants/platformPricing.js";
 import { useConfiguracion } from "../../hooks/configuracion/useConfiguracion.js";
+
+// Detecta si un adjunto es PDF (por mimetype o extensión).
+const esArchivoPdf = (archivo) =>
+  archivo?.mimetype === "application/pdf" || /\.pdf($|\?)/i.test(archivo?.url || "");
+
+// Construye la URL de vista previa apoyándose en las transformaciones de Cloudinary.
+// Para PDF pide la primera página renderizada a JPG (pg_1,f_jpg): como el resultado
+// es una imagen y no un PDF, Cloudinary la entrega aunque la "entrega de PDF" esté
+// deshabilitada en la cuenta. Para imágenes solo redimensiona.
+const buildPreviewUrl = (archivo, width = 400) => {
+  const url = archivo?.url || "";
+  if (!url || !url.includes("/upload/")) return url;
+  const transform = esArchivoPdf(archivo)
+    ? `pg_1,f_jpg,w_${width},q_auto`
+    : `w_${width},q_auto`;
+  return url.replace("/upload/", `/upload/${transform}/`);
+};
 
 // Función para formatear números con formato peso argentino similar a las cards
 const formatCurrency = (value) => {
@@ -281,6 +304,10 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const [extras, setExtras] = useState(createDefaultExtrasState);
   const [precioPinturaM2, setPrecioPinturaM2] = useState(15000);
   const [precioPinturaPersonalizado, setPrecioPinturaPersonalizado] = useState(false);
+  const [comentarios, setComentarios] = useState("");
+  const [archivos, setArchivos] = useState([]);
+  const [uploadingArchivos, setUploadingArchivos] = useState(false);
+  const [deletingArchivoId, setDeletingArchivoId] = useState(null);
 
   const { perfiles: perfilesPintura } = usePerfilesPintura();
 
@@ -294,12 +321,12 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       try {
         sessionStorage.setItem(
           draftKey,
-          JSON.stringify({ form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, precioPinturaPersonalizado, modoPersonalizado })
+          JSON.stringify({ form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, precioPinturaPersonalizado, modoPersonalizado, comentarios })
         );
       } catch { /* sessionStorage lleno o deshabilitado */ }
     }, 800);
     return () => clearTimeout(timer);
-  }, [form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, precioPinturaPersonalizado, modoPersonalizado, draftKey]);
+  }, [form, herreria, carpinteria, pintura, otros, consumibles, extras, precioPinturaM2, precioPinturaPersonalizado, modoPersonalizado, comentarios, draftKey]);
 
   // Restaurar borrador al montar (solo para plantillas nuevas)
   useEffect(() => {
@@ -318,6 +345,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       if (draft.precioPinturaM2 !== undefined) setPrecioPinturaM2(draft.precioPinturaM2);
       if (draft.precioPinturaPersonalizado !== undefined) setPrecioPinturaPersonalizado(draft.precioPinturaPersonalizado);
       if (draft.modoPersonalizado !== undefined) setModoPersonalizado(draft.modoPersonalizado);
+      if (draft.comentarios !== undefined) setComentarios(draft.comentarios);
     } catch { /* borrador corrupto, ignorar */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -330,6 +358,62 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
   const toast = useToast();
   const navigate = useNavigate();
+
+  const handleUploadArchivos = async (event) => {
+    const files = event.target.files;
+    if (!files || !files.length || !PlantillasId) return;
+    setUploadingArchivos(true);
+    try {
+      const res = await uploadArchivosPlantilla(PlantillasId, files);
+      setArchivos(res.data.archivos || []);
+      toast({
+        title: "Archivos subidos",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "No se pudieron subir los archivos",
+        description:
+          error.response?.data?.error ||
+          error.message ||
+          "Error inesperado (verificá el tamaño y el formato)",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+    } finally {
+      setUploadingArchivos(false);
+      event.target.value = ""; // permitir re-subir el mismo archivo
+    }
+  };
+
+  const handleDeleteArchivo = async (publicId) => {
+    if (!PlantillasId || !publicId) return;
+    if (!window.confirm("¿Eliminar este archivo?")) return;
+    setDeletingArchivoId(publicId);
+    try {
+      const res = await deleteArchivoPlantilla(PlantillasId, publicId);
+      setArchivos(res.data.archivos || []);
+      toast({
+        title: "Archivo eliminado",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "No se pudo eliminar el archivo",
+        description: error.response?.data?.error || error.message,
+        status: "error",
+        duration: 3500,
+        isClosable: true,
+      });
+    } finally {
+      setDeletingArchivoId(null);
+    }
+  };
 
   const {
     loading: addLoading,
@@ -560,6 +644,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               otros: porcentajesGuardados.otros ?? 100,
             },
           });
+
+          setComentarios(plantilla.comentarios || "");
+          setArchivos(Array.isArray(plantilla.archivos) ? plantilla.archivos : []);
 
           // Precio base guardado en la plantilla
           if (plantilla.precioPinturaPersonalizado && plantilla.precioPinturaM2 != null) {
@@ -819,6 +906,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               if (draft.extras) setExtras(draft.extras);
               if (draft.precioPinturaM2 !== undefined) setPrecioPinturaM2(draft.precioPinturaM2);
               if (draft.modoPersonalizado !== undefined) setModoPersonalizado(draft.modoPersonalizado);
+              if (draft.comentarios !== undefined) setComentarios(draft.comentarios);
             }
           } catch { /* borrador corrupto, ignorar */ }
         })
@@ -1617,6 +1705,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
       tags: [],
       precioPinturaM2: parseFloat(precioPinturaM2) || 15000,
       precioPinturaPersonalizado: Boolean(precioPinturaPersonalizado),
+      comentarios: comentarios || "",
     };
 
     // Remover cualquier campo undefined o null
@@ -3030,6 +3119,158 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               </CardBody>
             </Card>
           </VStack>
+
+          {/* Comentarios / detalle del presupuesto */}
+          <Card bg={cardBg} borderWidth="1px" borderColor={cardBorder}>
+            <CardHeader>
+              <Heading size="md" color={titleColor}>
+                📝 Comentarios / detalle
+              </Heading>
+            </CardHeader>
+            <CardBody>
+              <FormControl>
+                <FormLabel fontSize="sm" color="gray.500">
+                  Notas, aclaraciones o detalles para este presupuesto
+                </FormLabel>
+                <Textarea
+                  value={comentarios}
+                  onChange={(e) => setComentarios(e.target.value)}
+                  placeholder="Ej: plano ajustado, condiciones de entrega, observaciones del cliente…"
+                  rows={4}
+                />
+              </FormControl>
+            </CardBody>
+          </Card>
+
+          {/* Archivos adjuntos (PDF / imágenes) */}
+          <Card bg={cardBg} borderWidth="1px" borderColor={cardBorder}>
+            <CardHeader>
+              <Heading size="md" color={titleColor}>
+                📎 Archivos adjuntos
+              </Heading>
+            </CardHeader>
+            <CardBody>
+              {!PlantillasId ? (
+                <Text fontSize="sm" color="gray.500">
+                  Guardá la plantilla primero para poder adjuntar archivos (PDF o imágenes).
+                </Text>
+              ) : (
+                <VStack align="stretch" spacing={3}>
+                  <FormControl>
+                    <FormLabel fontSize="sm" color="gray.500">
+                      Subir PDF o imágenes (planos, referencias, etc.)
+                    </FormLabel>
+                    <Input
+                      type="file"
+                      multiple
+                      accept=".pdf,image/*"
+                      onChange={handleUploadArchivos}
+                      isDisabled={uploadingArchivos}
+                      pt={1}
+                    />
+                    <FormHelperText>Máximo 10MB por archivo.</FormHelperText>
+                  </FormControl>
+
+                  {uploadingArchivos && (
+                    <Text fontSize="sm" color="blue.400">
+                      Subiendo archivos…
+                    </Text>
+                  )}
+
+                  {archivos.length === 0 ? (
+                    <Text fontSize="sm" color="gray.500">
+                      No hay archivos adjuntos todavía.
+                    </Text>
+                  ) : (
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                      {archivos.map((archivo) => {
+                        const esPdf = esArchivoPdf(archivo);
+                        const previewUrl = buildPreviewUrl(archivo, 500);
+                        const previewGrande = buildPreviewUrl(archivo, 1400);
+                        return (
+                          <HStack
+                            key={archivo.publicId}
+                            align="flex-start"
+                            justify="space-between"
+                            borderWidth="1px"
+                            borderColor={cardBorder}
+                            borderRadius="md"
+                            p={2}
+                            spacing={3}
+                          >
+                            <Image
+                              src={previewUrl}
+                              alt={archivo.nombre || "Adjunto"}
+                              boxSize="72px"
+                              objectFit="cover"
+                              borderRadius="md"
+                              cursor="pointer"
+                              flexShrink={0}
+                              onClick={() => window.open(previewGrande, "_blank", "noopener")}
+                              fallback={
+                                <Box
+                                  boxSize="72px"
+                                  borderRadius="md"
+                                  bg="blackAlpha.100"
+                                  display="flex"
+                                  alignItems="center"
+                                  justifyContent="center"
+                                  fontSize="2xl"
+                                  flexShrink={0}
+                                >
+                                  {esPdf ? "📄" : "🖼️"}
+                                </Box>
+                              }
+                            />
+                            <Box minW={0} flex="1">
+                              <Text
+                                fontSize="sm"
+                                fontWeight="medium"
+                                noOfLines={2}
+                                title={archivo.nombre || archivo.url}
+                              >
+                                {(esPdf ? "📄 " : "🖼️ ") + (archivo.nombre || "Archivo")}
+                              </Text>
+                              <HStack mt={1} spacing={3} flexWrap="wrap">
+                                <Link
+                                  href={previewGrande}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  color="blue.400"
+                                  fontSize="xs"
+                                >
+                                  Vista previa
+                                </Link>
+                                <Link
+                                  href={archivo.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  color="blue.400"
+                                  fontSize="xs"
+                                >
+                                  Abrir original
+                                </Link>
+                              </HStack>
+                            </Box>
+                            <IconButton
+                              aria-label="Eliminar archivo"
+                              icon={<FiMinus />}
+                              size="sm"
+                              colorScheme="red"
+                              variant="ghost"
+                              flexShrink={0}
+                              isLoading={deletingArchivoId === archivo.publicId}
+                              onClick={() => handleDeleteArchivo(archivo.publicId)}
+                            />
+                          </HStack>
+                        );
+                      })}
+                    </SimpleGrid>
+                  )}
+                </VStack>
+              )}
+            </CardBody>
+          </Card>
 
           {/* Cuadro de totales generales */}
           <Card bg={cardBg} borderWidth="2px" borderColor={cardBorder}>

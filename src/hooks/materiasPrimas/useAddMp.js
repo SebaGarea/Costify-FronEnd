@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createRawMaterial } from "../../services/rawMaterials.service.js";
+import { invalidateMateriasPrimasCache } from "./useItemsMateriasPrimas.js";
 
 export const useAddMp = () => {
     const[loading, setLoading] = useState(false);
@@ -10,6 +11,7 @@ export const useAddMp = () => {
         setError(null);
         try {
             await createRawMaterial(form, isFormData);
+            invalidateMateriasPrimasCache();
             return true
         } catch (error) {
             const validationErrors = error.response?.data?.errores;

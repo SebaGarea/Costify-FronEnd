@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { updateProduct as updateProductService } from '../../services/products.service.js';
+import { invalidateProductsCache } from './useItems.js';
 export const useUpdateProduct = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -8,7 +9,8 @@ const updateProduct = async (id, form, isFormData = false) =>{
     setLoading(true);
     setError(null);
     try {
-    const response = await updateProductService(id, form, isFormData);  
+    const response = await updateProductService(id, form, isFormData);
+    invalidateProductsCache();
     return response.data;
     } catch (error) {
         setError(error.response?.data?.error || "Error al editar el producto");

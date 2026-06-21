@@ -53,6 +53,20 @@ export const renameTipoProyecto = async (tipoActual, tipoNuevo) => {
   return await api.put("/api/plantillas/renombrar-tipo", { tipoActual, tipoNuevo });
 };
 
+export const uploadArchivosPlantilla = async (id, files) => {
+  const formData = new FormData();
+  Array.from(files).forEach((file) => formData.append("archivos", file));
+  return await api.post(`/api/plantillas/${id}/archivos`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const deleteArchivoPlantilla = async (id, publicId) => {
+  return await api.delete(`/api/plantillas/${id}/archivos`, {
+    params: { publicId },
+  });
+};
+
 export const getTiposProyecto = async () => {
   const response = await api.get('/api/plantillas/tipos');
   return response.data;

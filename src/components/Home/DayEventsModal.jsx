@@ -37,9 +37,9 @@ const toDateInputValue = (date) => {
   if (!date) return "";
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return "";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 };
 
@@ -333,11 +333,18 @@ export const DayEventsModal = ({
                             {it.subtitle}
                           </Text>
                         )}
-                        {it.raw?.priority && (
-                          <Badge mt={1} colorScheme="orange" variant="subtle">
-                            Prioridad {it.raw.priority}
-                          </Badge>
-                        )}
+                        <HStack mt={1} spacing={2} flexWrap="wrap">
+                          {it.raw?.priority && (
+                            <Badge colorScheme="orange" variant="subtle">
+                              Prioridad {it.raw.priority}
+                            </Badge>
+                          )}
+                          {Array.isArray(it.raw?.tags) && it.raw.tags.length > 0 && (
+                            <Badge colorScheme="blue" variant="outline">
+                              {it.raw.tags[0].charAt(0).toUpperCase() + it.raw.tags[0].slice(1)}
+                            </Badge>
+                          )}
+                        </HStack>
                         <Text fontSize="xs" color={mutedText} mt={2}>
                           Creado por: <strong>{renderAutor(it.raw?.createdBy)}</strong>
                         </Text>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createProduct } from "../../services/products.service.js";
+import { invalidateProductsCache } from "./useItems.js";
 
 export const useAddProduct = () => {
   const [loading, setLoading] = useState(false);
@@ -10,6 +11,7 @@ const addProduct = async (form, isFormData = false) =>{
     setError(null);
     try {
         const response = await createProduct(form, isFormData);
+        invalidateProductsCache();
         return response.data;
     } catch (error) {
         setError(error.response?.data?.error || "Error al agregar el producto");
