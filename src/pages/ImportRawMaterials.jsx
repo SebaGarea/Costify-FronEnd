@@ -24,7 +24,8 @@ export const ImportRawMaterials = () => {
   const navigate = useNavigate();
   const cardBg = useColorModeValue("white", "gray.800");
   const muted = useColorModeValue("gray.600", "gray.300");
-  const inputBg = useColorModeValue("gray.50", "gray.700");
+  const inputBg = useColorModeValue("gray.50", "gray.900");
+  const border = useColorModeValue("gray.200", "gray.700");
 
   const handleFileChange = (event) => {
     setFile(event.target.files?.[0] || null);
@@ -87,7 +88,8 @@ export const ImportRawMaterials = () => {
         bg={cardBg}
         p={8}
         rounded="xl"
-        boxShadow="xl"
+        borderWidth="1px"
+        borderColor={border}
       >
         <VStack spacing={4} align="stretch">
           <Heading size="lg">Subir el Excel del proveedor</Heading>
@@ -119,7 +121,7 @@ export const ImportRawMaterials = () => {
           </Button>
 
           {summary && (
-            <Box mt={4} borderWidth="1px" borderRadius="lg" p={5}>
+            <Box mt={4} borderWidth="1px" borderColor={border} borderRadius="lg" p={5}>
               <Heading size="md" mb={2}>
                 Resumen de importacion
               </Heading>
@@ -134,11 +136,12 @@ export const ImportRawMaterials = () => {
                     key={key}
                     justify="space-between"
                     borderWidth="1px"
+                    borderColor={border}
                     borderRadius="md"
                     p={2}
                   >
                     <Text textTransform="capitalize">{key}</Text>
-                    <Text fontWeight="bold">
+                    <Text fontWeight="bold" className="tnum">
                       {typeof value === "object"
                         ? JSON.stringify(value)
                         : String(value)}

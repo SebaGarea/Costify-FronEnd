@@ -53,7 +53,11 @@ export const ItemListContainer = ({ products }) => {
   };
 
   const colorBg = useColorModeValue("white", "gray.800");
-  const colorBgBox = useColorModeValue("gray.100", "gray.700");
+  const colorBgBox = useColorModeValue("gray.100", "gray.800");
+  const border = useColorModeValue("gray.200", "gray.700");
+  const muted = useColorModeValue("gray.600", "gray.400");
+  const accentPrice = useColorModeValue("teal.600", "teal.300");
+  const hoverBorder = useColorModeValue("teal.500", "teal.300");
 
   const catalogosUnicos = [
     ...new Set(products.map((p) => p.catalogo).filter(Boolean)),
@@ -116,12 +120,11 @@ export const ItemListContainer = ({ products }) => {
 
   return (
     <>
-      <Box mb={2} p={2} bg={colorBgBox} borderRadius="lg">
+      <Box mb={2} p={2} bg={colorBgBox} borderRadius="xl" borderWidth="1px" borderColor={border}>
         <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 2, md: 4 }} align={{ base: "stretch", md: "center" }}>
           {/* Dropdown Catálogo */}
           <Menu>
             <MenuButton
-              textTransform="uppercase"
               as={Button}
               rightIcon={<FiChevronDown />}
               size={{ base: "sm", md: "md" }}
@@ -136,7 +139,6 @@ export const ItemListContainer = ({ products }) => {
                     updateParams({ catalogo: cat, modelo: null, pagina: null });
                   }}
                   justifyContent="center"
-                  textTransform="uppercase"
                 >
                   {cat}
                 </MenuItem>
@@ -147,7 +149,6 @@ export const ItemListContainer = ({ products }) => {
           {/* Dropdown Modelo (dependiente de catálogo) */}
           <Menu isDisabled={!selectedCatalogo}>
             <MenuButton
-              textTransform="uppercase"
               as={Button}
               rightIcon={<FiChevronDown />}
               size={{ base: "sm", md: "md" }}
@@ -163,7 +164,6 @@ export const ItemListContainer = ({ products }) => {
                     key={modelo}
                     onClick={() => { updateParams({ modelo, pagina: null }); }}
                     justifyContent="center"
-                    textTransform="uppercase"
                   >
                     {modelo}
                   </MenuItem>
@@ -225,11 +225,12 @@ export const ItemListContainer = ({ products }) => {
           <Button
             as={Link}
             to={"/productos/itemAdd"}
-            leftIcon={<FiPlus color="#67e8f9" size={"25"} strokeWidth={4} />}
+            colorScheme="teal"
+            leftIcon={<FiPlus />}
             size={{ base: "sm", md: "md" }}
             width={{ base: "100%", md: "auto" }}
           >
-            Agregar Producto
+            Agregar producto
           </Button>
         </Stack>
       </Box>
@@ -249,132 +250,112 @@ export const ItemListContainer = ({ products }) => {
             <Box
               key={product._id}
               role={"group"}
-              p={6}
+              p={4}
               maxW={"330px"}
               w={"full"}
               bg={colorBg}
-              boxShadow={"2xl"}
-              rounded={"lg"}
+              borderWidth="1px"
+              borderColor={border}
+              rounded={"xl"}
               pos={"relative"}
               zIndex={1}
+              transition="border-color 0.15s ease, transform 0.15s ease"
+              _hover={{ borderColor: hoverBorder, transform: "translateY(-2px)" }}
             >
               <Box
                 rounded={"lg"}
                 mt={0}
                 pos={"relative"}
-                height={"230px"}
+                height={"160px"}
                 overflow={"hidden"}
-                _after={{
-                  transition: "all .3s ease",
-                  content: '""',
-                  w: "full",
-                  h: "full",
-                  pos: "absolute",
-                  top: 0,
-                  left: 0,
-                  backgroundImage: `url(${resolveImageUrl(product.imagenes)})`,
-                  filter: "blur(15px)",
-                  zIndex: -1,
-                }}
-                _groupHover={{
-                  _after: {
-                    filter: "blur(20px)",
-                  },
-                }}
               >
                 <Image
                   rounded={"lg"}
-                  height={230}
-                  width={282}
+                  height="160px"
+                  width="100%"
                   objectFit={"cover"}
                   src={resolveImageUrl(product.imagenes)}
                   alt={product.nombre}
                 />
               </Box>
-              <Stack pt={10} align={"center"} spacing={4}>
+              <Stack pt={4} align={"center"} spacing={2}>
                 <Text
                   fontSize={"md"}
-                  textTransform={"uppercase"}
-                  fontWeight={500}
+                  fontWeight={600}
                   textAlign="center"
                 >
                   {product.nombre}
                 </Text>
-                
+
                 {/* Información de la plantilla asociada */}
                 {planilla ? (
-                  <VStack spacing={3} w="full">
-                    <Badge colorScheme="blue" fontSize="xs" px={2} py={1}>
+                  <VStack spacing={2} w="full">
+                    <Badge colorScheme="teal" fontSize="xs" px={2} py={1} textTransform="none">
                       Plantilla: {planilla.nombre}
                     </Badge>
-                    
+
                     {planilla.tipoProyecto && (
-                      <Badge colorScheme="purple" fontSize="xs" px={2} py={1}>
+                      <Badge colorScheme="gray" fontSize="xs" px={2} py={1} textTransform="none">
                         {planilla.tipoProyecto}
                       </Badge>
                     )}
-                    
+
                     <VStack spacing={1} w="full">
                       <HStack justify="space-between" w="full">
-                        <Text fontSize="xs" color="gray.600">Costo Total:</Text>
-                        <Text fontSize="xs" fontWeight="bold" color="green.600">
+                        <Text fontSize="xs" color={muted}>Costo Total:</Text>
+                        <Text fontSize="xs" fontWeight="bold" color={muted} className="tnum">
                           ${costoPlanilla.toLocaleString()}
                         </Text>
                       </HStack>
-                      
+
                       <HStack justify="space-between" w="full">
-                        <Text fontSize="xs" color="gray.600">Precio Plantilla:</Text>
-                        <Text fontSize="xs" fontWeight="bold" color="blue.600">
+                        <Text fontSize="xs" color={muted}>Precio Plantilla:</Text>
+                        <Text fontSize="xs" fontWeight="bold" color={muted} className="tnum">
                           ${precioPlanilla.toLocaleString()}
                         </Text>
                       </HStack>
-                      
+
                       <HStack justify="space-between" w="full">
-                        <Text fontSize="xs" color="gray.600">Ganancia Plantilla:</Text>
-                        <Text fontSize="xs" fontWeight="bold" color="orange.600">
+                        <Text fontSize="xs" color={muted}>Ganancia Plantilla:</Text>
+                        <Text fontSize="xs" fontWeight="bold" color="orange.500" className="tnum">
                           ${gananciaPlanilla.toLocaleString()}
                         </Text>
                       </HStack>
                     </VStack>
-                    
+
                     <Divider />
                   </VStack>
                 ) : (
-                  <Badge colorScheme="gray" fontSize="xs" px={2} py={1}>
+                  <Badge colorScheme="gray" fontSize="xs" px={2} py={1} textTransform="none">
                     Sin plantilla asociada
                   </Badge>
                 )}
                 
-                <Heading fontSize={"sm"} fontFamily={"body"} fontWeight={200} textAlign="center">
-                  {product.descripcion.length > 60
-                    ? product.descripcion.slice(0, 60) + "..."
-                    : product.descripcion}
-                </Heading>
-                
+                <Text fontSize={"sm"} color={muted} textAlign="center" noOfLines={2}>
+                  {product.descripcion}
+                </Text>
+
                 <Stack direction={"row"} align={"center"}>
-                  <Text fontWeight={800} fontSize={"xl"} color="green.500">
+                  <Text fontWeight={800} fontSize={"xl"} color={accentPrice} fontFamily="heading" className="tnum">
                     ${displayedPrice.toLocaleString()}
                   </Text>
-                  <Text ml={2} color={"gray.600"} fontSize="sm">
+                  <Text ml={2} color={muted} fontSize="sm">
                     Stock: {product.stock}
                   </Text>
                 </Stack>
-                <HStack>
-                  <Button
-                    as={Link}
-                    to={`/productos/${product._id}`}
-                    colorScheme="teal"
-                    variant="outline"
-                    m={2}
-                  >
-                    Ver Detalle
-                    <Box as="span" ml={2}>
-                      <RiArrowRightLine />
-                    </Box>
-                  </Button>
-                </HStack>
-                <Text m={2} color={"gray.600"}>
-                  Id: {product._id}
+                <Button
+                  as={Link}
+                  to={`/productos/${product._id}`}
+                  colorScheme="teal"
+                  variant="outline"
+                  size="sm"
+                  w="full"
+                  rightIcon={<RiArrowRightLine />}
+                >
+                  Ver detalle
+                </Button>
+                <Text color={muted} fontSize="xs">
+                  Id: …{product._id.slice(-8)}
                 </Text>
               </Stack>
             </Box>

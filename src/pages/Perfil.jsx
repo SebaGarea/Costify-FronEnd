@@ -44,10 +44,10 @@ export const Perfil = () => {
   const borderColor = useColorModeValue("rgba(226,232,240,0.8)", "rgba(51,65,85,0.8)");
   const accentColor = useColorModeValue("teal.500", "teal.300");
   const heroBg = useColorModeValue(
-    "linear(135deg, rgba(59,130,246,0.18), rgba(45,212,191,0.15))",
+    "linear(135deg, rgba(45,212,191,0.16), rgba(20,184,166,0.12))",
     "linear(120deg, rgba(45,212,191,0.18), rgba(6,182,212,0.25))"
   );
-  const heroBorderColor = useColorModeValue("rgba(59,130,246,0.35)", "rgba(45,212,191,0.35)");
+  const heroBorderColor = useColorModeValue("rgba(45,212,191,0.35)", "rgba(45,212,191,0.35)");
   const heroTitleColor = useColorModeValue("gray.800", "gray.100");
   const heroDescriptionColor = useColorModeValue("gray.600", "gray.100");
   const mutedTextColor = useColorModeValue("gray.600", "gray.300");
@@ -120,7 +120,6 @@ export const Perfil = () => {
           borderWidth="1px"
           borderColor={heroBorderColor}
           p={{ base: 5, md: 8 }}
-          shadow="xl"
         >
           <Heading size="lg" fontWeight="600" mb={2} color={heroTitleColor}>Perfil</Heading>
           <Text color={heroDescriptionColor} maxW="3xl">
@@ -129,7 +128,7 @@ export const Perfil = () => {
         </Box>
 
         <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow="lg">
+          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
             <CardHeader>
               <Heading size="md" color={heroTitleColor}>Vista previa</Heading>
               <Text color={mutedTextColor} fontSize="sm">Así se verá tu perfil en el panel</Text>
@@ -141,7 +140,7 @@ export const Perfil = () => {
                   <Box>
                     <Heading size="md" fontWeight="600">{`${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() || "Usuario"}</Heading>
                     <Text color={mutedTextColor}>{user?.email}</Text>
-                    <Badge colorScheme={user?.role === "admin" ? "purple" : "blue"} mt={2} textTransform="capitalize">
+                    <Badge colorScheme={user?.role === "admin" ? "purple" : "teal"} mt={2} textTransform="capitalize">
                       {user?.role ?? "user"}
                     </Badge>
                   </Box>
@@ -157,7 +156,7 @@ export const Perfil = () => {
             </CardBody>
           </Card>
 
-          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" shadow="lg">
+          <Card bg={cardBg} borderColor={borderColor} borderWidth="1px">
             <CardHeader>
               <Heading size="md" color={heroTitleColor}>Preferencias rápidas</Heading>
               <Text color={mutedTextColor} fontSize="sm">Define la atmósfera predeterminada del panel.</Text>

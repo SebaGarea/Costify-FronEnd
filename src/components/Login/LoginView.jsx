@@ -26,6 +26,7 @@ export const LoginView = () => {
   const { colorMode } = useColorMode();
   const cardBg = useColorModeValue("rgba(255, 255, 255, 0.95)", "rgba(15, 23, 42, 0.9)");
   const cardBorder = useColorModeValue("rgba(148, 163, 184, 0.4)", "rgba(30, 58, 138, 0.6)");
+  const muted = useColorModeValue("gray.600", "gray.400");
   const logoSrc = colorMode === "dark" ? "/logo-light.png" : "/logo-dark.png";
 
   const [form, setForm] = useState({ email: "", password: "" });
@@ -116,7 +117,7 @@ export const LoginView = () => {
           <Button colorScheme="teal" type="submit" isLoading={loading}>Entrar</Button>
           <Divider />
           <VStack spacing={2} align="stretch">
-            <Text fontSize="sm" color="gray.500" textAlign="center">O continuar con</Text>
+            <Text fontSize="sm" color={muted} textAlign="center">O continuar con</Text>
             <Button
               variant="outline"
               leftIcon={<FcGoogle size={20} />}
@@ -127,7 +128,7 @@ export const LoginView = () => {
               Continuar con Google
             </Button>
           </VStack>
-          <Text fontSize="sm" textAlign="center" color="gray.500">
+          <Text fontSize="sm" textAlign="center" color={muted}>
             ¿No tienes cuenta?
             <Button as={RouterLink} to="/register" variant="link" colorScheme="teal" ml={2}>
               Regístrate

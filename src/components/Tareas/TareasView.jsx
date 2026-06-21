@@ -51,7 +51,7 @@ export const TareasView = () => {
   const cardBg = useColorModeValue("white", "gray.800");
   const border = useColorModeValue("blackAlpha.200", "whiteAlpha.200");
   const muted = useColorModeValue("gray.600", "gray.300");
-  const heading = useColorModeValue("blue.600", "blue.300");
+  const heading = useColorModeValue("teal.600", "teal.300");
 
   const {
     items,
@@ -310,7 +310,7 @@ export const TareasView = () => {
             <Button
               type="button"
               leftIcon={<FiPlus />}
-              colorScheme="blue"
+              colorScheme="teal"
               onClick={handleAdd}
               isLoading={adding}
               isDisabled={!draft.title.trim() || !draft.dueDate}
@@ -367,12 +367,12 @@ export const TareasView = () => {
                                   {pr.label}
                                 </Badge>
                                 {tag ? (
-                                  <Badge colorScheme="blue" variant="outline">
+                                  <Badge colorScheme="teal" variant="outline" textTransform="none">
                                     {tag}
                                   </Badge>
                                 ) : null}
                                 {t.dueDate ? (
-                                  <Badge colorScheme="purple" variant="outline">
+                                  <Badge colorScheme="gray" variant="outline">
                                     Vence: {String(t.dueDate).slice(0, 10)}
                                   </Badge>
                                 ) : null}
@@ -474,7 +474,7 @@ export const TareasView = () => {
                               aria-label="Guardar"
                               icon={<FiSave />}
                               size="sm"
-                              colorScheme="green"
+                              colorScheme="teal"
                               variant="solid"
                               isLoading={updating}
                               type="button"
