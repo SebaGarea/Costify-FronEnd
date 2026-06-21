@@ -66,9 +66,10 @@ export const ConfiguracionView = () => {
   const { user } = useAuth();
   const isAdmin = (user?.role ?? "").toLowerCase() === "admin";
   const toast = useToast();
-  const accentColor = useColorModeValue("blue.600", "blue.300");
+  const accentColor = useColorModeValue("teal.600", "teal.300");
   const cardBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
+  const muted = useColorModeValue("gray.600", "gray.400");
 
   const [invitationForm, setInvitationForm] = useState({
     email: "",
@@ -219,12 +220,12 @@ export const ConfiguracionView = () => {
               </Text>
               <Badge colorScheme={statusVariant}>{statusLabel}</Badge>
             </HStack>
-            <Text fontSize="sm" color="gray.500">{inv.email || "Invitación abierta"}</Text>
-            <Text fontSize="xs" color="gray.500">
+            <Text fontSize="sm" color={muted}>{inv.email || "Invitación abierta"}</Text>
+            <Text fontSize="xs" color={muted}>
               Usos: {inv.usedCount ?? 0} / {inv.maxUses ?? 1}
             </Text>
             {inv.expiresAt && (
-              <Text fontSize="xs" color="gray.500">
+              <Text fontSize="xs" color={muted}>
                 Vence: {formatDateTime(inv.expiresAt)}
               </Text>
             )}
@@ -241,7 +242,7 @@ export const ConfiguracionView = () => {
     <Box px={{ base: 2, md: 6 }} py={6}>
       <Stack spacing={3} mb={8}>
         <Heading size="lg">Configuración</Heading>
-        <Text color="gray.500">Gestiona los accesos y las preferencias de tu cuenta.</Text>
+        <Text color={muted}>Gestiona los accesos y las preferencias de tu cuenta.</Text>
       </Stack>
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={10} mb={6}>
@@ -252,21 +253,21 @@ export const ConfiguracionView = () => {
           <CardBody>
             <Stack spacing={3} fontSize="sm">
               <Flex justify="space-between">
-                <Text color="gray.500">Nombre</Text>
+                <Text color={muted}>Nombre</Text>
                 <Text fontWeight="medium">{user?.first_name} {user?.last_name}</Text>
               </Flex>
               <Flex justify="space-between">
-                <Text color="gray.500">Correo</Text>
+                <Text color={muted}>Correo</Text>
                 <Text fontWeight="medium">{user?.email}</Text>
               </Flex>
               <Flex justify="space-between">
-                <Text color="gray.500">Rol</Text>
-                <Badge colorScheme={isAdmin ? "purple" : "blue"} textTransform="capitalize">
+                <Text color={muted}>Rol</Text>
+                <Badge colorScheme={isAdmin ? "purple" : "teal"} textTransform="capitalize">
                   {user?.role ?? "user"}
                 </Badge>
               </Flex>
               <Flex justify="space-between">
-                <Text color="gray.500">Verificación</Text>
+                <Text color={muted}>Verificación</Text>
                 <Badge colorScheme={user?.emailVerified ? "green" : "orange"}>
                   {user?.emailVerified ? "Verificada" : "Pendiente"}
                 </Badge>
@@ -281,7 +282,7 @@ export const ConfiguracionView = () => {
           <Flex justify="space-between" align="center">
             <Box>
               <Heading size="md">Seguridad</Heading>
-              <Text color="gray.500" fontSize="sm" mt={1}>
+              <Text color={muted} fontSize="sm" mt={1}>
                 Actualiza tu contraseña personal para mantener la cuenta protegida.
               </Text>
             </Box>
@@ -323,7 +324,7 @@ export const ConfiguracionView = () => {
                   onChange={handlePasswordField("confirmPassword")}
                 />
               </FormControl>
-              <Button type="submit" colorScheme="blue" isLoading={changingPassword} alignSelf="flex-start">
+              <Button type="submit" colorScheme="teal" isLoading={changingPassword} alignSelf="flex-start">
                 Actualizar contraseña
               </Button>
             </Stack>
@@ -377,7 +378,7 @@ export const ConfiguracionView = () => {
                       <FormLabel>Expira</FormLabel>
                       <Input type="datetime-local" value={invitationForm.expiresAt} onChange={(e) => handleInvitationField("expiresAt")(e.target.value)} />
                     </FormControl>
-                    <Button type="submit" colorScheme="blue" isLoading={creating} leftIcon={<Icon as={BsLightningCharge} />}>
+                    <Button type="submit" colorScheme="teal" isLoading={creating} leftIcon={<Icon as={BsLightningCharge} />}>
                       Generar código
                     </Button>
                   </Stack>
@@ -407,7 +408,7 @@ export const ConfiguracionView = () => {
             <Heading size="md">Invitaciones</Heading>
           </CardHeader>
           <CardBody>
-            <Text color="gray.500">
+            <Text color={muted}>
               Solo los administradores pueden generar nuevos accesos. Si necesitas invitar a alguien, contacta a un administrador del equipo.
             </Text>
           </CardBody>
@@ -426,6 +427,7 @@ const PlataformasSection = () => {
   const toast = useToast();
   const cardBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
+  const muted = useColorModeValue("gray.600", "gray.400");
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: false });
 
   const toStrings = (obj) =>
@@ -478,7 +480,7 @@ const PlataformasSection = () => {
             onClick={onToggle}
           />
         </Flex>
-        <Text color="gray.500" fontSize="sm" mt={1}>
+        <Text color={muted} fontSize="sm" mt={1}>
           Porcentajes globales usados para calcular precios en todas las plantillas.
         </Text>
       </CardHeader>
@@ -571,6 +573,7 @@ const PerfilesPinturaSection = () => {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(emptyForm);
   const cardBg = useColorModeValue("white", "gray.800");
+  const muted = useColorModeValue("gray.600", "gray.400");
 
   const handleAdd = async () => {
     if (!form.nombre.trim() || !form.perimetro) return;
@@ -660,9 +663,9 @@ const PerfilesPinturaSection = () => {
 
             {/* Lista de perfiles agrupados por tipo */}
             {loading ? (
-              <Text fontSize="sm" color="gray.500">Cargando perfiles...</Text>
+              <Text fontSize="sm" color={muted}>Cargando perfiles...</Text>
             ) : perfiles.length === 0 ? (
-              <Text fontSize="sm" color="gray.400">No hay perfiles cargados.</Text>
+              <Text fontSize="sm" color={muted}>No hay perfiles cargados.</Text>
             ) : (
               <Stack spacing={2}>
                 {TIPO_OPTIONS.map(({ value: tipo, label }) => {
@@ -696,6 +699,7 @@ const PerfilesPinturaSection = () => {
 const GrupoPerfil = ({ label, perfiles, editingId, editForm, saving, onEdit, onSaveEdit, onDelete, onCancelEdit, setEditForm }) => {
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: false });
   const borderColor = useColorModeValue("gray.200", "gray.600");
+  const muted = useColorModeValue("gray.600", "gray.400");
 
   return (
     <Box border="1px" borderColor={borderColor} borderRadius="md" overflow="hidden">
@@ -724,7 +728,7 @@ const GrupoPerfil = ({ label, perfiles, editingId, editForm, saving, onEdit, onS
                   </Select>
                   <Input size="sm" type="number" step="0.001" value={editForm.perimetro} onChange={(e) => setEditForm((f) => ({ ...f, perimetro: e.target.value }))} w="100px" />
                   <HStack>
-                    <IconButton icon={<FiCheck />} size="sm" colorScheme="green" onClick={() => onSaveEdit(p._id)} isLoading={saving} aria-label="Guardar" />
+                    <IconButton icon={<FiCheck />} size="sm" colorScheme="teal" onClick={() => onSaveEdit(p._id)} isLoading={saving} aria-label="Guardar" />
                     <IconButton icon={<FiX />} size="sm" onClick={onCancelEdit} aria-label="Cancelar" />
                   </HStack>
                 </Stack>
@@ -732,7 +736,7 @@ const GrupoPerfil = ({ label, perfiles, editingId, editForm, saving, onEdit, onS
                 <HStack justify="space-between">
                   <HStack spacing={3}>
                     <Text fontSize="sm" fontWeight="semibold">{p.nombre}</Text>
-                    <Text fontSize="sm" color="gray.500">{p.perimetro} m/m</Text>
+                    <Text fontSize="sm" color={muted}>{p.perimetro} m/m</Text>
                   </HStack>
                   <HStack>
                     <IconButton icon={<FiEdit2 />} size="xs" variant="ghost" onClick={() => onEdit(p)} aria-label="Editar" />
