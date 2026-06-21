@@ -447,9 +447,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const subtotalBg = useColorModeValue("gray.50", "gray.600");
   const mutedTextColor = useColorModeValue("gray.600", "gray.300");
 
-  // Variables de color para la sección del producto
-  const productoBg = useColorModeValue("blue.50", "blue.900");
-  const productoBorder = useColorModeValue("blue.200", "blue.600");
+  // Variables de color para la sección del producto (neutral; el énfasis va en teal)
+  const productoBg = useColorModeValue("gray.50", "gray.800");
+  const productoBorder = useColorModeValue("gray.200", "gray.600");
   const inputBg = useColorModeValue("white", "gray.700");
   const precioBg = useColorModeValue("green.50", "green.900");
   const precioBorder = useColorModeValue("green.200", "green.600");
@@ -1930,7 +1930,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     <Card>
       <CardHeader>
         <HStack justify="space-between">
-          <Heading size="md" color={color} textTransform="uppercase">
+          <Heading size="md" color={color} textTransform="capitalize">
             {seccionLabels[categoria] || categoria}
           </Heading>
           <Button
@@ -2381,11 +2381,11 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                             borderColor:
                               item.isPriceAuto && !item.isCustomMaterial
                                 ? "green.400"
-                                : "blue.400",
+                                : "teal.400",
                             boxShadow:
                               item.isPriceAuto && !item.isCustomMaterial
                                 ? "0 0 0 1px var(--chakra-colors-green-400)"
-                                : "0 0 0 1px var(--chakra-colors-blue-400)",
+                                : "0 0 0 1px var(--chakra-colors-teal-400)",
                           }}
                           bg={
                             item.isPriceAuto && !item.isCustomMaterial
@@ -2530,7 +2530,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               <Divider />
               <HStack justify="space-between">
                 <Text fontWeight="bold">Costo Total:</Text>
-                <Badge colorScheme="blue" fontSize="md" p={2}>
+                <Badge colorScheme="teal" fontSize="md" p={2}>
                   {formatPrice(subtotal)}
                 </Badge>
               </HStack>
@@ -2651,10 +2651,10 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               <Checkbox
                 isChecked={crearProducto}
                 onChange={(e) => setCrearProducto(e.target.checked)}
-                colorScheme="blue"
+                colorScheme="teal"
                 size="lg"
               >
-                <Text fontWeight="semibold" color="blue.600">
+                <Text fontWeight="semibold" color={titleColor}>
                   Crear producto basado en esta plantilla
                 </Text>
               </Checkbox>
@@ -2668,7 +2668,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   borderColor={productoBorder}
                 >
                   <VStack spacing={4} align="stretch">
-                    <Text fontSize="sm" fontWeight="medium" color="blue.700">
+                    <Text fontSize="sm" fontWeight="medium" color={titleColor}>
                       Datos del Producto
                     </Text>
                     
@@ -2907,7 +2907,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   <Heading
                     size="md"
                     color="purple.400"
-                    textTransform="uppercase"
+                    textTransform="capitalize"
                   >
                     extras
                   </Heading>
@@ -3172,13 +3172,13 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   </FormControl>
 
                   {uploadingArchivos && (
-                    <Text fontSize="sm" color="blue.400">
+                    <Text fontSize="sm" color={titleColor}>
                       Subiendo archivos…
                     </Text>
                   )}
 
                   {archivos.length === 0 ? (
-                    <Text fontSize="sm" color="gray.500">
+                    <Text fontSize="sm" color={mutedTextColor}>
                       No hay archivos adjuntos todavía.
                     </Text>
                   ) : (
@@ -3236,7 +3236,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                                   href={previewGrande}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  color="blue.400"
+                                  color={titleColor}
                                   fontSize="xs"
                                 >
                                   Vista previa
@@ -3245,7 +3245,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                                   href={archivo.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  color="blue.400"
+                                  color={titleColor}
                                   fontSize="xs"
                                 >
                                   Abrir original
@@ -3283,7 +3283,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               <VStack spacing={4}>
                 <HStack w="100%" justify="space-between" fontSize="xl">
                   <Text fontWeight="bold">Costo Total de Materiales:</Text>
-                  <Badge colorScheme="blue" fontSize="xl" p={3}>
+                  <Badge colorScheme="teal" fontSize="xl" p={3}>
                     {formatPrice(costoTotal)}
                   </Badge>
                 </HStack>
@@ -3359,7 +3359,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                       Base {nubeBasePercent}% + Cuotas {nubeCuotasExtraPercent}%
                     </Text>
                   </VStack>
-                  <Badge colorScheme="cyan" fontSize="lg" p={2}>
+                  <Badge colorScheme="teal" fontSize="lg" p={2}>
                     {formatPrice(valorNubeCuotas)}
                   </Badge>
                 </HStack>

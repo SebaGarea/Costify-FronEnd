@@ -38,8 +38,10 @@ export const ItemAddVenta = () => {
   const isDraftLoaded = useRef(!ventaId);
   const draftKey = `venta_draft_${ventaId || "new"}`;
 
-  const card = useColorModeValue("gray.100", "gray.800");
-  const border = useColorModeValue("gray.500", "gray.600");
+  const card = useColorModeValue("white", "gray.800");
+  const border = useColorModeValue("gray.200", "gray.700");
+  const muted = useColorModeValue("gray.600", "gray.400");
+  const suggestionHover = useColorModeValue("gray.100", "gray.700");
 
   const [form, setForm] = useState({
     fecha: new Date().toISOString().split("T")[0],
@@ -348,12 +350,12 @@ export const ItemAddVenta = () => {
 
   return (
     <Box p={{ base: 3, md: 5 }} maxW="1200px" mx="auto">
-      <Heading size="md" mb={3}>Agregar venta</Heading>
+      <Heading size="md" mb={3}>{ventaId ? "Editar venta" : "Agregar venta"}</Heading>
       <VStack
         bg={card}
         borderWidth="1px"
         borderColor={border}
-        borderRadius="md"
+        borderRadius="xl"
         p={{ base: 3, md: 5 }}
         spacing={{ base: 3, md: 4 }}
         align="stretch"
@@ -393,7 +395,7 @@ export const ItemAddVenta = () => {
                 left={0}
                 width="250px"
                 bg={card}
-                borderWidth="2px"
+                borderWidth="1px"
                 borderStyle="solid"
                 borderColor={border}
                 borderRadius="md"
@@ -417,7 +419,7 @@ export const ItemAddVenta = () => {
                       cursor="pointer"
                       px={2}
                       py={1}
-                      _hover={{ bg: border }}
+                      _hover={{ bg: suggestionHover }}
                     >
                       {producto.nombre} {producto.modelo}
                     </Box>
@@ -427,14 +429,14 @@ export const ItemAddVenta = () => {
                     .toLowerCase()
                     .includes(searchProducto.toLowerCase())
                 ).length === 0 && (
-                  <Text px={2} py={1} color="gray.500">
+                  <Text px={2} py={1} color={muted}>
                     No hay coincidencias. Se agregará como producto nuevo.
                   </Text>
                 )}
               </Box>
             )}
             {selectedProduct && (
-              <Text fontSize="sm" color="gray.400" mt={2}>
+              <Text fontSize="sm" color={muted} mt={2}>
                 Precio catálogo actualizado: {formatCurrency(precioCatalogoActual ?? 0)} · Precio fijado para esta venta: {formatCurrency(precioUnit)}
                 {selectedProduct.planillaCosto ? " · Tiene planilla asociada" : ""}
               </Text>
@@ -459,7 +461,7 @@ export const ItemAddVenta = () => {
                 left={0}
                 width="250px"
                 bg={card}
-                borderWidth="2px"
+                borderWidth="1px"
                 borderStyle="solid"
                 borderColor={border}
                 borderRadius="md"
@@ -483,7 +485,7 @@ export const ItemAddVenta = () => {
                       cursor="pointer"
                       px={2}
                       py={1}
-                      _hover={{ bg: border }}
+                      _hover={{ bg: suggestionHover }}
                     >
                       {plantilla.nombre}
                       {plantilla.tipoProyecto ? ` · ${plantilla.tipoProyecto}` : ""}
@@ -494,14 +496,14 @@ export const ItemAddVenta = () => {
                     .toLowerCase()
                     .includes(searchPlantilla.toLowerCase())
                 ).length === 0 && (
-                  <Text px={2} py={1} color="gray.500">
+                  <Text px={2} py={1} color={muted}>
                     No hay plantillas coincidentes.
                   </Text>
                 )}
               </Box>
             )}
             {selectedPlantilla && (
-              <Text fontSize="sm" color="gray.500" mt={2}>
+              <Text fontSize="sm" color={muted} mt={2}>
                 {selectedPlantilla.tipoProyecto || "Proyecto general"}
                 {selectedPlantilla.categoria ? ` · ${selectedPlantilla.categoria}` : ""}
                 {Number.isFinite(plantillaCostoBase) && plantillaCostoBase > 0
@@ -564,14 +566,14 @@ export const ItemAddVenta = () => {
             <FormLabel>Total</FormLabel>
             <InputGroup size="sm">
               <InputLeftAddon children="$" />
-              <Input value={valorTotal} readOnly />
+              <Input value={valorTotal} readOnly className="tnum" fontWeight="semibold" />
             </InputGroup>
           </FormControl>
           <FormControl minW={{ base: "48%", md: "200px" }} flex="1" isReadOnly>
             <FormLabel>Restan</FormLabel>
             <InputGroup size="sm">
               <InputLeftAddon children="$" />
-              <Input value={restanPreview} readOnly />
+              <Input value={restanPreview} readOnly className="tnum" fontWeight="semibold" />
             </InputGroup>
           </FormControl>
         </HStack>
@@ -579,7 +581,7 @@ export const ItemAddVenta = () => {
           <Button variant="ghost" onClick={() => navigate("/ventas")} w={{ base: "100%", sm: "auto" }}>
             Cancelar
           </Button>
-          <Button colorScheme="blue" onClick={onSubmit} isLoading={loading} w={{ base: "100%", sm: "auto" }}>
+          <Button colorScheme="teal" onClick={onSubmit} isLoading={loading} w={{ base: "100%", sm: "auto" }}>
             Guardar
           </Button>
         </HStack>
