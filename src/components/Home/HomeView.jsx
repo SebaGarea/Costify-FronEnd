@@ -101,14 +101,13 @@ const StatCard = ({
     >
       <Stat>
         <StatLabel
-          fontSize="xs"
-          textTransform="uppercase"
-          letterSpacing="0.2em"
+          fontSize="sm"
+          fontWeight="medium"
           color={labelColor}
         >
           {label}
         </StatLabel>
-        <StatNumber fontSize="2xl" color={accentColor} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+        <StatNumber fontSize="2xl" color={accentColor} fontFamily="heading">
           {value}
         </StatNumber>
         {helpText && <StatHelpText color={helpColor}>{helpText}</StatHelpText>}
@@ -155,10 +154,10 @@ const InsightCard = ({ title, value, caption, icon, cardBg, borderColor }) => {
         </Flex>
       )}
       <Box>
-        <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.2em" color={captionColor}>
+        <Text fontSize="sm" fontWeight="medium" color={captionColor}>
           {title}
         </Text>
-        <Text fontSize="lg" fontWeight="bold" fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+        <Text fontSize="lg" fontWeight="bold" fontFamily="heading">
           {value}
         </Text>
         {caption && (
@@ -234,16 +233,16 @@ export const HomeView = () => {
   const accentOrangeBg = useColorModeValue("orange.50", "whiteAlpha.200");
   const accentBlue = useColorModeValue("cyan.600", "cyan.300");
   const accentBlueBg = useColorModeValue("cyan.50", "whiteAlpha.200");
-  const accentIndigo = useColorModeValue("indigo.600", "indigo.300");
-  const accentIndigoBg = useColorModeValue("indigo.50", "whiteAlpha.200");
+  const accentIndigo = useColorModeValue("pink.600", "pink.300");
+  const accentIndigoBg = useColorModeValue("pink.50", "whiteAlpha.200");
   const accentPurple = useColorModeValue("purple.600", "purple.300");
   const accentPurpleBg = useColorModeValue("purple.50", "whiteAlpha.200");
   const accentSky = useColorModeValue("blue.600", "blue.300");
   const accentSkyBg = useColorModeValue("blue.50", "whiteAlpha.200");
   const accentRed = useColorModeValue("red.600", "red.300");
   const accentRedBg = useColorModeValue("red.50", "whiteAlpha.200");
-  const accentLime = useColorModeValue("lime.600", "lime.300");
-  const accentLimeBg = useColorModeValue("lime.50", "whiteAlpha.200");
+  const accentLime = useColorModeValue("green.600", "green.300");
+  const accentLimeBg = useColorModeValue("green.50", "whiteAlpha.200");
   const primaryText = useColorModeValue("gray.800", "gray.100");
   const channelRankBg = useColorModeValue("gray.100", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
@@ -819,7 +818,7 @@ export const HomeView = () => {
             </Badge> */}
             <Heading
               fontSize={{ base: "2xl", md: "4xl" }}
-              fontFamily="'Space Grotesk', 'DM Sans', sans-serif"
+              fontFamily="heading"
             >
               Dashboard Operativo
             </Heading>
@@ -875,7 +874,7 @@ export const HomeView = () => {
               <Flex align="center" justify="space-between" mb={3} gap={3} flexWrap="wrap">
                 <HStack spacing={2}>
                   <Icon as={FaClipboardList} color={accentTeal} />
-                  <Heading size="sm" fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+                  <Heading size="sm" fontFamily="heading">
                     Tareas pendientes
                   </Heading>
                 </HStack>
@@ -1033,7 +1032,7 @@ export const HomeView = () => {
             gap={3}
             mb={6}
           >
-            <Heading size="md" fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+            <Heading size="md" fontFamily="heading">
               Top 3 medios de venta
             </Heading>
             <Text fontSize="sm" color={mutedText}>
@@ -1100,7 +1099,7 @@ export const HomeView = () => {
         </Box>
 
           <Box flex="1" p={6} borderRadius="2xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
-            <Heading size="md" mb={4} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+            <Heading size="md" mb={4} fontFamily="heading">
               Top 3 productos
             </Heading>
             {salesMetrics.topProducts?.length ? (
@@ -1146,7 +1145,7 @@ export const HomeView = () => {
         
 
         <Box p={6} borderRadius="2xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
-          <Heading size="md" mb={6} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+          <Heading size="md" mb={6} fontFamily="heading">
             Capacidad e insumos
           </Heading>
           <SimpleGrid columns={{ base: 1, md: 3 }} gap={4}>

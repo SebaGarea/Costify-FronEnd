@@ -214,7 +214,7 @@ export const ConfiguracionView = () => {
         >
           <Box>
             <HStack spacing={2} mb={1}>
-              <Text fontWeight="semibold" fontSize="lg" fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+              <Text fontWeight="semibold" fontSize="lg" fontFamily="heading">
                 {inv.code}
               </Text>
               <Badge colorScheme={statusVariant}>{statusLabel}</Badge>

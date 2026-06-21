@@ -788,7 +788,7 @@ export const ListaDeComprasView = () => {
           gap={4}
         >
           <Box>
-            <Heading fontSize={{ base: "2xl", md: "4xl" }} mb={2} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+            <Heading fontSize={{ base: "2xl", md: "4xl" }} mb={2} fontFamily="heading">
               Lista de Compras
             </Heading>
             <Text fontSize="lg" color={mutedText} maxW="720px">
@@ -849,7 +849,7 @@ export const ListaDeComprasView = () => {
           borderColor={borderColor}
           boxShadow="xl"
         >
-          <Heading size="md" mb={4} fontFamily="'Space Grotesk', 'DM Sans', sans-serif">
+          <Heading size="md" mb={4} fontFamily="heading">
             Resumen de compra
           </Heading>
           <Stack spacing={3}>

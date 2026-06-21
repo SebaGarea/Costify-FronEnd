@@ -1,7 +1,7 @@
 /* Ajustes finos para que FullCalendar quede mejor integrado con Chakra/Costify */
 
 .unified-calendar-wrapper .fc {
-  font-family: 'Space Grotesk', 'DM Sans', system-ui, sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 14px;
 }
 

@@ -689,7 +689,7 @@ const ListaCompraSeccion = ({
       <Heading
         size="md"
         mb={4}
-        fontFamily="'Space Grotesk', 'DM Sans', sans-serif"
+        fontFamily="heading"
         color={headingColor}
       >
         {title}
