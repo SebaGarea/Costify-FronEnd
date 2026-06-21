@@ -1,7 +1,9 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
+  Badge,
   Box,
   Heading,
+  HStack,
   Stack,
   Text,
   Divider,
@@ -502,6 +504,8 @@ export const ListaDeComprasView = () => {
   const summaryBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
+  const overBudgetBg = useColorModeValue("red.50", "rgba(229,62,62,0.15)");
+  const overBudgetText = useColorModeValue("red.600", "red.200");
 
   const getMaterialName = useCallback(
     (item) => {
@@ -780,68 +784,80 @@ export const ListaDeComprasView = () => {
 
   return (
     <Box bg={pageBg} minH="100vh" px={{ base: 4, md: 10 }} py={{ base: 6, md: 10 }}>
-      <Stack spacing={8} maxW="1200px" mx="auto">
-        <Flex
-          direction={{ base: "column", md: "row" }}
-          align={{ base: "flex-start", md: "center" }}
-          justify="space-between"
-          gap={4}
+      <Stack spacing={6} maxW="1200px" mx="auto">
+        <Box>
+          <Heading fontSize={{ base: "2xl", md: "4xl" }} mb={2} fontFamily="heading">
+            Lista de Compras
+          </Heading>
+          <Text fontSize="lg" color={mutedText} maxW="720px">
+            Organizá las compras por área, calculá cantidades.
+          </Text>
+        </Box>
+
+        {/* Presupuesto: se define arriba para ver la diferencia en vivo */}
+        <Box
+          p={{ base: 4, md: 5 }}
+          borderRadius="2xl"
+          bg={summaryBg}
+          borderWidth="1px"
+          borderColor={borderColor}
         >
-          <Box>
-            <Heading fontSize={{ base: "2xl", md: "4xl" }} mb={2} fontFamily="heading">
-              Lista de Compras
-            </Heading>
-            <Text fontSize="lg" color={mutedText} maxW="720px">
-              Organizá las compras por área, calculá cantidades.
-            </Text>
-            <Text fontSize="sm" color={mutedText} mt={1}>
-              {syncStatusMessage}
-            </Text>
-          </Box>
-          <Button
-            colorScheme="teal"
-            size="md"
-            onClick={handleManualSave}
-            isDisabled={!hasPendingSave || isSaving}
-            isLoading={isSaving}
-          >
-            Guardar cambios
-          </Button>
-        </Flex>
+          <Heading size="sm" mb={3} fontFamily="heading">
+            Tu presupuesto
+          </Heading>
+          <Flex gap={4} direction={{ base: "column", sm: "row" }} align={{ base: "stretch", sm: "flex-end" }}>
+            <FormControl>
+              <FormLabel fontSize="sm">Efectivo disponible</FormLabel>
+              <Input
+                value={formatInputCurrency(efectivoDisponible)}
+                onChange={(event) =>
+                  setEfectivoDisponible(parseInputCurrency(event.target.value))
+                }
+                placeholder="$0"
+                size="sm"
+                inputMode="decimal"
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel fontSize="sm">Dinero digital</FormLabel>
+              <Input
+                value={formatInputCurrency(dineroDigital)}
+                onChange={(event) =>
+                  setDineroDigital(parseInputCurrency(event.target.value))
+                }
+                placeholder="$0"
+                size="sm"
+                inputMode="decimal"
+              />
+            </FormControl>
+            <Box minW={{ base: "auto", sm: "160px" }} textAlign={{ base: "left", sm: "right" }}>
+              <Text fontSize="xs" color={mutedText}>Disponible total</Text>
+              <Text fontSize="lg" fontWeight="bold" className="tnum">
+                {currencyFormatter.format(totalDisponible)}
+              </Text>
+            </Box>
+          </Flex>
+        </Box>
 
         <Stack spacing={6}>
-            {SECTIONS.map((section) => (
-              <Box key={section.key}>
-                <ListaCompraSeccion
-                  title={section.title}
-                  categorySlug={section.key}
-                  rawMaterials={rawsMaterialData}
-                  colorConfig={section.colors}
-                  filterConfig={section.filter}
-                  items={sectionItems[section.key] ?? []}
-                  onItemsChange={onItemsChangeBySection[section.key]}
-                  showMaterialField={section.showMaterialField}
-                  materialFieldLabel={section.materialFieldLabel}
-                  onSubtotalChange={onSubtotalChangeBySection[section.key]}
-                />
-                <Flex justify="flex-end" mt={4} mb={2}>
-                  <Button
-                    colorScheme="teal"
-                    size="sm"
-                    onClick={handleManualSave}
-                    isDisabled={!hasPendingSave || isSaving}
-                    isLoading={isSaving}
-                  >
-                    Guardar cambios
-                  </Button>
-                </Flex>
-              </Box>
-            ))}
+          {SECTIONS.map((section) => (
+            <ListaCompraSeccion
+              key={section.key}
+              title={section.title}
+              categorySlug={section.key}
+              rawMaterials={rawsMaterialData}
+              colorConfig={section.colors}
+              filterConfig={section.filter}
+              items={sectionItems[section.key] ?? []}
+              onItemsChange={onItemsChangeBySection[section.key]}
+              showMaterialField={section.showMaterialField}
+              materialFieldLabel={section.materialFieldLabel}
+              onSubtotalChange={onSubtotalChangeBySection[section.key]}
+            />
+          ))}
         </Stack>
 
-      
         <Box
-          mt={6}
           p={6}
           borderRadius="2xl"
           bg={summaryBg}
@@ -870,56 +886,106 @@ export const ListaDeComprasView = () => {
               {currencyFormatter.format(totalGeneral)}
             </Text>
           </Flex>
-          <Stack spacing={3} mt={6}>
-            <FormControl>
-              <FormLabel fontSize="sm">Efectivo disponible</FormLabel>
-              <Input
-                value={formatInputCurrency(efectivoDisponible)}
-                onChange={(event) =>
-                  setEfectivoDisponible(parseInputCurrency(event.target.value))
-                }
-                placeholder="$0"
-                size="sm"
-                inputMode="decimal"
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="sm">Dinero digital</FormLabel>
-              <Input
-                value={formatInputCurrency(dineroDigital)}
-                onChange={(event) =>
-                  setDineroDigital(parseInputCurrency(event.target.value))
-                }
-                placeholder="$0"
-                size="sm"
-                inputMode="decimal"
-              />
-            </FormControl>
-            <Flex justify="space-between" fontSize="md">
-              <Text color={mutedText}>Disponible total</Text>
-              <Text fontWeight="semibold" className="tnum">
-                {currencyFormatter.format(totalDisponible)}
+          <Flex justify="space-between" align="center" mt={2}>
+            <Text fontWeight="semibold">Diferencia</Text>
+            <Text fontWeight="bold" color={diferencia >= 0 ? "green.500" : "red.400"} className="tnum">
+              {currencyFormatter.format(diferencia)}
+            </Text>
+          </Flex>
+          {diferencia < 0 && (
+            <Flex
+              mt={3}
+              p={3}
+              borderRadius="lg"
+              bg={overBudgetBg}
+              align="center"
+              gap={2}
+            >
+              <Text fontSize="sm" color={overBudgetText} fontWeight="medium">
+                Te pasás del presupuesto por {currencyFormatter.format(Math.abs(diferencia))}.
               </Text>
             </Flex>
-            <Flex justify="space-between" fontSize="lg" fontWeight="bold">
-              <Text>Diferencia</Text>
-              <Text color={diferencia >= 0 ? "green.500" : "red.400"} className="tnum">
+          )}
+        </Box>
+      </Stack>
+
+      {/* Barra de accion fija: estado, totales y acciones siempre visibles */}
+      <Box
+        position="sticky"
+        bottom={{ base: 2, md: 4 }}
+        zIndex={20}
+        maxW="1200px"
+        mx="auto"
+        mt={4}
+        bg={summaryBg}
+        borderWidth="1px"
+        borderColor={borderColor}
+        borderRadius="xl"
+        boxShadow="lg"
+        px={{ base: 3, md: 5 }}
+        py={3}
+      >
+        <Flex align="center" gap={{ base: 3, md: 6 }} flexWrap="wrap" justify="space-between">
+          <HStack spacing={2} minW={{ base: "auto", md: "200px" }}>
+            <Box
+              w="9px"
+              h="9px"
+              borderRadius="full"
+              bg={isSaving || hasPendingSave ? "orange.400" : "green.400"}
+            />
+            <Text fontSize="xs" color={mutedText} noOfLines={1}>
+              {syncStatusMessage}
+            </Text>
+          </HStack>
+
+          <HStack spacing={{ base: 4, md: 8 }} flex="1" justify="center" flexWrap="wrap">
+            <Box textAlign="center">
+              <Text fontSize="xs" color={mutedText}>Total</Text>
+              <Text fontSize="lg" fontWeight="bold" className="tnum">
+                {currencyFormatter.format(totalGeneral)}
+              </Text>
+            </Box>
+            <Box textAlign="center">
+              <Text fontSize="xs" color={mutedText}>Diferencia</Text>
+              <Text
+                fontSize="lg"
+                fontWeight="bold"
+                color={diferencia >= 0 ? "green.500" : "red.400"}
+                className="tnum"
+              >
                 {currencyFormatter.format(diferencia)}
               </Text>
-            </Flex>
-          </Stack>
-          <Button
-            leftIcon={<DownloadIcon />}
-            colorScheme="teal"
-            mt={6}
-            onClick={handleExport}
-            width={{ base: "100%", sm: "auto" }}
-          >
-            Exportar a Excel
-          </Button>
-        </Box>
+            </Box>
+            {diferencia < 0 && (
+              <Badge colorScheme="red" variant="subtle" alignSelf="center">
+                Te pasás por {currencyFormatter.format(Math.abs(diferencia))}
+              </Badge>
+            )}
+          </HStack>
 
-      </Stack>
+          <HStack spacing={2}>
+            <Button
+              size="sm"
+              colorScheme="teal"
+              onClick={handleManualSave}
+              isDisabled={!hasPendingSave || isSaving}
+              isLoading={isSaving}
+              loadingText="Guardando"
+            >
+              Guardar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              colorScheme="teal"
+              leftIcon={<DownloadIcon />}
+              onClick={handleExport}
+            >
+              Exportar
+            </Button>
+          </HStack>
+        </Flex>
+      </Box>
     </Box>
   );
 };
