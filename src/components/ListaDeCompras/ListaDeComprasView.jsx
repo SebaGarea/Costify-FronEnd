@@ -25,11 +25,11 @@ const SECTIONS = [
     key: "herreria",
     title: "Herrería",
     colors: {
-      bg: { light: "gray.100", dark: "gray.700" },
-      border: { light: "gray.300", dark: "gray.500" },
-      heading: { light: "gray.800", dark: "gray.100" },
-      accent: { light: "blue.600", dark: "blue.200" },
-      buttonScheme: "blue",
+      bg: { light: "teal.50", dark: "gray.700" },
+      border: { light: "teal.200", dark: "teal.600" },
+      heading: { light: "teal.700", dark: "teal.100" },
+      accent: { light: "teal.600", dark: "teal.200" },
+      buttonScheme: "teal",
     },
     filter: { mode: "exclude", categories: ["carpinteria", "proteccion"] },
     showMaterialField: false,
@@ -38,8 +38,8 @@ const SECTIONS = [
     key: "carpinteria",
     title: "Carpintería",
     colors: {
-      bg: { light: "#0d501a", dark: "green.700" },
-      border: { light: "lime.200", dark: "lime.500" },
+      bg: { light: "green.50", dark: "green.700" },
+      border: { light: "green.200", dark: "green.500" },
       heading: { light: "green.700", dark: "green.100" },
       accent: { light: "green.600", dark: "green.200" },
       buttonScheme: "green",
@@ -847,7 +847,6 @@ export const ListaDeComprasView = () => {
           bg={summaryBg}
           borderWidth="1px"
           borderColor={borderColor}
-          boxShadow="xl"
         >
           <Heading size="md" mb={4} fontFamily="heading">
             Resumen de compra
@@ -856,7 +855,7 @@ export const ListaDeComprasView = () => {
             {SECTIONS.map((section) => (
               <Flex key={section.key} justify="space-between" fontSize="md">
                 <Text color={mutedText}>{section.title}</Text>
-                <Text fontWeight="semibold">
+                <Text fontWeight="semibold" className="tnum">
                   {currencyFormatter.format(subtotals[section.key] || 0)}
                 </Text>
               </Flex>
@@ -867,7 +866,7 @@ export const ListaDeComprasView = () => {
             <Text fontSize="lg" fontWeight="semibold">
               Total general
             </Text>
-            <Text fontSize="lg" fontWeight="bold">
+            <Text fontSize="lg" fontWeight="bold" className="tnum">
               {currencyFormatter.format(totalGeneral)}
             </Text>
           </Flex>
@@ -898,13 +897,13 @@ export const ListaDeComprasView = () => {
             </FormControl>
             <Flex justify="space-between" fontSize="md">
               <Text color={mutedText}>Disponible total</Text>
-              <Text fontWeight="semibold">
+              <Text fontWeight="semibold" className="tnum">
                 {currencyFormatter.format(totalDisponible)}
               </Text>
             </Flex>
             <Flex justify="space-between" fontSize="lg" fontWeight="bold">
               <Text>Diferencia</Text>
-              <Text color={diferencia >= 0 ? "green.500" : "red.400"}>
+              <Text color={diferencia >= 0 ? "green.500" : "red.400"} className="tnum">
                 {currencyFormatter.format(diferencia)}
               </Text>
             </Flex>

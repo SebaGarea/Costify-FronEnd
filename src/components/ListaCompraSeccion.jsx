@@ -683,7 +683,6 @@ const ListaCompraSeccion = ({
       borderWidth="1px"
       borderColor={noteBorder}
       bg={noteBg}
-      boxShadow="xl"
       minH="360px"
     >
       <Heading
@@ -704,7 +703,7 @@ const ListaCompraSeccion = ({
           const quantityValue = formatQuantityValue(item.cantidad);
 
           return (
-            <Box key={item.id} p={4} borderRadius="xl" bg={innerCardBg} boxShadow="lg">
+            <Box key={item.id} p={4} borderRadius="xl" bg={innerCardBg} borderWidth="1px" borderColor={noteBorder}>
             <Stack spacing={3}>
               {item.esPersonalizado ? (
                 <Grid templateColumns={{ base: "repeat(1, 1fr)", lg: "repeat(12, 1fr)" }} gap={2} alignItems="flex-end">
@@ -768,6 +767,7 @@ const ListaCompraSeccion = ({
                         readOnly
                         placeholder="$0"
                         size="sm"
+                        className="tnum"
                       />
                     </FormControl>
                   </GridItem>
@@ -940,6 +940,7 @@ const ListaCompraSeccion = ({
                           readOnly
                           placeholder="$0"
                           size="sm"
+                          className="tnum"
                         />
                       </FormControl>
                     </GridItem>
@@ -996,7 +997,7 @@ const ListaCompraSeccion = ({
           </Button>
         </Stack>
       </Stack>
-      <Text mt={6} fontWeight="bold" fontSize="lg" textAlign="right" color={amountColor}>
+      <Text mt={6} fontWeight="bold" fontSize="lg" textAlign="right" color={amountColor} className="tnum">
         Subtotal: {currencyFormatter.format(subtotal)}
       </Text>
       {!sectionMaterials.length && (
