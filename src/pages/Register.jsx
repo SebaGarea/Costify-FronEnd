@@ -21,6 +21,7 @@ const Register = () => {
   const navigate = useNavigate();
   const cardBg = useColorModeValue("rgba(255, 255, 255, 0.95)", "rgba(15, 23, 42, 0.9)");
   const cardBorder = useColorModeValue("rgba(148, 163, 184, 0.4)", "rgba(30, 58, 138, 0.6)");
+  const muted = useColorModeValue("gray.600", "gray.400");
 
   const [form, setForm] = useState({
     first_name: "",
@@ -161,7 +162,29 @@ const Register = () => {
   };
 
   return (
-    <Box minH="100vh" w="full" display="flex" alignItems="center" justifyContent="center" px={{ base: 4, md: 0 }}>
+    <Box
+      position="relative"
+      minH="100vh"
+      w="100vw"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      px={{ base: 4, md: 6 }}
+      py={{ base: 8, md: 12 }}
+      overflow="hidden"
+      bg="transparent"
+      _before={{
+        content: "''",
+        position: "fixed",
+        inset: 0,
+        bgImage:
+          "linear-gradient(180deg, rgba(9, 11, 20, 0.72) 0%, rgba(9, 11, 20, 0.88) 100%), url('/bckLogin.jpg')",
+        bgSize: "cover",
+        bgPos: "center",
+        bgRepeat: "no-repeat",
+        zIndex: -1,
+      }}
+    >
       <Box
         bg={cardBg}
         p={{ base: 8, md: 10 }}
@@ -205,7 +228,7 @@ const Register = () => {
               <Input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
               <FormErrorMessage>{errors.confirmPassword}</FormErrorMessage>
             </FormControl>
-            <VStack align="start" spacing={1} color="gray.500" fontSize="sm">
+            <VStack align="start" spacing={1} color={muted} fontSize="sm">
               <Text fontWeight="semibold">La contraseña debe incluir:</Text>
               {passwordRules.map((rule) => (
                 <Text key={rule.message}>• {rule.message}</Text>
@@ -213,7 +236,7 @@ const Register = () => {
             </VStack>
           </Stack>
           <Button colorScheme="teal" type="submit" isLoading={loading}>Registrarme</Button>
-          <Text fontSize="sm" textAlign="center" color="gray.500">
+          <Text fontSize="sm" textAlign="center" color={muted}>
             ¿Ya tienes cuenta?
             <Button as={RouterLink} to="/login" variant="link" colorScheme="teal" ml={2}>
               Inicia sesión
