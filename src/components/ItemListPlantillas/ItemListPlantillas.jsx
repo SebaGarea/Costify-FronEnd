@@ -1,4 +1,5 @@
 import {
+  Badge,
   Box,
   Center,
   useColorModeValue,
@@ -101,7 +102,11 @@ export const ItemListPlantillas = () => {
   const toast = useToast();
 
   const colorBg = useColorModeValue("white", "gray.800");
-  const colorBgBox = useColorModeValue("gray.100", "gray.700");
+  const colorBgBox = useColorModeValue("gray.100", "gray.800");
+  const border = useColorModeValue("gray.200", "gray.700");
+  const muted = useColorModeValue("gray.600", "gray.400");
+  const accentPrice = useColorModeValue("teal.600", "teal.300");
+  const hoverBorder = useColorModeValue("teal.500", "teal.300");
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -288,19 +293,18 @@ export const ItemListPlantillas = () => {
 
   return (
     <>
-      <Box mb={2} p={4} bg={colorBgBox} borderRadius="lg">
+      <Box mb={2} p={4} bg={colorBgBox} borderRadius="xl" borderWidth="1px" borderColor={border}>
         <VStack spacing={4} align="stretch">
           <Stack direction={{ base: "column", md: "row" }} spacing={{ base: 2, md: 4 }} align={{ base: "stretch", md: "center" }}>
             {/* Dropdown Tipo de Proyecto */}
             <Menu>
               <MenuButton
-                textTransform="uppercase"
                 as={Button}
                 rightIcon={<FiChevronDown />}
                 isLoading={loadingTipos}
                 size={{ base: "sm", md: "md" }}
               >
-                {filtros.tipoProyecto === 'todos' ? 'Tipo de Proyecto' : filtros.tipoProyecto}
+                {filtros.tipoProyecto === 'todos' ? 'Tipo de proyecto' : filtros.tipoProyecto}
               </MenuButton>
               <MenuList>
                 {tiposProyectoOptions.slice(1).map((option) => (
@@ -308,7 +312,6 @@ export const ItemListPlantillas = () => {
                     key={option.value}
                     onClick={() => handleTipoProyectoSelect(option.value)}
                     justifyContent="center"
-                    textTransform="uppercase"
                   >
                     {option.label}
                   </MenuItem>
@@ -331,7 +334,7 @@ export const ItemListPlantillas = () => {
             {/* Botones contextuales cuando hay tipo seleccionado */}
             {filtros.tipoProyecto !== 'todos' && (
               <Button
-                colorScheme="blue"
+                colorScheme="teal"
                 variant="outline"
                 leftIcon={<FiEdit2 />}
                 onClick={() => handleRenameClick(filtros.tipoProyecto)}
@@ -358,11 +361,12 @@ export const ItemListPlantillas = () => {
             <Button
               as={Link}
               to={"/plantillas/plantillaAdd"}
-              leftIcon={<FiPlus color="#67e8f9" size={"25"} strokeWidth={4} />}
+              colorScheme="teal"
+              leftIcon={<FiPlus />}
               size={{ base: "sm", md: "md" }}
               width={{ base: "100%", md: "auto" }}
             >
-              Agregar Plantillas
+              Agregar plantilla
             </Button>
           </Stack>
         </VStack>
@@ -370,7 +374,7 @@ export const ItemListPlantillas = () => {
 
       {/* Indicador de resultados */}
       <Box mb={4} textAlign="center">
-        <Text fontSize="sm" color="gray.600">
+        <Text fontSize="sm" color={muted}>
           {plantillasData.length === 0
             ? "No se encontraron plantillas con los filtros aplicados"
             : `Se encontraron ${plantillasData.length} plantilla${plantillasData.length !== 1 ? 's' : ''}`
@@ -381,13 +385,13 @@ export const ItemListPlantillas = () => {
       <Center py={12}>
         {plantillasData.length === 0 ? (
           <VStack spacing={4}>
-            <Text fontSize="lg" color="gray.500">
+            <Text fontSize="lg" color={muted}>
               No hay plantillas para mostrar
             </Text>
             <Button
               as={Link}
               to={"/plantillas/plantillaAdd"}
-              colorScheme="blue"
+              colorScheme="teal"
               leftIcon={<FiPlus />}
             >
               Crear tu primera plantilla
@@ -402,47 +406,44 @@ export const ItemListPlantillas = () => {
               maxW={"330px"}
               w={"full"}
               bg={colorBg}
-              boxShadow={"2xl"}
-              rounded={"lg"}
+              borderWidth="1px"
+              borderColor={border}
+              rounded={"xl"}
+              transition="border-color 0.15s ease, transform 0.15s ease"
+              _hover={{ borderColor: hoverBorder, transform: "translateY(-2px)" }}
             >
               <Stack align={"center"} spacing={3}>
                 {/* Nombre */}
-                <Heading fontSize={"md"} fontWeight={500} textAlign="center">
+                <Heading fontSize={"md"} fontWeight={600} textAlign="center">
                   {plantilla.nombre}
                 </Heading>
 
                 {/* Tipo de proyecto */}
                 {plantilla.tipoProyecto && (
-                  <Text
-                    fontSize={"sm"}
-                    borderBottom={"1px"}
-                    color="gray.500"
-                    px={3}
-                    py={1}
-                    borderRadius="md"
-                    fontWeight="medium"
-                    textAlign="center"
-                  >
+                  <Badge colorScheme="gray" borderRadius="full" px={3} py={0.5} textTransform="none">
                     {plantilla.tipoProyecto}
-                  </Text>
+                  </Badge>
                 )}
 
                 {/* Costo */}
                 {plantilla.costoTotal && (
-                  <Text fontSize={"sm"} color={"green.600"} fontWeight="bold">
+                  <Text fontSize={"sm"} color={muted} className="tnum">
                     Costo: ${Number(plantilla.costoTotal).toLocaleString()}
                   </Text>
                 )}
 
                 {/* Precio final */}
                 {plantilla.precioFinal && (
-                  <Text fontSize={"sm"} color={"blue.600"} fontWeight="bold">
-                    Precio Final: ${Number(plantilla.precioFinal).toLocaleString()}
-                  </Text>
+                  <VStack spacing={0}>
+                    <Text fontSize="xs" color={muted}>Precio final</Text>
+                    <Text fontSize={"xl"} color={accentPrice} fontWeight="bold" fontFamily="heading" className="tnum">
+                      ${Number(plantilla.precioFinal).toLocaleString()}
+                    </Text>
+                  </VStack>
                 )}
 
                 {/* ID */}
-                <Text fontSize={"xs"} color={"gray.500"}>
+                <Text fontSize={"xs"} color={muted}>
                   ID: {plantilla._id.slice(-8)}
                 </Text>
 
@@ -465,7 +466,7 @@ export const ItemListPlantillas = () => {
 
                     <HStack spacing={2} w="full">
                       <Button
-                        colorScheme="blue"
+                        colorScheme="teal"
                         variant="outline"
                         size="sm"
                         onClick={() => handleDuplicateClick(plantilla)}
@@ -588,7 +589,7 @@ export const ItemListPlantillas = () => {
                 Cancelar
               </Button>
               <Button
-                colorScheme="blue"
+                colorScheme="teal"
                 onClick={handleConfirmDuplicate}
                 ml={3}
                 isLoading={isDuplicating}
@@ -633,7 +634,7 @@ export const ItemListPlantillas = () => {
                 Cancelar
               </Button>
               <Button
-                colorScheme="blue"
+                colorScheme="teal"
                 onClick={handleConfirmRename}
                 ml={3}
                 isLoading={isRenaming}
