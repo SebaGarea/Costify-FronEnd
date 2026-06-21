@@ -43,8 +43,11 @@ export const ItemListContainerRawMaterials = ({
   isDeletingAll,
 }) => {
   const { categoriesMp } = useCategoryMp();
-  const toolbarBg = useColorModeValue("gray.100", "gray.700");
+  const toolbarBg = useColorModeValue("gray.100", "gray.800");
   const cardBg = useColorModeValue("white", "gray.800");
+  const border = useColorModeValue("gray.200", "gray.700");
+  const hoverBorder = useColorModeValue("teal.500", "teal.300");
+  const muted = useColorModeValue("gray.600", "gray.400");
   const deleteDialog = useDisclosure();
   const cancelRef = useRef();
   const canBulkDelete = typeof onDeleteAll === "function";
@@ -140,15 +143,15 @@ export const ItemListContainerRawMaterials = ({
   const detailLabelColor = useColorModeValue("gray.600", "gray.300");
   const detailValueColor = useColorModeValue("teal.700", "teal.200");
 
-  const renderDetail = (label, value) => (
+  const renderDetail = (label, value, tnum = false) => (
     <Text fontSize="sm" color={detailLabelColor}>
-      {label}: <Text as="span" fontWeight="semibold" color={detailValueColor}>{value}</Text>
+      {label}: <Text as="span" fontWeight="semibold" color={detailValueColor} className={tnum ? "tnum" : undefined}>{value}</Text>
     </Text>
   );
 
   return (
     <Stack spacing={6} align="stretch">
-      <Box bg={toolbarBg} borderRadius="lg" p={3}>
+      <Box bg={toolbarBg} borderRadius="xl" borderWidth="1px" borderColor={border} p={3}>
         {/* Todo en una fila en desktop, responsive en mobile */}
         <Flex 
           direction={{ base: "column", md: "row" }} 
@@ -158,12 +161,12 @@ export const ItemListContainerRawMaterials = ({
         >
           {/* Filtros */}
           <Menu matchWidth>
-            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
+            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="capitalize" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
               {selectedCategory || "Categoría"}
             </MenuButton>
             <MenuList {...scrollableMenuProps}>
               {categoriesMp.map((cat) => (
-                <MenuItem key={cat.nombre} textTransform="uppercase" onClick={() => handleCategoryChange(cat.nombre)}>
+                <MenuItem key={cat.nombre} textTransform="capitalize" onClick={() => handleCategoryChange(cat.nombre)}>
                   {cat.nombre}
                 </MenuItem>
               ))}
@@ -171,7 +174,7 @@ export const ItemListContainerRawMaterials = ({
           </Menu>
 
           <Menu isDisabled={!selectedCategory} matchWidth>
-            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
+            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="capitalize" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
               {selectedType || "Tipo"}
             </MenuButton>
             <MenuList {...scrollableMenuProps}>
@@ -179,7 +182,7 @@ export const ItemListContainerRawMaterials = ({
                 <MenuItem disabled>Sin tipos</MenuItem>
               ) : (
                 availableTypes.map((tipo) => (
-                  <MenuItem key={tipo} textTransform="uppercase" onClick={() => handleTypeChange(tipo)}>
+                  <MenuItem key={tipo} textTransform="capitalize" onClick={() => handleTypeChange(tipo)}>
                     {tipo}
                   </MenuItem>
                 ))
@@ -190,7 +193,7 @@ export const ItemListContainerRawMaterials = ({
           {/* Dropdown Nombre de madera (solo si la categoría es Madera) */}
           {selectedCategory?.toLowerCase() === "madera" && (
             <Menu matchWidth>
-              <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
+              <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="capitalize" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
                 {selectedNombreMadera || "Nombre Madera"}
               </MenuButton>
               <MenuList {...scrollableMenuProps}>
@@ -208,7 +211,7 @@ export const ItemListContainerRawMaterials = ({
           )}
 
           <Menu isDisabled={!selectedType && !selectedNombreMadera} matchWidth>
-            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="uppercase" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
+            <MenuButton as={Button} rightIcon={<FiChevronDown />} textTransform="capitalize" w={{ base: "full", md: "auto" }} minW={{ base: "auto", md: "140px" }}>
               {selectedMedida || "Medida"}
             </MenuButton>
             <MenuList {...scrollableMenuProps}>
@@ -216,7 +219,7 @@ export const ItemListContainerRawMaterials = ({
                 <MenuItem disabled>Sin medidas</MenuItem>
               ) : (
                 availableMedidas.map((medida) => (
-                  <MenuItem key={medida} textTransform="uppercase" onClick={() => handleMedidaChange(medida)}>
+                  <MenuItem key={medida} textTransform="capitalize" onClick={() => handleMedidaChange(medida)}>
                     {medida}
                   </MenuItem>
                 ))
@@ -235,10 +238,11 @@ export const ItemListContainerRawMaterials = ({
           <Button
             as={Link}
             to="/materias-primas/itemAdd"
-            leftIcon={<FiPlus color="#67e8f9" size="20" strokeWidth={3} />}
+            colorScheme="teal"
+            leftIcon={<FiPlus />}
             w={{ base: "full", md: "auto" }}
           >
-            Agregar Materia Prima
+            Agregar materia prima
           </Button>
           <Button 
             as={Link} 
@@ -280,7 +284,7 @@ export const ItemListContainerRawMaterials = ({
         ) : materialsToRender.length === 0 ? (
           <Flex py={12} direction="column" align="center" textAlign="center" gap={2}>
             <Heading size="sm">No hay materias primas</Heading>
-            <Text color="gray.500">Ajustá los filtros o cargá una nueva materia prima para empezar.</Text>
+            <Text color={muted}>Ajustá los filtros o cargá una nueva materia prima para empezar.</Text>
           </Flex>
         ) : (
           <Grid
@@ -291,28 +295,38 @@ export const ItemListContainerRawMaterials = ({
               const typeLabel = getMaterialTypeLabel(mp?.type) || mp?.type || "Sin tipo";
               return (
                 <GridItem key={mp?._id}>
-                  <Stack bg={cardBg} borderRadius="lg" p={5} spacing={4} boxShadow="sm" h="full">
+                  <Stack
+                    bg={cardBg}
+                    borderRadius="xl"
+                    p={5}
+                    spacing={4}
+                    borderWidth="1px"
+                    borderColor={border}
+                    h="full"
+                    transition="border-color 0.15s ease, transform 0.15s ease"
+                    _hover={{ borderColor: hoverBorder, transform: "translateY(-2px)" }}
+                  >
                     <Stack direction="row" justify="space-between" spacing={3} align="flex-start">
                       <Box>
                         <Heading size="sm" noOfLines={1}>
                           {mp?.nombre || "Sin nombre"}
                         </Heading>
-                        <Text fontSize="sm" color="gray.500" textTransform="uppercase">
+                        <Text fontSize="sm" color={muted} textTransform="capitalize">
                           {mp?.categoria || "Sin categoría"}
                         </Text>
                       </Box>
-                      <Text fontSize="xs" color="gray.500">
+                      <Text fontSize="xs" color={muted}>
                         {formatUpdatedAt(mp?.updatedAt)}
                       </Text>
                     </Stack>
 
                     <Stack spacing={1}>
-                      {renderDetail("Stock", mp?.stock ?? 0)}
+                      {renderDetail("Stock", mp?.stock ?? 0, true)}
                       {renderDetail("Tipo", typeLabel)}
                       {renderDetail("Medida", mp?.medida || "Sin medida")}
                       {renderDetail("Espesor", mp?.espesor || "N/A")}
                       {renderDetail("Celda Excel", mp?.celdaExcel || "-")}
-                      {renderDetail("Precio", formatPrice(mp?.precio))}
+                      {renderDetail("Precio", formatPrice(mp?.precio), true)}
                       {renderDetail("ID", mp?._id || "-")}
                     </Stack>
 
