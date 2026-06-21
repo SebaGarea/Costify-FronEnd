@@ -288,7 +288,12 @@ export const ItemListContainerRawMaterials = ({
           </Flex>
         ) : (
           <Grid
-            templateColumns={{ base: "repeat(auto-fit, minmax(260px, 1fr))", md: "repeat(auto-fit, minmax(320px, 1fr))" }}
+            templateColumns={{
+              base: "1fr",
+              sm: "repeat(2, 1fr)",
+              lg: "repeat(3, 1fr)",
+              xl: "repeat(4, 1fr)",
+            }}
             gap={4}
           >
             {materialsToRender.map((mp) => {
@@ -306,19 +311,14 @@ export const ItemListContainerRawMaterials = ({
                     transition="border-color 0.15s ease, transform 0.15s ease"
                     _hover={{ borderColor: hoverBorder, transform: "translateY(-2px)" }}
                   >
-                    <Stack direction="row" justify="space-between" spacing={3} align="flex-start">
-                      <Box>
-                        <Heading size="sm" noOfLines={1}>
-                          {mp?.nombre || "Sin nombre"}
-                        </Heading>
-                        <Text fontSize="sm" color={muted} textTransform="capitalize">
-                          {mp?.categoria || "Sin categoría"}
-                        </Text>
-                      </Box>
-                      <Text fontSize="xs" color={muted}>
-                        {formatUpdatedAt(mp?.updatedAt)}
+                    <Box>
+                      <Heading size="sm" noOfLines={2} title={mp?.nombre || "Sin nombre"}>
+                        {mp?.nombre || "Sin nombre"}
+                      </Heading>
+                      <Text fontSize="sm" color={muted} textTransform="capitalize">
+                        {mp?.categoria || "Sin categoría"}
                       </Text>
-                    </Stack>
+                    </Box>
 
                     <Grid templateColumns="repeat(2, 1fr)" gapX={4} gapY={1}>
                       {renderDetail("Stock", mp?.stock ?? 0, true)}
@@ -330,7 +330,10 @@ export const ItemListContainerRawMaterials = ({
                       {renderDetail("ID", mp?._id ? `…${mp._id.slice(-8)}` : "-")}
                     </Grid>
 
-                    <Stack direction={{ base: "column", sm: "row" }} spacing={2} mt="auto">
+                    <Stack spacing={2} mt="auto">
+                      <Text fontSize="xs" color={muted} noOfLines={1}>
+                        Actualizado: {formatUpdatedAt(mp?.updatedAt)}
+                      </Text>
                       <Button
                         w="full"
                         size="sm"
