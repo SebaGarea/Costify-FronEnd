@@ -1,15 +1,34 @@
 import { useState, useEffect, useCallback } from "react";
 import { getPerfilesPintura } from "../../services/perfilesPintura.service.js";
 
-export const usePerfilesPintura = () => {
-  const [perfiles, setPerfiles] = useState([]);
-  const [loading, setLoading] = useState(true);
+// Cache a nivel módulo: evita refetchear los perfiles en cada montaje.
+const CACHE = { data: null, ts: 0 };
+const TTL = 5 * 60 * 1000; // 5 minutos
 
-  const fetchPerfiles = useCallback(async () => {
+export const invalidatePerfilesPinturaCache = () => {
+  CACHE.data = null;
+  CACHE.ts = 0;
+};
+
+const isFresh = () => CACHE.data && Date.now() - CACHE.ts < TTL;
+
+export const usePerfilesPintura = () => {
+  const [perfiles, setPerfiles] = useState(() => CACHE.data ?? []);
+  const [loading, setLoading] = useState(() => !isFresh());
+
+  const fetchPerfiles = useCallback(async ({ force = false } = {}) => {
+    if (!force && isFresh()) {
+      setPerfiles(CACHE.data);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await getPerfilesPintura();
-      setPerfiles(res.data.perfiles ?? []);
+      const data = res.data.perfiles ?? [];
+      CACHE.data = data;
+      CACHE.ts = Date.now();
+      setPerfiles(data);
     } catch {
       setPerfiles([]);
     } finally {
@@ -21,5 +40,5 @@ export const usePerfilesPintura = () => {
     fetchPerfiles();
   }, [fetchPerfiles]);
 
-  return { perfiles, loading, refetch: fetchPerfiles };
+  return { perfiles, loading, refetch: () => fetchPerfiles({ force: true }) };
 };

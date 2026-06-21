@@ -16,14 +16,13 @@ import {
   useColorModeValue,
   useDisclosure,
 } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { FiEdit2, FiSave, FiTrash2, FiX, FiPlus } from "react-icons/fi";
 import { Loader } from "../Loader/Loader.jsx";
 import { useAddTarea } from "../../hooks/tareas/useAddTarea.js";
 import { useDeleteTarea } from "../../hooks/tareas/useDeleteTarea.js";
 import { useGetTareasPaginated } from "../../hooks/tareas/useGetTareasPaginated.js";
 import { useUpdateTarea } from "../../hooks/tareas/useUpdateTarea.js";
-import { useAddEvento } from "../../hooks/eventosCalendario/useAddEvento.js";
 import { UnifiedCalendar } from "../Calendar/UnifiedCalendar.jsx";
 import { useCalendarEvents } from "../../hooks/calendar/useCalendarEvents.js";
 import { DayEventsModal } from "../Home/DayEventsModal.jsx";
@@ -65,10 +64,12 @@ export const TareasView = () => {
     refetch,
   } = useGetTareasPaginated(1, 15);
 
+  // Fetch separado para el calendario (más items, sin afectar la paginación de la lista)
+  const { items: calendarTareas, refetch: refetchCalendarTareas } = useGetTareasPaginated(1, 500);
+
   const { addTarea, loading: adding } = useAddTarea();
   const { editTarea, loading: updating } = useUpdateTarea();
   const { removeTarea, loading: deleting } = useDeleteTarea();
-  const { addEvento, loading: addingEvento } = useAddEvento();
 
   const [draft, setDraft] = useState({
     title: "",
@@ -77,6 +78,9 @@ export const TareasView = () => {
     dueDate: "",
     tag: "otros",
   });
+
+  const [calendarKey, setCalendarKey] = useState(0);
+  const bumpCalendar = useCallback(() => setCalendarKey((k) => k + 1), []);
 
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState({
@@ -97,21 +101,8 @@ export const TareasView = () => {
     const title = draft.title.trim();
     if (!title) return;
 
-    if (draft.tag === "evento") {
-      // El form de tareas también puede crear eventos de calendario.
-      // Mapeo: notes→description, dueDate→fecha. La fecha es requerida.
-      if (!draft.dueDate) {
-        window.alert("Para crear un evento de calendario necesitás una fecha (campo 'Vence').");
-        return;
-      }
-      await addEvento({
-        title,
-        description: (draft.notes || "").trim(),
-        fecha: draft.dueDate,
-        hora: "",
-      });
-      setDraft({ title: "", notes: "", priority: "media", dueDate: "", tag: "otros" });
-      refetchAll();
+    if (!draft.dueDate) {
+      window.alert("La tarea necesita una fecha de vencimiento (campo 'Vence') para aparecer en el calendario.");
       return;
     }
 
@@ -125,8 +116,8 @@ export const TareasView = () => {
 
     await addTarea(payload);
     setDraft({ title: "", notes: "", priority: "media", dueDate: "", tag: "otros" });
-    await refetch();
-    refetchAll();
+    await Promise.all([refetch(), refetchCalendarTareas()]);
+    bumpCalendar();
   };
 
   const startEdit = (t) => {
@@ -148,6 +139,10 @@ export const TareasView = () => {
   const saveEdit = async (id) => {
     const title = editDraft.title.trim();
     if (!title) return;
+    if (!editDraft.dueDate) {
+      window.alert("La tarea necesita una fecha de vencimiento (campo 'Vence').");
+      return;
+    }
 
     await editTarea(id, {
       title,
@@ -157,18 +152,21 @@ export const TareasView = () => {
       tags: editDraft.tags,
     });
     cancelEdit();
-    await refetch();
+    await Promise.all([refetch(), refetchCalendarTareas()]);
+    bumpCalendar();
   };
 
   const toggleDone = async (t) => {
     const nextStatus = t.status === "hecho" ? "pendiente" : "hecho";
     await editTarea(t._id, { status: nextStatus });
-    await refetch();
+    await Promise.all([refetch(), refetchCalendarTareas()]);
+    bumpCalendar();
   };
 
   const handleDelete = async (id) => {
     await removeTarea(id);
-    await refetch();
+    await Promise.all([refetch(), refetchCalendarTareas()]);
+    bumpCalendar();
   };
 
   const normalizedError = useMemo(() => {
@@ -178,8 +176,9 @@ export const TareasView = () => {
   }, [error]);
 
   // Calendario unificado (ventas + tareas + eventos)
+  // tareasDataExt: usamos el fetch propio para que al mutar tareas el calendario se actualice directo
   const { events: calendarEvents, itemsByDay, buildDayKey, refetchAll } =
-    useCalendarEvents();
+    useCalendarEvents({ tareasDataExt: calendarTareas });
   const dayModal = useDisclosure();
   const [selectedDay, setSelectedDay] = useState(null);
   const selectedDayItems = useMemo(() => {
@@ -203,9 +202,9 @@ export const TareasView = () => {
     dayModal.onOpen();
   };
 
-  const handleCalendarChanged = () => {
-    refetchAll();
-    refetch();
+  const handleCalendarChanged = async () => {
+    await Promise.all([refetch(), refetchCalendarTareas(), refetchAll()]);
+    bumpCalendar();
   };
 
   if (loading && items.length === 0) return <Loader />;
@@ -224,6 +223,7 @@ export const TareasView = () => {
 
         <Box maxW="900px" mx="auto" w="100%">
           <UnifiedCalendar
+            key={calendarKey}
             events={calendarEvents}
             onDateClick={handleCalendarDateClick}
             onEventClick={handleCalendarEventClick}
@@ -267,7 +267,7 @@ export const TareasView = () => {
 
             <Box>
               <Text fontSize="sm" color={muted} mb={1}>
-                Vence (opcional)
+                Vence <Text as="span" color="red.400">*</Text>
               </Text>
               <Input
                 size="sm"
@@ -289,7 +289,6 @@ export const TareasView = () => {
                 <option value="presupuesto">Presupuesto</option>
                 <option value="cliente">Cliente</option>
                 <option value="otros">Otros</option>
-                <option value="evento">Evento (calendario)</option>
               </Select>
             </Box>
           </SimpleGrid>
@@ -313,10 +312,10 @@ export const TareasView = () => {
               leftIcon={<FiPlus />}
               colorScheme="blue"
               onClick={handleAdd}
-              isLoading={adding || addingEvento}
-              isDisabled={!draft.title.trim()}
+              isLoading={adding}
+              isDisabled={!draft.title.trim() || !draft.dueDate}
             >
-              {draft.tag === "evento" ? "Agregar evento" : "Agregar"}
+              Agregar
             </Button>
           </Flex>
         </Box>

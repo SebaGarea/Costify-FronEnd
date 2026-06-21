@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { updateRawMaterial as updateRawMaterialServices  } from '../../services/rawMaterials.service.js'
+import { invalidateMateriasPrimasCache } from './useItemsMateriasPrimas.js'
 
 export const useUpdateRawMaterials = () => {
     const[loading, setLoading] = useState(false);
@@ -17,6 +18,7 @@ export const useUpdateRawMaterials = () => {
                                     )
                                 );
                         await updateRawMaterialServices(id, payload, isFormData);
+            invalidateMateriasPrimasCache();
             return true;
         } catch (error) {
             const validationErrors = error.response?.data?.errores;
