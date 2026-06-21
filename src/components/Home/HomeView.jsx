@@ -228,22 +228,16 @@ export const HomeView = () => {
   );
   const cardBg = useColorModeValue("rgba(255,255,255,0.95)", "rgba(15,23,42,0.85)");
   const borderColor = useColorModeValue("gray.200", "gray.700");
+  // Cockpit discipline: teal is the default voice; semantic color only where it
+  // carries meaning (green = margin, amber = pending balance, red = overdue).
   const accentTeal = useColorModeValue("teal.600", "teal.300");
   const accentTealBg = useColorModeValue("teal.50", "whiteAlpha.200");
-  const accentOrange = useColorModeValue("orange.600", "orange.300");
-  const accentOrangeBg = useColorModeValue("orange.50", "whiteAlpha.200");
-  const accentBlue = useColorModeValue("cyan.600", "cyan.300");
-  const accentBlueBg = useColorModeValue("cyan.50", "whiteAlpha.200");
-  const accentIndigo = useColorModeValue("pink.600", "pink.300");
-  const accentIndigoBg = useColorModeValue("pink.50", "whiteAlpha.200");
-  const accentPurple = useColorModeValue("purple.600", "purple.300");
-  const accentPurpleBg = useColorModeValue("purple.50", "whiteAlpha.200");
-  const accentSky = useColorModeValue("blue.600", "blue.300");
-  const accentSkyBg = useColorModeValue("blue.50", "whiteAlpha.200");
+  const accentAmber = useColorModeValue("orange.600", "orange.300");
+  const accentAmberBg = useColorModeValue("orange.50", "whiteAlpha.200");
+  const accentGreen = useColorModeValue("green.600", "green.300");
+  const accentGreenBg = useColorModeValue("green.50", "whiteAlpha.200");
   const accentRed = useColorModeValue("red.600", "red.300");
   const accentRedBg = useColorModeValue("red.50", "whiteAlpha.200");
-  const accentLime = useColorModeValue("green.600", "green.300");
-  const accentLimeBg = useColorModeValue("green.50", "whiteAlpha.200");
   const primaryText = useColorModeValue("gray.800", "gray.100");
   const channelRankBg = useColorModeValue("gray.100", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
@@ -687,8 +681,8 @@ export const HomeView = () => {
         ? `Promedio por venta en el período`
         : "Sin ventas en el período",
       icon: FaShoppingBag,
-      accentColor: accentPurple,
-      accentBg: accentPurpleBg,
+      accentColor: accentTeal,
+      accentBg: accentTealBg,
     },
     {
       label: "Saldo pendiente",
@@ -697,8 +691,8 @@ export const HomeView = () => {
         ? `${numberFormatter.format(pendingHistoric.pendingCount)} ventas con cobro parcial (histórico total)`
         : "Sin saldo pendiente",
       icon: FaHourglassHalf,
-      accentColor: accentOrange,
-      accentBg: accentOrangeBg,
+      accentColor: accentAmber,
+      accentBg: accentAmberBg,
     },
     {
       label: "Margen estimado de Ganancias",
@@ -707,8 +701,8 @@ export const HomeView = () => {
         salesMetrics.totalRevenue - salesMetrics.estimatedMargin
       )}`,
       icon: FaBalanceScale,
-      accentColor: accentLime,
-      accentBg: accentLimeBg,
+      accentColor: accentGreen,
+      accentBg: accentGreenBg,
     },
     {
       label: "Producto estrella",
@@ -719,16 +713,16 @@ export const HomeView = () => {
           )} unidades en el período`
         : "Sin ventas en el período",
       icon: FaCrown,
-      accentColor: accentIndigo,
-      accentBg: accentIndigoBg,
+      accentColor: accentTeal,
+      accentBg: accentTealBg,
     },
     {
       label: "Conversión finalizadas",
       value: `${(salesMetrics.conversionRate * 100 || 0).toFixed(1)}%`,
       helpText: `${salesMetrics.finalizadas} finalizadas en el período`,
       icon: FaChartLine,
-      accentColor: accentBlue,
-      accentBg: accentBlueBg,
+      accentColor: accentTeal,
+      accentBg: accentTealBg,
     },
     {
       label: "Entregas próximas (7 días)",
@@ -737,8 +731,8 @@ export const HomeView = () => {
         ? "Ventas no despachadas con entrega esta semana"
         : "Sin entregas en los próximos 7 días",
       icon: FaTruck,
-      accentColor: accentSky,
-      accentBg: accentSkyBg,
+      accentColor: accentTeal,
+      accentBg: accentTealBg,
     },
     {
       label: "Ventas atrasadas",
