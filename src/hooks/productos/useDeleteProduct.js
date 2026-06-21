@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { deleteProduct as deleteProductService } from "../../services/products.service.js";
+import { invalidateProductsCache } from "./useItems.js";
 export const useDeleteProduct = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -9,6 +10,7 @@ export const useDeleteProduct = () => {
     setError(null);
     try {
       await deleteProductService(id);
+      invalidateProductsCache();
       return true;
     } catch (error) {
       return false;

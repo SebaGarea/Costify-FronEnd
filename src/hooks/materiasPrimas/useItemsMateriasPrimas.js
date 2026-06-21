@@ -5,11 +5,27 @@ import {
   mapCodesToTypeLabels,
 } from "../../constants/materialTypes.js";
 
+// Cache a nivel módulo del listado completo (fetchAll sin filtros), que es el
+// caso pesado usado por el editor de plantillas. Evita re-traer todas las
+// páginas de materias primas en cada montaje.
+const MP_CACHE = { items: null, meta: null, ts: 0 };
+const MP_TTL = 5 * 60 * 1000; // 5 minutos
+const mpCacheFresh = () => MP_CACHE.items && Date.now() - MP_CACHE.ts < MP_TTL;
+
+export const invalidateMateriasPrimasCache = () => {
+  MP_CACHE.items = null;
+  MP_CACHE.meta = null;
+  MP_CACHE.ts = 0;
+};
+
 //Get all Materias Primas
 export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
   const { fetchAll = false } = options;
-  const [rawsMaterialData, setRawsMaterialData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cacheUsable = fetchAll && mpCacheFresh();
+  const [rawsMaterialData, setRawsMaterialData] = useState(() =>
+    cacheUsable ? MP_CACHE.items : []
+  );
+  const [loading, setLoading] = useState(() => !cacheUsable);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: pageSize, totalPages: 1 });
   const [filtersMeta, setFiltersMeta] = useState({ availableTypes: [], availableMedidas: [], availableNombresMadera: [] });
@@ -32,6 +48,23 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
         const nombreMaderaParam = filters.nombreMadera || undefined;
 
         if (fetchAll) {
+          const sinFiltros =
+            !categoryParam && !typeParam && !medidaParam && !nombreMaderaParam;
+
+          // Servir desde cache si no hay filtros y está fresco.
+          if (sinFiltros && mpCacheFresh()) {
+            setRawsMaterialData(MP_CACHE.items);
+            setFiltersMeta(MP_CACHE.meta);
+            setPagination({
+              total: MP_CACHE.items.length,
+              page: 1,
+              limit: MP_CACHE.items.length,
+              totalPages: 1,
+            });
+            setLoading(false);
+            return;
+          }
+
           const aggregatedItems = [];
           const availableTypeSet = new Set();
           const availableMedidasSet = new Set();
@@ -105,11 +138,19 @@ export const useItemsMateriasPrimas = (pageSize = 10, options = {}) => {
             availableMedidas: (fetchedMeta.availableMedidas?.length ? fetchedMeta.availableMedidas : Array.from(availableMedidasSet)) || [],
             availableNombresMadera: fetchedMeta.availableNombresMadera || [],
           };
-          setFiltersMeta({
+          const metaParaEstado = {
             availableTypes: mapCodesToTypeLabels(finalMeta.availableTypes),
             availableMedidas: finalMeta.availableMedidas,
             availableNombresMadera: finalMeta.availableNombresMadera,
-          });
+          };
+          setFiltersMeta(metaParaEstado);
+
+          // Guardar en cache solo el listado completo sin filtros.
+          if (sinFiltros) {
+            MP_CACHE.items = aggregatedItems;
+            MP_CACHE.meta = metaParaEstado;
+            MP_CACHE.ts = Date.now();
+          }
           return;
         }
 

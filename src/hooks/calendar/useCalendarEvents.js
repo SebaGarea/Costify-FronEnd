@@ -18,7 +18,7 @@ const capitalizeLabel = (value = "") =>
   value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
 
 const buildDayKey = (date) =>
-  `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  `${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()}`;
 
 // Colores: entregas=verde fuerte, tareas=rojo, eventos=celeste
 const COLORS = {
@@ -27,12 +27,15 @@ const COLORS = {
   evento: "#4299E1",  // blue.400 (celeste)
 };
 
+// Estados de venta que se consideran "terminadas" → no se muestran en el calendario.
+const VENTA_ESTADOS_OCULTOS = ["despachada", "cancelada"];
+
 const toIsoDate = (date) => {
   const d = new Date(date);
   if (Number.isNaN(d.getTime())) return null;
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 };
 
@@ -43,13 +46,14 @@ const toIsoDate = (date) => {
  *
  * También retorna `itemsByDay` (Map<string, item[]>) usado por el modal de día.
  */
-export const useCalendarEvents = ({ ventasDataExt } = {}) => {
+export const useCalendarEvents = ({ ventasDataExt, tareasDataExt } = {}) => {
   // Ventas: si vienen de afuera (HomeView ya las tiene), reusar para no doble fetch
   const ventasInternal = useGetAllVentas();
   const ventasData = ventasDataExt ?? ventasInternal.ventasData ?? [];
 
-  // Tareas: pedir hasta 200 (suficiente para vista de calendario)
-  const { items: tareasItems = [], refetch: refetchTareas } = useGetTareasPaginated(1, 200);
+  // Tareas: usar datos externos si se proveen (TareasView los maneja), sino fetch propio
+  const { items: tareasInternal = [], refetch: refetchTareas } = useGetTareasPaginated(1, 500);
+  const tareasItems = tareasDataExt ?? tareasInternal;
 
   // Eventos manuales
   const { items: eventosItems = [], refetch: refetchEventos } = useGetEventos();
@@ -63,10 +67,10 @@ export const useCalendarEvents = ({ ventasDataExt } = {}) => {
       byDay.set(key, arr);
     };
 
-    // 1) Ventas (no despachadas, con fechaLimite o fechaEntrega)
+    // 1) Ventas no terminadas con fecha límite de entrega
     (ventasData || []).forEach((venta) => {
-      if (venta?.estado === "despachada") return;
-      const entregaRaw = venta?.fechaEntrega || venta?.fechaLimite;
+      if (VENTA_ESTADOS_OCULTOS.includes(venta?.estado)) return;
+      const entregaRaw = venta?.fechaLimite || venta?.fechaEntrega;
       if (!entregaRaw) return;
       const entregaDate = new Date(entregaRaw);
       if (Number.isNaN(entregaDate.getTime())) return;
@@ -103,17 +107,22 @@ export const useCalendarEvents = ({ ventasDataExt } = {}) => {
       });
     });
 
-    // 2) Tareas pendientes con dueDate
+    // 2) Tareas no terminadas: se muestran todas las que no estén "hecho".
+    // Se ubican por dueDate; si faltara, por createdAt (fallback de seguridad).
     (tareasItems || []).forEach((t) => {
-      if (t?.status !== "pendiente" || !t?.dueDate) return;
-      const fecha = new Date(t.dueDate);
+      if (!t || t.status === "hecho") return;
+      const fechaRaw = t.dueDate || t.createdAt;
+      if (!fechaRaw) return;
+      const fecha = new Date(fechaRaw);
       if (Number.isNaN(fecha.getTime())) return;
 
+      const tareaTag = Array.isArray(t.tags) && t.tags.length ? capitalizeLabel(t.tags[0]) : null;
+      const tareaSubtitle = [tareaTag, t.notes || ""].filter(Boolean).join(" · ");
       const itemModal = {
         id: `tarea-${t?._id}`,
         type: "tarea",
         title: t.title || "Tarea",
-        subtitle: t.notes || "",
+        subtitle: tareaSubtitle,
         raw: t,
       };
       const dayKey = buildDayKey(fecha);
@@ -162,10 +171,11 @@ export const useCalendarEvents = ({ ventasDataExt } = {}) => {
     return { events: fcEvents, itemsByDay: byDay };
   }, [ventasData, tareasItems, eventosItems]);
 
-  const refetchAll = () => {
-    refetchTareas?.();
-    refetchEventos?.();
-  };
+  const refetchAll = () =>
+    Promise.all([
+      tareasDataExt ? Promise.resolve() : (refetchTareas?.() ?? Promise.resolve()),
+      refetchEventos?.() ?? Promise.resolve(),
+    ]);
 
   return {
     events,
