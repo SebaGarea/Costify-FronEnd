@@ -141,6 +141,8 @@ const InsightCard = ({ title, value, caption, icon, cardBg, borderColor }) => {
       borderColor={borderColor}
       align="center"
       gap={4}
+      transition="border-color 0.15s ease, transform 0.15s ease"
+      _hover={{ borderColor: "teal.300", transform: "translateY(-2px)" }}
     >
       {icon && (
         <Flex
@@ -158,7 +160,7 @@ const InsightCard = ({ title, value, caption, icon, cardBg, borderColor }) => {
         <Text fontSize="sm" fontWeight="medium" color={captionColor}>
           {title}
         </Text>
-        <Text fontSize="lg" fontWeight="bold" fontFamily="heading">
+        <Text fontSize="lg" fontWeight="bold" fontFamily="heading" className="tnum">
           {value}
         </Text>
         {caption && (
@@ -1077,7 +1079,7 @@ export const HomeView = () => {
                       </Box>
                     </HStack>
                     <VStack spacing={0} align="flex-end">
-                      <Text fontWeight="bold" color={primaryText}>
+                      <Text fontWeight="bold" color={primaryText} className="tnum">
                         {currencyFormatter.format(medio.revenue)}
                       </Text>
                       <Text fontSize="sm" color={mutedText}>
@@ -1149,7 +1151,7 @@ export const HomeView = () => {
               value={numberFormatter.format(inventoryMetrics.productsCount)}
               caption={`${numberFormatter.format(inventoryMetrics.stockUnits)} unidades en stock`}
               icon={FaCubes}
-              cardBg={cardBg}
+              cardBg={innerCardBg}
               borderColor={borderColor}
             />
             <InsightCard
@@ -1157,7 +1159,7 @@ export const HomeView = () => {
               value={numberFormatter.format(inventoryMetrics.plantillasCount)}
               caption={`${inventoryMetrics.planillaCoverage}% de cobertura del catálogo`}
               icon={FaClipboardList}
-              cardBg={cardBg}
+              cardBg={innerCardBg}
               borderColor={borderColor}
             />
             <InsightCard
@@ -1165,7 +1167,7 @@ export const HomeView = () => {
               value={numberFormatter.format(inventoryMetrics.rawMaterialsCount)}
               caption="Disponibles para producción"
               icon={FaWarehouse}
-              cardBg={cardBg}
+              cardBg={innerCardBg}
               borderColor={borderColor}
             />
           </SimpleGrid>
