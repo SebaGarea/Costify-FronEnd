@@ -67,3 +67,8 @@ export const deleteArchivoPlantilla = async (id, publicId) => {
   });
 };
 
+export const getTiposProyecto = async () => {
+  const response = await api.get('/api/plantillas/tipos');
+  return response.data;
+};
+
