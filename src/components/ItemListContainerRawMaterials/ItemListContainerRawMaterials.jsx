@@ -298,8 +298,8 @@ export const ItemListContainerRawMaterials = ({
                   <Stack
                     bg={cardBg}
                     borderRadius="xl"
-                    p={5}
-                    spacing={4}
+                    p={4}
+                    spacing={3}
                     borderWidth="1px"
                     borderColor={border}
                     h="full"
@@ -320,22 +320,24 @@ export const ItemListContainerRawMaterials = ({
                       </Text>
                     </Stack>
 
-                    <Stack spacing={1}>
+                    <Grid templateColumns="repeat(2, 1fr)" gapX={4} gapY={1}>
                       {renderDetail("Stock", mp?.stock ?? 0, true)}
+                      {renderDetail("Precio", formatPrice(mp?.precio), true)}
                       {renderDetail("Tipo", typeLabel)}
                       {renderDetail("Medida", mp?.medida || "Sin medida")}
                       {renderDetail("Espesor", mp?.espesor || "N/A")}
-                      {renderDetail("Celda Excel", mp?.celdaExcel || "-")}
-                      {renderDetail("Precio", formatPrice(mp?.precio), true)}
-                      {renderDetail("ID", mp?._id || "-")}
-                    </Stack>
+                      {renderDetail("Celda", mp?.celdaExcel || "-")}
+                      {renderDetail("ID", mp?._id ? `…${mp._id.slice(-8)}` : "-")}
+                    </Grid>
 
-                    <Stack direction={{ base: "column", sm: "row" }} spacing={2}>
+                    <Stack direction={{ base: "column", sm: "row" }} spacing={2} mt="auto">
                       <Button
                         w="full"
+                        size="sm"
                         as={Link}
                         to={`/materias-primas/${mp?._id}`}
                         variant="outline"
+                        colorScheme="teal"
                         rightIcon={<RiArrowRightLine />}
                       >
                         Ver detalle
