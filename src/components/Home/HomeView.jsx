@@ -94,10 +94,11 @@ const StatCard = ({
       bg={cardBg}
       borderWidth="1px"
       borderColor={borderColor}
-      boxShadow="2xl"
       align="center"
       justify="space-between"
       gap={6}
+      transition="border-color 0.15s ease, transform 0.15s ease"
+      _hover={{ borderColor: accentColor, transform: "translateY(-2px)" }}
     >
       <Stat>
         <StatLabel
@@ -222,8 +223,8 @@ export const HomeView = () => {
   }, []);
 
   const gradientBg = useColorModeValue(
-    "linear-gradient(135deg, #fbf9f3 0%, #daf5f0 100%)",
-    "linear-gradient(135deg, #0f172a 0%, #134e4a 100%)"
+    "linear-gradient(180deg, #f5f7fb 0%, #eef2f9 100%)",
+    "linear-gradient(180deg, #050b13 0%, #0b1422 100%)"
   );
   const cardBg = useColorModeValue("rgba(255,255,255,0.95)", "rgba(15,23,42,0.85)");
   const borderColor = useColorModeValue("gray.200", "gray.700");

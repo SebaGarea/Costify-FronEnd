@@ -35,7 +35,7 @@ import {
 import { FaHammer } from "react-icons/fa";
 import { PiAlignLeftDuotone } from "react-icons/pi";
 import { CiViewList } from "react-icons/ci";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../hooks/auth/useAuth.jsx";
 
 const LinkItems = [
@@ -124,41 +124,52 @@ const SidebarContent = ({ onClose, ...rest }) => {
   );
 };
 
-const NavItem = ({ icon, children, to, onClose, ...rest }) => (
-  <Box
-    as={Link}
-    to={to}
-    style={{ textDecoration: "none" }}
-    _focus={{ boxShadow: "none" }}
-    onClick={() => onClose?.()}
-  >
-    <Flex
-      align="center"
-      p="4"
-      mx="4"
+const NavItem = ({ icon, children, to, onClose, ...rest }) => {
+  const { pathname } = useLocation();
+  const isActive = to === "/" ? pathname === "/" : pathname.startsWith(to);
+
+  return (
+    <Box
+      as={Link}
+      to={to}
+      style={{ textDecoration: "none" }}
       borderRadius="lg"
-      role="group"
-      cursor="pointer"
-      _hover={{
-        bg: "cyan.400",
-        color: "white",
-      }}
-      {...rest}
+      _focusVisible={{ boxShadow: "outline" }}
+      onClick={() => onClose?.()}
     >
-      {icon && (
-        <Icon
-          mr="4"
-          fontSize="16"
-          _groupHover={{
-            color: "white",
-          }}
-          as={icon}
-        />
-      )}
-      {children}
-    </Flex>
-  </Box>
-);
+      <Flex
+        align="center"
+        p="4"
+        mx="4"
+        borderRadius="lg"
+        role="group"
+        cursor="pointer"
+        aria-current={isActive ? "page" : undefined}
+        bg={isActive ? "cyan.400" : "transparent"}
+        color={isActive ? "white" : "inherit"}
+        fontWeight={isActive ? "semibold" : "normal"}
+        transition="background-color 0.15s ease, color 0.15s ease"
+        _hover={{
+          bg: "cyan.400",
+          color: "white",
+        }}
+        {...rest}
+      >
+        {icon && (
+          <Icon
+            mr="4"
+            fontSize="16"
+            _groupHover={{
+              color: "white",
+            }}
+            as={icon}
+          />
+        )}
+        {children}
+      </Flex>
+    </Box>
+  );
+};
 
 const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
   const { colorMode, toggleColorMode } = useColorMode();
@@ -193,7 +204,7 @@ const MobileNav = ({ onOpen, user, onLogout, ...rest }) => {
         </Button>
         <Flex alignItems={"center"}>
           <Menu>
-            <MenuButton py={2} transition="all 0.3s" _focus={{ boxShadow: "none" }}>
+            <MenuButton py={2} transition="all 0.3s" borderRadius="md" _focusVisible={{ boxShadow: "outline" }}>
               <HStack>
                 <Avatar size={"sm"} name={displayName} src={user?.avatar || undefined} />
                 <VStack display={{ base: "none", md: "flex" }} alignItems="flex-start" spacing="1px" ml="2">
