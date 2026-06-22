@@ -201,6 +201,7 @@ export const HomeView = () => {
   const errorMessage = ventasError || plantillasError;
 
   const [dateFilterMode, setDateFilterMode] = useState("last30");
+  const [calExpanded, setCalExpanded] = useState(false);
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
 
   const dayModal = useDisclosure();
@@ -802,7 +803,7 @@ export const HomeView = () => {
           gap={6}
           align={{ base: "stretch", xl: "flex-start" }}
         >
-          <Stack spacing={3} flex="1">
+          <Stack spacing={3} flex="1" display={calExpanded ? "none" : "flex"}>
             {/* <Badge
               alignSelf="flex-start"
               colorScheme="teal"
@@ -941,14 +942,18 @@ export const HomeView = () => {
 
           <Box
             w="100%"
-            maxW={{ base: "100%", xl: "620px" }}
+            maxW={calExpanded ? "100%" : { base: "100%", xl: "620px" }}
+            flex={calExpanded ? "1" : undefined}
             flexShrink={0}
           >
             <UnifiedCalendar
+              key={calExpanded ? "cal-expandido" : "cal-normal"}
               events={fcEvents}
               onDateClick={openDayModal}
               onEventClick={handleCalendarEventClick}
-              height={400}
+              height={calExpanded ? 560 : 400}
+              expanded={calExpanded}
+              onToggleExpand={() => setCalExpanded((v) => !v)}
             />
           </Box>
         </Flex>
