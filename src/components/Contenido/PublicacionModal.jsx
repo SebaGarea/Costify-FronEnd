@@ -36,6 +36,30 @@ const CANALES = [
 
 const TIPOS = ["foto", "reel", "carrusel", "historia", "otro"];
 
+// Checklist de producción precargado según el tipo de pieza.
+const CHECKLIST_TEMPLATES = {
+  foto: ["Preparar producto / set", "Sacar fotos", "Seleccionar y retocar", "Escribir copy"],
+  reel: [
+    "Pensar idea / guion",
+    "Grabar video",
+    "Editar (cortes, música, subtítulos)",
+    "Diseñar portada",
+    "Escribir copy",
+  ],
+  carrusel: [
+    "Preparar producto / set",
+    "Sacar fotos",
+    "Seleccionar y retocar",
+    "Armar carrusel",
+    "Escribir copy",
+  ],
+  historia: ["Sacar foto / grabar", "Agregar sticker / encuesta / link"],
+  otro: [],
+};
+
+const templateItems = (tipo) =>
+  (CHECKLIST_TEMPLATES[tipo] || []).map((text) => ({ text, done: false }));
+
 const toDateInput = (v) => (v ? String(v).slice(0, 10) : "");
 const toISO = (v) => (v ? new Date(`${v}T12:00:00.000Z`).toISOString() : null);
 
@@ -84,11 +108,23 @@ export const PublicacionModal = ({
           : [],
       });
     } else {
-      setForm(emptyForm);
+      // Nueva publicación: precargar checklist según el tipo por defecto.
+      setForm({ ...emptyForm, checklist: templateItems(emptyForm.tipo) });
     }
   }, [isOpen, initial]);
 
   const set = (key, value) => setForm((p) => ({ ...p, [key]: value }));
+
+  const handleTipoChange = (tipo) =>
+    setForm((p) => ({
+      ...p,
+      tipo,
+      // Si el checklist está vacío, cargar la plantilla del nuevo tipo.
+      checklist: p.checklist.length === 0 ? templateItems(tipo) : p.checklist,
+    }));
+
+  const applyTemplate = () =>
+    setForm((p) => ({ ...p, checklist: templateItems(p.tipo) }));
 
   const addChecklistItem = () =>
     setForm((p) => ({ ...p, checklist: [...p.checklist, { text: "", done: false }] }));
@@ -154,7 +190,7 @@ export const PublicacionModal = ({
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               <FormControl>
                 <FormLabel fontSize="sm">Tipo</FormLabel>
-                <Select value={form.tipo} onChange={(e) => set("tipo", e.target.value)}>
+                <Select value={form.tipo} onChange={(e) => handleTipoChange(e.target.value)}>
                   {TIPOS.map((t) => (
                     <option key={t} value={t}>
                       {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -218,9 +254,14 @@ export const PublicacionModal = ({
                 <FormLabel fontSize="sm" mb={0}>
                   Checklist de producción
                 </FormLabel>
-                <Button size="xs" leftIcon={<FiPlus />} variant="ghost" colorScheme="teal" onClick={addChecklistItem}>
-                  Agregar
-                </Button>
+                <HStack spacing={1}>
+                  <Button size="xs" variant="ghost" onClick={applyTemplate}>
+                    Usar plantilla
+                  </Button>
+                  <Button size="xs" leftIcon={<FiPlus />} variant="ghost" colorScheme="teal" onClick={addChecklistItem}>
+                    Agregar
+                  </Button>
+                </HStack>
               </Flex>
               <Stack spacing={2}>
                 {form.checklist.length === 0 ? (
