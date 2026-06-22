@@ -14,12 +14,22 @@ export const streamChatMessage = async ({ messages, onChunk, signal }) => {
   });
 
   if (!res.ok || !res.body) {
-    let msg = "No se pudo contactar al asistente.";
-    try {
-      const data = await res.json();
-      msg = data.error || data.message || msg;
-    } catch {
-      /* respuesta sin json */
+    let msg = `No se pudo contactar al asistente (HTTP ${res.status}).`;
+    if (res.status === 401) {
+      msg = "Tu sesión expiró o no estás autenticado. Volvé a iniciar sesión.";
+    } else {
+      try {
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          const data = await res.json();
+          msg = data.error || data.message || msg;
+        } else {
+          const txt = await res.text();
+          if (txt) msg = `${msg} ${txt}`.slice(0, 200);
+        }
+      } catch {
+        /* sin cuerpo legible */
+      }
     }
     throw new Error(msg);
   }
