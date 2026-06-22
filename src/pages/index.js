@@ -19,4 +19,5 @@ export * from './ListaDeCompras.jsx';
 export * from './Configuracion.jsx';
 export * from './Perfil.jsx';
 export * from './Tareas.jsx';
+export * from './Contenido.jsx';
 
