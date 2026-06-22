@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogBody,
@@ -33,13 +33,39 @@ import { Loader } from "../Loader/Loader.jsx";
 import { PublicacionCard } from "./PublicacionCard.jsx";
 import { PublicacionModal } from "./PublicacionModal.jsx";
 
+// Tablero por TIEMPO: las columnas son cuándo se publica.
 const COLUMNS = [
-  { key: "idea", label: "Idea" },
-  { key: "produccion", label: "En producción" },
-  { key: "edicion", label: "En edición" },
-  { key: "listo", label: "Listo" },
+  { key: "sinfecha", label: "Sin fecha" },
+  { key: "esta", label: "Esta semana" },
+  { key: "proxima", label: "Próxima" },
   { key: "publicado", label: "Publicado" },
 ];
+
+const noonISO = (d) => {
+  const x = new Date(d);
+  x.setHours(12, 0, 0, 0);
+  return x.toISOString();
+};
+
+// Calcula límites de fechas (fin de esta semana, lunes próximo) una vez.
+const buildDateInfo = () => {
+  const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const dow = now.getDay(); // 0 dom .. 6 sáb
+  const daysToSun = (7 - dow) % 7;
+  const endWeek = new Date(today);
+  endWeek.setDate(endWeek.getDate() + daysToSun);
+  endWeek.setHours(23, 59, 59, 999);
+  const nextMon = new Date(today);
+  const addMon = ((8 - dow) % 7) || 7;
+  nextMon.setDate(nextMon.getDate() + addMon);
+  return {
+    endWeekTs: endWeek.getTime(),
+    isoToday: noonISO(today),
+    isoNextMonday: noonISO(nextMon),
+  };
+};
 
 const RECENT_DAYS = 30;
 
@@ -123,14 +149,37 @@ export const ContenidoView = () => {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
 
-  const byEstado = useMemo(() => {
-    const map = { idea: [], produccion: [], edicion: [], listo: [], publicado: [] };
+  const dateInfo = useMemo(() => buildDateInfo(), []);
+
+  const bucketOf = useCallback(
+    (c) => {
+      if (c.estado === "publicado") return "publicado";
+      if (!c.fechaPublicacion) return "sinfecha";
+      return new Date(c.fechaPublicacion).getTime() <= dateInfo.endWeekTs ? "esta" : "proxima";
+    },
+    [dateInfo]
+  );
+
+  const byBucket = useMemo(() => {
+    const map = { sinfecha: [], esta: [], proxima: [], publicado: [] };
     contenidos.forEach((c) => {
-      const key = map[c.estado] ? c.estado : "idea";
-      map[key].push(c);
+      map[bucketOf(c)].push(c);
     });
     return map;
-  }, [contenidos]);
+  }, [contenidos, bucketOf]);
+
+  // Patch a aplicar al soltar una tarjeta en una columna de tiempo.
+  const patchForBucket = useCallback(
+    (target, card) => {
+      if (target === "publicado") return { estado: "publicado" };
+      const base = card.estado === "publicado" ? { estado: "idea" } : {};
+      if (target === "sinfecha") return { ...base, fechaPublicacion: null };
+      if (target === "esta") return { ...base, fechaPublicacion: dateInfo.isoToday };
+      if (target === "proxima") return { ...base, fechaPublicacion: dateInfo.isoNextMonday };
+      return null;
+    },
+    [dateInfo]
+  );
 
   const productosRecientes = useMemo(() => {
     const limite = Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000;
@@ -150,8 +199,12 @@ export const ContenidoView = () => {
     return Array.from(acc.values()).sort((a, b) => b.count - a.count);
   }, [contenidos]);
 
-  const openNew = (estado = "idea") => {
-    setEditing({ estado });
+  const openNew = (bucket = "sinfecha") => {
+    let initial = { estado: "idea", fechaPublicacion: null };
+    if (bucket === "publicado") initial = { estado: "publicado", fechaPublicacion: dateInfo.isoToday };
+    else if (bucket === "esta") initial = { estado: "idea", fechaPublicacion: dateInfo.isoToday };
+    else if (bucket === "proxima") initial = { estado: "idea", fechaPublicacion: dateInfo.isoNextMonday };
+    setEditing(initial);
     modal.onOpen();
   };
 
@@ -203,9 +256,10 @@ export const ContenidoView = () => {
   const onDragEnd = ({ active, over }) => {
     if (!over) return;
     const card = contenidos.find((c) => c._id === active.id);
-    if (card && card.estado !== over.id) {
-      moveContenido(active.id, over.id);
-    }
+    if (!card) return;
+    if (bucketOf(card) === over.id) return;
+    const patch = patchForBucket(over.id, card);
+    if (patch) moveContenido(active.id, patch);
   };
 
   if (loading && contenidos.length === 0) return <Loader />;
@@ -221,7 +275,7 @@ export const ContenidoView = () => {
             Planificá y organizá tus publicaciones de redes.
           </Text>
         </Box>
-        <Button colorScheme="teal" leftIcon={<FiPlus />} onClick={() => openNew("idea")}>
+        <Button colorScheme="teal" leftIcon={<FiPlus />} onClick={() => openNew("sinfecha")}>
           Nueva publicación
         </Button>
       </Flex>
@@ -239,7 +293,7 @@ export const ContenidoView = () => {
             <KanbanColumn
               key={col.key}
               col={col}
-              items={byEstado[col.key]}
+              items={byBucket[col.key]}
               onEdit={openEdit}
               onDelete={askDelete}
               onAdd={openNew}

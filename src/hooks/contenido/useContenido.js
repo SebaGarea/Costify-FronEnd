@@ -59,14 +59,15 @@ export const useContenido = () => {
     [fetchContenidos]
   );
 
-  // Update optimista (para drag&drop entre columnas, sin parpadeo)
+  // Update optimista (para drag&drop entre columnas, sin parpadeo).
+  // Acepta un patch parcial (estado y/o fechaPublicacion).
   const moveContenido = useCallback(
-    async (id, estado) => {
+    async (id, patch) => {
       setContenidos((prev) =>
-        prev.map((c) => (c._id === id ? { ...c, estado } : c))
+        prev.map((c) => (c._id === id ? { ...c, ...patch } : c))
       );
       try {
-        await updateContenido(id, { estado });
+        await updateContenido(id, patch);
       } catch {
         await fetchContenidos(); // revertir si falla
       }

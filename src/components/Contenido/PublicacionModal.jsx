@@ -108,8 +108,12 @@ export const PublicacionModal = ({
           : [],
       });
     } else {
-      // Nueva publicación: precargar checklist según el tipo por defecto.
-      setForm({ ...emptyForm, checklist: templateItems(emptyForm.tipo) });
+      // Nueva publicación: precargar checklist según el tipo y la fecha del bucket (si vino).
+      setForm({
+        ...emptyForm,
+        fechaPublicacion: toDateInput(initial?.fechaPublicacion),
+        checklist: templateItems(emptyForm.tipo),
+      });
     }
   }, [isOpen, initial]);
 
