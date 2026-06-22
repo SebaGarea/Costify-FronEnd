@@ -26,7 +26,7 @@ const COLORS = {
   venta: "#38A169",   // green.500
   tarea: "#E53E3E",   // red.500
   evento: "#4299E1",  // blue.400 (celeste)
-  contenido: "#805AD5", // purple.500 (publicaciones de redes)
+  contenido: "#B83280", // pink.600 (publicaciones de redes, rosa oscuro)
 };
 
 // Estados de venta que se consideran "terminadas" → no se muestran en el calendario.

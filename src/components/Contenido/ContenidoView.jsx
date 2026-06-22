@@ -82,7 +82,7 @@ export const ContenidoView = () => {
   const [pendingDelete, setPendingDelete] = useState(null);
   const cancelRef = useRef();
 
-  const [showCalendar, setShowCalendar] = useState(true);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [showPublicadas, setShowPublicadas] = useState(false);
   const [search, setSearch] = useState("");
   const [canalFilter, setCanalFilter] = useState("todas");
