@@ -9,6 +9,7 @@ import {
   useToast,
   Select,
   HStack,
+  useColorModeValue,
 } from "@chakra-ui/react";
 
 import { useState, useEffect, useRef } from "react";
@@ -283,6 +284,9 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
     });
   };
 
+  const surface = useColorModeValue("white", "gray.800");
+  const surfaceBorder = useColorModeValue("gray.200", "gray.700");
+
   return (
     <Flex minH="auto" align="center" justify="center">
       <form onSubmit={handleSubmit}>
@@ -291,10 +295,11 @@ export const ItemAddRawMaterials = ({ RawMaterialId }) => {
           maxW="2xl"
           minW={{ base: "90vw", md: "700px" }}
           p={8}
-          border="1px"
-          borderRadius={20}
+          bg={surface}
+          borderWidth="1px"
+          borderColor={surfaceBorder}
+          borderRadius="xl"
           spacing={4}
-          boxShadow="md"
         >
           <FormControl>
             <FormLabel>Categoria</FormLabel>

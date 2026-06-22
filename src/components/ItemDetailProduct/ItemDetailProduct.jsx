@@ -196,7 +196,7 @@ export const ItemDetailProduct = ({ products }) => {
                       objectFit="cover"
                       border={
                         idx === currentIndex
-                          ? "2px solid #3182ce"
+                          ? "2px solid #319795"
                           : "1px solid #ccc"
                       }
                       borderRadius="md"
@@ -223,11 +223,10 @@ export const ItemDetailProduct = ({ products }) => {
             </Heading>
             <Box
               textAlign="center"
-              color={useColorModeValue("gray.900", "gray.100")}
-              fontWeight={200}
-              fontSize={"xl"}
+              color={useColorModeValue("gray.600", "gray.400")}
+              fontWeight={500}
+              fontSize={"lg"}
               mt={3}
-              textTransform={"uppercase"}
               as="span"
               display="block"
             >
@@ -235,12 +234,14 @@ export const ItemDetailProduct = ({ products }) => {
             </Box>
             <Box
               textAlign="center"
-              color={useColorModeValue("gray.900", "gray.100")}
-              fontWeight={400}
-              fontSize={"2xl"}
+              color={useColorModeValue("teal.600", "teal.300")}
+              fontWeight={700}
+              fontSize={"3xl"}
+              fontFamily="heading"
               mt={3}
               as="span"
               display="block"
+              className="tnum"
             >
               <Flex alignItems="center" justifyContent="center" display="inline-flex">
                 ${precioCalculado.toLocaleString()}
@@ -267,17 +268,11 @@ export const ItemDetailProduct = ({ products }) => {
             <Button
               as={plantillaLink ? Link : undefined}
               to={plantillaLink ?? undefined}
-              rounded={"15px"}
+              rounded={"lg"}
               w={{ base: "100%", md: "75%" }}
-              size={"ls"}
-              py={"2"}
-              bg={useColorModeValue("gray.900", "gray.300")}
-              color={useColorModeValue("white", "gray.900")}
-              textTransform={"uppercase"}
-              _hover={{
-                transform: "translateY(2px)",
-                boxShadow: "lg",
-              }}
+              size={"md"}
+              colorScheme="teal"
+              variant="outline"
               isDisabled={!plantillaLink}
               title={
                 plantillaLink
@@ -285,43 +280,30 @@ export const ItemDetailProduct = ({ products }) => {
                   : "Este producto no tiene una plantilla asociada"
               }
             >
-              Ver Planilla
+              Ver planilla
             </Button>
             <Button
               as={Link}
               to={`/productos/update/${products._id}`}
               rightIcon={<FcSettings size={20} />}
-              rounded={"15px"}
+              rounded={"lg"}
               w={{ base: "100%", md: "75%" }}
-              size={"ls"}
-              py={"2"}
-              bg={useColorModeValue("gray.900", "gray.300")}
-              color={useColorModeValue("white", "gray.900")}
-              textTransform={"uppercase"}
-              _hover={{
-                transform: "translateY(2px)",
-                boxShadow: "lg",
-              }}
+              size={"md"}
+              colorScheme="teal"
             >
-              Modificar Producto
+              Modificar producto
             </Button>
             <Button
               rightIcon={<MdDeleteForever size={24} />}
-              rounded={"15px"}
+              rounded={"lg"}
               w={{ base: "100%", md: "75%" }}
-              size={"ls"}
-              py={"2"}
-              bg={"red.700"}
-              color={"black"}
-              textTransform={"uppercase"}
-              _hover={{
-                transform: "translateY(2px)",
-                boxShadow: "lg",
-              }}
+              size={"md"}
+              colorScheme="red"
+              variant="outline"
               isLoading={loading}
               onClick={onOpen}
             >
-              Eliminar Producto
+              Eliminar producto
             </Button>
           </Stack>
           <Stack
@@ -481,7 +463,7 @@ export const ItemDetailProduct = ({ products }) => {
                 <Text fontSize="xs" color={plataformaMutedColor} mt={1}>
                   Comisión {nubeCuotasTotalPercent}% (Base {nubeBasePercent}% + Cuotas {nubeCuotasExtraPercent}%)
                 </Text>
-                <Badge colorScheme="cyan" fontSize="0.85em" px={3} py={1} mt={3}>
+                <Badge colorScheme="teal" fontSize="0.85em" px={3} py={1} mt={3}>
                   {formatPrice(valorNubeCuotas)}
                 </Badge>
               </Box>

@@ -5,6 +5,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogOverlay,
+  Badge,
   Box,
   Button,
   Circle,
@@ -111,20 +112,22 @@ export const ItemListVentas = () => {
     whatsapp: "WhatsApp",
     otro: "Otro",
   };
-  const iconColor = useColorModeValue("blue.500", "blue.300");
-  const cardVentas = useColorModeValue("gray.100", "gray.800");
+  const iconColor = useColorModeValue("teal.600", "teal.300");
+  const cardVentas = useColorModeValue("white", "gray.800");
   const bg = useColorModeValue("gray.50", "gray.900");
-  const heading = useColorModeValue("blue.600", "blue.300");
+  const heading = useColorModeValue("teal.600", "teal.300");
   const text = useColorModeValue("gray.700", "gray.200");
+  const mutedText = useColorModeValue("gray.600", "gray.400");
   const errorColor = useColorModeValue("red.500", "red.300");
-  const border = useColorModeValue("gray.500", "gray.600");
-  const filaMonetariaBg = useColorModeValue("gray.50", "gray.700");
-  const descBg = useColorModeValue("white", "gray.800");
+  const border = useColorModeValue("gray.200", "gray.700");
+  const despachadaBorder = useColorModeValue("red.400", "red.500");
+  const filaMonetariaBg = useColorModeValue("gray.50", "gray.900");
+  const descBg = useColorModeValue("gray.50", "gray.900");
   const heroBg = useColorModeValue(
-    "linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(226,242,255,0.96) 100%)",
-    "linear-gradient(135deg, rgba(26,32,44,0.95) 0%, rgba(15,19,28,0.9) 100%)"
+    "linear-gradient(180deg, #f5f7fb 0%, #eef2f9 100%)",
+    "linear-gradient(180deg, #050b13 0%, #0b1422 100%)"
   );
-  const heroBorder = useColorModeValue("blackAlpha.100", "whiteAlpha.200");
+  const heroBorder = useColorModeValue("gray.200", "gray.700");
 
   const fmtDateUTC = (d) => {
     try {
@@ -290,7 +293,7 @@ export const ItemListVentas = () => {
       value: statusMetrics.en_proceso ?? 0,
       helper: "Ventas activas",
       icon: FiRefreshCw,
-      accent: "orange.400",
+      accent: "teal.400",
     },
     {
       key: "finalizada",
@@ -306,7 +309,7 @@ export const ItemListVentas = () => {
       value: statusMetrics.despachada ?? 0,
       helper: "Entregas últimos 30 días",
       icon: FaTruck,
-      accent: "blue.400",
+      accent: "teal.400",
     },
     {
       key: "pending",
@@ -314,7 +317,7 @@ export const ItemListVentas = () => {
       value: pendingLabel,
       helper: "Ventas con saldo",
       icon: FiDollarSign,
-      accent: "purple.400",
+      accent: "orange.400",
     },
     {
       key: "alerts",
@@ -457,21 +460,18 @@ export const ItemListVentas = () => {
           w="100%"
           maxW="7xl"
           bg={heroBg}
-          borderRadius="3xl"
+          borderRadius="2xl"
           p={{ base: 4, md: 8 }}
           borderWidth="1px"
           borderColor={heroBorder}
-          boxShadow="2xl"
         >
           <VStack spacing={2} mb={{ base: 4, md: 6 }} textAlign="center">
             <Heading
               color={heading}
               textAlign="center"
-              whiteSpace="nowrap"
-              fontSize={{ base: "2xl", md: "5xl" }}
-              letterSpacing="widest"
+              fontSize={{ base: "2xl", md: "4xl" }}
             >
-              📊 Gestión de Ventas
+              Gestión de Ventas
             </Heading>
           </VStack>
           <SimpleGrid columns={{ base: 1, sm: 2, md: 3, xl: 5 }} spacing={{ base: 3, md: 4 }} w="full">
@@ -491,7 +491,6 @@ export const ItemListVentas = () => {
               p={4}
               maxW="7xl"
               w="100%"
-              boxShadow="xl"
             >
               <Text fontWeight="bold" color={heading} mb={3} fontSize="sm">
                 Ventas con vencimiento próximo
@@ -577,13 +576,14 @@ export const ItemListVentas = () => {
           </Flex>
           <Button
             ml={{ base: 0, md: "auto" }}
+            colorScheme="teal"
             onClick={() => navigate("/ventas/itemAdd")}
-            rightIcon={<FaStar size={18} color={iconColor} />}
+            rightIcon={<FaStar size={16} />}
           >
             Agregar venta
           </Button>
         </Flex>
-        <Text fontSize="small" color={"gray.100"}>
+        <Text fontSize="small" color={mutedText}>
           Mostrando {filteredVentas.length} de {ventasOrdenadas.length} ventas.
           {clienteQuery &&
             ` Clientes encontrados: ${clienteMatches}.`}
@@ -628,51 +628,32 @@ export const ItemListVentas = () => {
 
             const statusBadge =
               venta.estado === "finalizada"
-                ? { label: "Finalizada", color: "green.700", bg: "green.100" }
+                ? { label: "Finalizada", scheme: "green" }
                 : venta.estado === "en_proceso"
-                ? { label: "En proceso", color: "orange.800", bg: "orange.100" }
+                ? { label: "En proceso", scheme: "orange" }
                 : venta.estado === "despachada"
-                ? { label: "Despachada", color: "blue.700", bg: "blue.100" }
+                ? { label: "Despachada", scheme: "red" }
                 : null;
             return (
               <Box
                 key={venta._id}
                 p={{ base: 2, md: 3 }}
-                borderWidth="1px"
+                borderWidth={venta.estado === "despachada" ? "2px" : "1px"}
                 borderRadius="xl"
                 bg={cardVentas}
-                borderColor={border}
-                shadow="md"
-                transition="all 0.3s"
-                _hover={venta.estado !== "despachada" ? { shadow: "lg", borderColor: heading } : {}}
+                backgroundImage={
+                  venta.estado === "despachada"
+                    ? "repeating-linear-gradient(135deg, transparent 0, transparent 13px, var(--chakra-colors-red-400) 13px, var(--chakra-colors-red-400) 14px)"
+                    : undefined
+                }
+                borderColor={venta.estado === "despachada" ? despachadaBorder : border}
+                transition="border-color 0.15s ease, transform 0.15s ease"
+                _hover={venta.estado !== "despachada" ? { borderColor: heading, transform: "translateY(-2px)" } : {}}
                 w="full"
                 minW={{ base: "280px", md: "640px" }}
                 alignSelf="stretch"
                 position="relative"
-                opacity={venta.estado === "despachada" ? 0.85 : 1}
               >
-                {/* Patrón de rayas diagonales para despachada */}
-                {venta.estado === "despachada" && (
-                  <Box
-                    position="absolute"
-                    top={0}
-                    left={0}
-                    width="100%"
-                    height="100%"
-                    borderRadius="xl"
-                    pointerEvents="none"
-                    zIndex={5}
-                    overflow="hidden"
-                    backgroundImage={`repeating-linear-gradient(
-                      45deg,
-                      transparent,
-                      transparent 8px,
-                      rgba(220, 38, 38, 0.35) 8px,
-                      rgba(220, 38, 38, 0.35) 16px
-                    )`}
-                  />
-                )}
-
                 <HStack
                   spacing={1}
                   alignItems="center"
@@ -789,17 +770,17 @@ export const ItemListVentas = () => {
                     justify="center"
                     textAlign="center"
                   >
-                    <Text color={text} fontSize="sm">
+                    <Text color={text} fontSize="sm" className="tnum">
                       <b>Envío:</b> {currencyFormatter.format(venta.valorEnvio)}
                     </Text>
-                    <Text color={text} fontSize="sm">
+                    <Text color={text} fontSize="sm" className="tnum">
                       <b>Seña:</b> {currencyFormatter.format(venta.seña)}
                     </Text>
-                    <Text color={text} fontSize="sm">
+                    <Text color={text} fontSize="sm" className="tnum">
                       <b>Total:</b> {currencyFormatter.format(venta.valorTotal)}
                     </Text>
                     <Flex align="center" gap={1} justify="center">
-                      <Text color={heading} fontWeight="bold" fontSize="sm">
+                      <Text color={heading} fontWeight="bold" fontSize="sm" className="tnum">
                         Restan: {restanLabel}
                       </Text>
                         <IconButton
@@ -819,20 +800,17 @@ export const ItemListVentas = () => {
                   </HStack>
 
                   {statusBadge && (
-                    <Text
+                    <Badge
                       alignSelf="center"
                       flexShrink={0}
-                      fontSize="xs"
-                      color={statusBadge.color}
-                      bg={statusBadge.bg}
+                      colorScheme={statusBadge.scheme}
+                      borderRadius="full"
                       px={2}
                       py={0.5}
-                      borderRadius="md"
-                      lineHeight="1"
                       whiteSpace="nowrap"
                     >
                       {statusBadge.label}
-                    </Text>
+                    </Badge>
                   )}
 
                   <Flex gap={2} ml={{ base: 0, md: "auto" }} flexWrap="wrap" justify="flex-end">
@@ -987,10 +965,11 @@ const MetricCard = ({
   isDisabled,
   isActive,
 }) => {
-  const cardBg = useColorModeValue("whiteAlpha.900", "gray.800");
-  const muted = useColorModeValue("gray.600", "gray.300");
-  const borderColor = useColorModeValue("blackAlpha.100", "whiteAlpha.200");
+  const cardBg = useColorModeValue("white", "gray.800");
+  const muted = useColorModeValue("gray.600", "gray.400");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
   const iconBg = useColorModeValue("blackAlpha.50", "whiteAlpha.200");
+  const activeBorder = useColorModeValue("teal.500", "teal.300");
 
   const handleClick = () => {
     if (onClick && !isDisabled) {
@@ -1004,30 +983,19 @@ const MetricCard = ({
       p={{ base: 4, md: 5 }}
       borderRadius="xl"
       borderWidth="1px"
-      borderColor={borderColor}
+      borderColor={isActive ? activeBorder : borderColor}
       bg={cardBg}
-      boxShadow={isActive ? "2xl" : "xl"}
       cursor={onClick && !isDisabled ? "pointer" : "default"}
       onClick={handleClick}
-      transition="all 0.2s ease"
+      transition="border-color 0.15s ease, transform 0.15s ease"
       _hover={{
-        transform: !isDisabled ? "translateY(-4px)" : undefined,
-        boxShadow: !isDisabled ? "3xl" : undefined,
+        transform: !isDisabled ? "translateY(-2px)" : undefined,
+        borderColor: !isDisabled ? accent : undefined,
       }}
       opacity={isDisabled ? 0.55 : 1}
     >
-      <Box
-        position="absolute"
-        top={0}
-        left={0}
-        right={0}
-        h="3px"
-        borderTopLeftRadius="2xl"
-        borderTopRightRadius="2xl"
-        bg={accent}
-      />
       <Flex justify="space-between" align="center" mb={3}>
-        <Text fontSize="xs" letterSpacing="0.2em" textTransform="uppercase" color={muted}>
+        <Text fontSize="sm" fontWeight="medium" color={muted}>
           {label}
         </Text>
         {icon && (
@@ -1036,7 +1004,13 @@ const MetricCard = ({
           </Circle>
         )}
       </Flex>
-      <Text fontSize={{ base: "2xl", md: "3xl" }} fontWeight="extrabold" color={accent}>
+      <Text
+        fontSize={{ base: "2xl", md: "3xl" }}
+        fontWeight="bold"
+        color={accent}
+        fontFamily="heading"
+        className="tnum"
+      >
         {value}
       </Text>
       {helper && (

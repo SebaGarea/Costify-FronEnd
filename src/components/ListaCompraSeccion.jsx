@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect, useCallback, useRef, memo } from "react";
 import {
+  Badge,
   Box,
   Heading,
+  HStack,
   Stack,
   Button,
   Text,
@@ -203,6 +205,7 @@ const ListaCompraSeccion = ({
     colorConfig.accent?.dark ?? "teal.200"
   );
   const innerCardBg = useColorModeValue("white", "gray.900");
+  const mutedText = useColorModeValue("gray.600", "gray.400");
   const buttonScheme = colorConfig.buttonScheme ?? "teal";
 
   const materialsById = useMemo(() => {
@@ -683,17 +686,21 @@ const ListaCompraSeccion = ({
       borderWidth="1px"
       borderColor={noteBorder}
       bg={noteBg}
-      boxShadow="xl"
-      minH="360px"
     >
-      <Heading
-        size="md"
-        mb={4}
-        fontFamily="'Space Grotesk', 'DM Sans', sans-serif"
-        color={headingColor}
-      >
-        {title}
-      </Heading>
+      <HStack mb={4} spacing={2} align="center">
+        <Heading
+          size="md"
+          fontFamily="heading"
+          color={headingColor}
+        >
+          {title}
+        </Heading>
+        {items.length > 0 && (
+          <Badge colorScheme={buttonScheme} borderRadius="full" px={2}>
+            {items.length}
+          </Badge>
+        )}
+      </HStack>
       <Stack spacing={4}>
         {items.map((item, idx) => {
           const espesorOptions =
@@ -704,7 +711,7 @@ const ListaCompraSeccion = ({
           const quantityValue = formatQuantityValue(item.cantidad);
 
           return (
-            <Box key={item.id} p={4} borderRadius="xl" bg={innerCardBg} boxShadow="lg">
+            <Box key={item.id} p={4} borderRadius="xl" bg={innerCardBg} borderWidth="1px" borderColor={noteBorder}>
             <Stack spacing={3}>
               {item.esPersonalizado ? (
                 <Grid templateColumns={{ base: "repeat(1, 1fr)", lg: "repeat(12, 1fr)" }} gap={2} alignItems="flex-end">
@@ -768,6 +775,7 @@ const ListaCompraSeccion = ({
                         readOnly
                         placeholder="$0"
                         size="sm"
+                        className="tnum"
                       />
                     </FormControl>
                   </GridItem>
@@ -940,6 +948,7 @@ const ListaCompraSeccion = ({
                           readOnly
                           placeholder="$0"
                           size="sm"
+                          className="tnum"
                         />
                       </FormControl>
                     </GridItem>
@@ -972,11 +981,15 @@ const ListaCompraSeccion = ({
           );
         })}
         {!items.length && (
-          <Text fontSize="sm" color="gray.600">
+          <Text fontSize="sm" color={mutedText}>
             Agregá ítems para esta sección (también podés crear uno manual).
           </Text>
         )}
-        <Stack direction={{ base: "column", sm: "row" }} spacing={3}>
+        <Flex
+          direction={{ base: "column", sm: "row" }}
+          align={{ base: "stretch", sm: "center" }}
+          gap={3}
+        >
           <Button
             leftIcon={<AddIcon />}
             onClick={handleAdd}
@@ -994,11 +1007,18 @@ const ListaCompraSeccion = ({
           >
             Agregar ítem manual
           </Button>
-        </Stack>
+          <Text
+            fontWeight="bold"
+            fontSize="lg"
+            color={amountColor}
+            className="tnum"
+            ml={{ base: 0, sm: "auto" }}
+            textAlign={{ base: "left", sm: "right" }}
+          >
+            Subtotal: {currencyFormatter.format(subtotal)}
+          </Text>
+        </Flex>
       </Stack>
-      <Text mt={6} fontWeight="bold" fontSize="lg" textAlign="right" color={amountColor}>
-        Subtotal: {currencyFormatter.format(subtotal)}
-      </Text>
       {!sectionMaterials.length && (
         <Text mt={2} fontSize="xs" color="gray.600" textAlign="right">
           No hay materias primas registradas para esta categoría.

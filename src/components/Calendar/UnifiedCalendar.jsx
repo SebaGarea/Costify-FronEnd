@@ -1,10 +1,14 @@
 import { useCallback, useMemo } from "react";
 import {
   Box,
+  Flex,
   HStack,
+  IconButton,
   Text,
+  Tooltip,
   useColorModeValue,
 } from "@chakra-ui/react";
+import { FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -18,9 +22,10 @@ const Legend = () => {
     { color: "#38A169", label: "Entregas" },
     { color: "#E53E3E", label: "Tareas" },
     { color: "#4299E1", label: "Eventos" },
+    { color: "#B83280", label: "Publicaciones" },
   ];
   return (
-    <HStack spacing={4} pb={2} flexWrap="wrap">
+    <HStack spacing={4} flexWrap="wrap">
       {items.map((it) => (
         <HStack key={it.label} spacing={2}>
           <Box w={3} h={3} borderRadius="full" bg={it.color} />
@@ -52,6 +57,8 @@ export const UnifiedCalendar = ({
   initialView = "dayGridMonth",
   height = "auto",
   showLegend = true,
+  expanded = false,
+  onToggleExpand,
 }) => {
   const cardBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -107,7 +114,24 @@ export const UnifiedCalendar = ({
       boxShadow="md"
       className="unified-calendar-wrapper"
     >
-      {showLegend && <Legend />}
+      {(showLegend || onToggleExpand) && (
+        <Flex justify="space-between" align="center" pb={2} gap={2}>
+          {showLegend ? <Legend /> : <Box />}
+          {onToggleExpand && (
+            <Tooltip label={expanded ? "Contraer calendario" : "Expandir calendario"}>
+              <IconButton
+                aria-label={expanded ? "Contraer calendario" : "Expandir calendario"}
+                icon={expanded ? <FiMinimize2 /> : <FiMaximize2 />}
+                size="sm"
+                variant="ghost"
+                colorScheme="teal"
+                flexShrink={0}
+                onClick={onToggleExpand}
+              />
+            </Tooltip>
+          )}
+        </Flex>
+      )}
       <FullCalendar
         plugins={plugins}
         initialView={initialView}

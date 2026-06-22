@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-21T00:00:00.000Z",
+  "title": "Design System: Costify",
+  "extensions": {
+    "colorMeta": {
+      "teal-primary": {
+        "role": "primary",
+        "displayName": "Cockpit Teal",
+        "canonical": "#319795",
+        "tonalRamp": ["#1D4044", "#234E52", "#285E61", "#2C7A7B", "#319795", "#4FD1C5", "#81E6D9", "#B2F5EA"]
+      },
+      "cyan-accent": {
+        "role": "secondary",
+        "displayName": "Signal Cyan",
+        "canonical": "#0BC5EA",
+        "tonalRamp": ["#065666", "#086F83", "#0987A0", "#0BC5EA", "#22D3EE", "#76E4F7", "#9DECF9", "#C4F1F9"]
+      },
+      "ink-bg": {
+        "role": "neutral",
+        "displayName": "Deep Hull Navy",
+        "canonical": "#050b13",
+        "tonalRamp": ["#050b13", "#0a121d", "#0f172a", "#1a2333", "#2D3748", "#4A5568", "#718096", "#A0AEC0"]
+      },
+      "paper-bg": {
+        "role": "neutral",
+        "displayName": "Cool Paper",
+        "canonical": "#f5f7fb",
+        "tonalRamp": ["#1A202C", "#2D3748", "#4A5568", "#718096", "#A0AEC0", "#CBD5E0", "#E2E8F0", "#f5f7fb"]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Go Green",
+        "canonical": "#38A169",
+        "tonalRamp": ["#1C4532", "#22543D", "#276749", "#2F855A", "#38A169", "#48BB78", "#68D391", "#9AE6B4"]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Caution Amber",
+        "canonical": "#DD6B20",
+        "tonalRamp": ["#652B19", "#7B341E", "#9C4221", "#C05621", "#DD6B20", "#ED8936", "#F6AD55", "#FBD38D"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Alert Red",
+        "canonical": "#E53E3E",
+        "tonalRamp": ["#63171B", "#822727", "#9B2C2C", "#C53030", "#E53E3E", "#FC8181", "#FEB2B2", "#FED7D7"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Page titles only (dashboard H1, section top heading)." },
+      "headline": { "displayName": "Headline", "purpose": "Card and panel headings." },
+      "title": { "displayName": "Title", "purpose": "Sub-section headings, list group labels." },
+      "body": { "displayName": "Body", "purpose": "Default reading text; prose capped 65-75ch." },
+      "data": { "displayName": "Data", "purpose": "Key metrics and currency readouts; tabular figures." },
+      "label": { "displayName": "Label", "purpose": "Form labels, helper text, badges, table headers; sentence case." }
+    },
+    "shadows": [
+      { "name": "resting", "value": "none", "purpose": "Default for cards, inputs, rows; the 1px seam border defines the edge." },
+      { "name": "lifted-readout", "value": "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)", "purpose": "The few primary stat instruments that should read as elevated." },
+      { "name": "floating", "value": "0 25px 50px -12px rgba(0,0,0,0.25)", "purpose": "Modals, menus, tooltips, day-detail popovers — surfaces that leave the plane." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Default ease-out (quint) for state transitions." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Hover, focus, small state changes." },
+      { "name": "duration-standard", "value": "250ms", "purpose": "Reveals, drawer/menu open, larger transitions." }
+    ],
+    "breakpoints": [
+      { "name": "base", "value": "0px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "992px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single high-emphasis action per view.",
+      "html": "<button class=\"ds-btn-primary\">Guardar venta</button>",
+      "css": ".ds-btn-primary { background: #319795; color: #F7FAFC; padding: 8px 16px; border: none; border-radius: 8px; font: 500 0.875rem Inter, sans-serif; cursor: pointer; transition: background 150ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-primary:hover { background: #2C7A7B; } .ds-btn-primary:active { background: #234E52; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px #050b13, 0 0 0 4px #319795; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Outline button for secondary actions.",
+      "html": "<button class=\"ds-btn-secondary\">Cancelar</button>",
+      "css": ".ds-btn-secondary { background: transparent; color: #319795; padding: 8px 16px; border: 1px solid #2D3748; border-radius: 8px; font: 500 0.875rem Inter, sans-serif; cursor: pointer; transition: background 150ms, border-color 150ms; } .ds-btn-secondary:hover { background: rgba(49,151,149,0.12); border-color: #319795; } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 2px #319795; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Standard text/number field on a slate panel.",
+      "html": "<input class=\"ds-input\" placeholder=\"Buscar producto\" />",
+      "css": ".ds-input { background: #0f172a; color: #F7FAFC; padding: 8px 12px; border: 1px solid #2D3748; border-radius: 8px; font: 400 1rem Inter, sans-serif; width: 100%; transition: border-color 150ms, box-shadow 150ms; } .ds-input::placeholder { color: #A0AEC0; } .ds-input:focus { outline: none; border-color: #319795; box-shadow: 0 0 0 2px rgba(49,151,149,0.5); }"
+    },
+    {
+      "name": "Card / Panel",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Standard surface; seam-first, no resting shadow.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Top 3 medios de venta</h3><p class=\"ds-card-body\">Participacion por ingresos en el periodo.</p></div>",
+      "css": ".ds-card { background: rgba(15,23,42,0.85); border: 1px solid #2D3748; border-radius: 12px; padding: 20px; } .ds-card-title { font: 700 1.5rem Inter, sans-serif; letter-spacing: -0.01em; color: #F7FAFC; margin: 0 0 8px; } .ds-card-body { font: 400 1rem Inter, sans-serif; color: #A0AEC0; margin: 0; }"
+    },
+    {
+      "name": "Stat Readout Card",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Signature dashboard instrument: label, tabular data number, helper, tinted icon badge.",
+      "html": "<div class=\"ds-stat\"><div class=\"ds-stat-text\"><span class=\"ds-stat-label\">Total facturado</span><span class=\"ds-stat-value\">$1.240.500</span><span class=\"ds-stat-help\">38 ventas en el periodo</span></div><div class=\"ds-stat-badge\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#4FD1C5\" stroke-width=\"2\"><rect x=\"2\" y=\"6\" width=\"20\" height=\"12\" rx=\"2\"/><circle cx=\"12\" cy=\"12\" r=\"2.5\"/></svg></div></div>",
+      "css": ".ds-stat { display: flex; align-items: center; justify-content: space-between; gap: 24px; background: rgba(15,23,42,0.85); border: 1px solid #2D3748; border-radius: 12px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); } .ds-stat-text { display: flex; flex-direction: column; gap: 2px; } .ds-stat-label { font: 500 0.875rem Inter, sans-serif; color: #A0AEC0; } .ds-stat-value { font: 600 1.5rem Inter, sans-serif; font-feature-settings: 'tnum' 1; letter-spacing: -0.01em; color: #4FD1C5; } .ds-stat-help { font: 400 0.875rem Inter, sans-serif; color: #A0AEC0; } .ds-stat-badge { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 9999px; background: rgba(79,209,197,0.16); flex-shrink: 0; }"
+    },
+    {
+      "name": "Badge / Chip",
+      "kind": "chip",
+      "refersTo": "nav-item",
+      "description": "Semantic pill for status and priority.",
+      "html": "<span class=\"ds-badge ds-badge-warning\">Saldo parcial</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 9999px; font: 500 0.875rem Inter, sans-serif; } .ds-badge-warning { background: rgba(221,107,32,0.18); color: #F6AD55; } .ds-badge-success { background: rgba(56,161,105,0.18); color: #68D391; } .ds-badge-danger { background: rgba(229,62,62,0.18); color: #FEB2B2; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Sidebar navigation row; quiet default, cyan hover/active.",
+      "html": "<a class=\"ds-nav-item\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg><span>Inicio</span></a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 16px; padding: 16px; margin: 0 16px; border-radius: 8px; color: #F7FAFC; text-decoration: none; font: 400 1rem Inter, sans-serif; cursor: pointer; transition: background 150ms, color 150ms; } .ds-nav-item:hover, .ds-nav-item[aria-current=\"page\"] { background: #0BC5EA; color: #ffffff; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Operator's Cockpit",
+    "overview": "Costify is the control cabin of a small maker business. The owner sits down to answer one concrete question and the interface answers it without ceremony. Every instrument is legible at a glance, every control is where the hand expects it, nothing flashes for attention it hasn't earned. The mood is calm-under-pressure: dark-first, dense where the data warrants, unshakably trustworthy. The figures are the product; the chrome gets out of their way. A single confident teal carries every primary action, selection, and live state.",
+    "keyCharacteristics": [
+      "Dark-first navy cockpit; light mode is a faithful mirror, not a downgrade.",
+      "One teal voice for action, selection, and state — reserved, never decorative.",
+      "Numbers rendered with tabular figures and clear hierarchy; data is the hero.",
+      "One typeface (Inter) across headings, labels, body, and data — no display pairing.",
+      "Calm motion: 150-250 ms, conveying state, never choreography."
+    ],
+    "rules": [
+      { "name": "The One Voice Rule", "body": "Cockpit Teal is the only accent that signals action and state. It appears on a small fraction of any screen; its rarity is what makes a primary button or selected row read instantly. Never decoration.", "section": "colors" },
+      { "name": "The Readout Rule", "body": "Muted grey (#A0AEC0 on dark, #4A5568 on light) is the lightest text may go, and only for secondary copy. Body text and figures use Instrument White / Hull Ink. If a number is hard to read, add contrast, never a lighter grey.", "section": "colors" },
+      { "name": "The Reserved-State Rule", "body": "Green, Amber, and Red carry meaning, never style. Do not introduce a fourth or fifth decorative hue.", "section": "colors" },
+      { "name": "The Tabular Money Rule", "body": "Every figure a user compares uses tabular-figure Inter so money columns align. Proportional digits in a money column are a defect.", "section": "typography" },
+      { "name": "The Sentence-Case Rule", "body": "Labels and headers are sentence case. Tiny uppercase letter-tracked eyebrow labels are prohibited as default scaffolding.", "section": "typography" },
+      { "name": "The Seam-First Rule", "body": "A surface is defined by its 1px Panel Seam border and a tonal step above the background, not by a drop shadow. Reach for shadow only when a surface truly floats.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep Costify dark-mode-first; treat light mode as a fully-working mirror with the same contrast guarantees (>=4.5:1 body, >=3:1 large) in both modes.",
+      "Do use Cockpit Teal (#319795) as the single action/state voice and nothing decorative.",
+      "Do render every comparable figure in tabular-figure Inter so money columns align.",
+      "Do load Inter once and reference it via the Chakra theme (fonts.heading / fonts.body); delete the inline fontFamily strings.",
+      "Do define surfaces with a 1px Panel Seam border and a tonal step; add shadow only to floating surfaces and the single most important instrument.",
+      "Do give every interactive control a visible focus ring and full keyboard reachability; honor prefers-reduced-motion.",
+      "Do keep motion at 150-250 ms and tie it to state, never page-load choreography."
+    ],
+    "donts": [
+      "Don't make it cutesy or toy-like: no oversized rounded-everything, no mascots, no bouncy/elastic motion.",
+      "Don't reach for the generic AI/SaaS template: no gradient hero metrics, no tiny uppercase letter-tracked eyebrows over every section, no endless identical icon+number card grids.",
+      "Don't let body text or figures fade to muted grey for elegance — Readout Grey is the floor and only for secondary copy.",
+      "Don't introduce a fourth/fifth decorative hue, and don't reference Chakra color scales that don't exist (indigo.*, lime.* silently fail).",
+      "Don't ship _focus={{ boxShadow: 'none' }} on interactive elements — it kills keyboard visibility.",
+      "Don't nest a card inside a card with the same treatment; step the tone or drop the inner border.",
+      "Don't use border-left/border-right > 1px as a colored accent stripe."
+    ]
+  }
+}

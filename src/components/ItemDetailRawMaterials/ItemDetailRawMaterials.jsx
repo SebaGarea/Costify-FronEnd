@@ -34,6 +34,7 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
   const toast = useToast();
   const navigate = useNavigate();
   const { deleteMp, loading } = useDeleteMp();
+  const muted = useColorModeValue("gray.600", "gray.400");
 
   const formatTimestamp = (value) => {
     if (!value) return "";
@@ -108,7 +109,8 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
         <Card
           maxW="1200px"
           w="100%"
-          boxShadow="2xl"
+          variant="outline"
+          borderColor={useColorModeValue("gray.200", "gray.700")}
           bg={useColorModeValue("white", "gray.800")}
         >
           <CardBody p={8}>
@@ -130,11 +132,12 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
                         {RawMaterials.nombre}
                       </Heading>
                       <Badge
-                        colorScheme="blue"
+                        colorScheme="teal"
                         fontSize="lg"
                         px={4}
                         py={2}
                         borderRadius="full"
+                        textTransform="capitalize"
                       >
                         {RawMaterials.categoria}
                       </Badge>
@@ -142,8 +145,8 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
 
                     {/* Precio destacado */}
                     <HStack spacing={3} mb={6}>
-                      <Text fontSize="4xl" fontWeight="bold" color="green.500">
-                        ${RawMaterials.precio}
+                      <Text fontSize="4xl" fontWeight="bold" color={useColorModeValue("teal.600", "teal.300")} fontFamily="heading" className="tnum">
+                        ${Number(RawMaterials.precio || 0).toLocaleString()}
                       </Text>
                       <FcMoneyTransfer size={40} />
                     </HStack>
@@ -157,8 +160,8 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
                       >
                         {detailFields.map((field) => (
                           <Box key={field.label}>
-                            <Text fontSize="sm" color="gray.500" fontWeight="bold" mb={1}>
-                              {field.label.toUpperCase()}
+                            <Text fontSize="sm" color={muted} fontWeight="medium" mb={1}>
+                              {field.label}
                             </Text>
                             <Text fontSize="md" fontWeight={500}>
                               {field.value}
@@ -180,11 +183,11 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
                     <Box>
                       <Text
                         fontSize="sm"
-                        color="gray.500"
-                        fontWeight="bold"
+                        color={muted}
+                        fontWeight="medium"
                         mb={1}
                       >
-                        TIPO
+                        Tipo
                       </Text>
                       <Text fontSize="lg" fontWeight={500}>
                         {RawMaterials.type}
@@ -194,11 +197,11 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
                     <Box>
                       <Text
                         fontSize="sm"
-                        color="gray.500"
-                        fontWeight="bold"
+                        color={muted}
+                        fontWeight="medium"
                         mb={1}
                       >
-                        MEDIDA
+                        Medida
                       </Text>
                       <Text fontSize="lg" fontWeight={500}>
                         {RawMaterials.medida}
@@ -208,11 +211,11 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
                     <Box>
                       <Text
                         fontSize="sm"
-                        color="gray.500"
-                        fontWeight="bold"
+                        color={muted}
+                        fontWeight="medium"
                         mb={1}
                       >
-                        STOCK
+                        Stock
                       </Text>
                       <Badge
                         colorScheme={
@@ -242,14 +245,7 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
                     rightIcon={<FcSettings size={20} />}
                     w="100%"
                     size="lg"
-                    bg={useColorModeValue("gray.600", "gray.400")}
-                    color="white"
-                    _hover={{
-                      transform: "translateY(-2px)",
-                      boxShadow: "lg",
-                      bg: useColorModeValue("gray.700", "gray.500"),
-                    }}
-                    transition="all 0.2s"
+                    colorScheme="teal"
                   >
                     Modificar
                   </Button>
@@ -258,14 +254,8 @@ export const ItemDetailRawMaterials = ({ RawMaterials }) => {
                     rightIcon={<MdDeleteForever size={24} />}
                     w="100%"
                     size="lg"
-                    bg="red.500"
-                    color="white"
-                    _hover={{
-                      transform: "translateY(-2px)",
-                      boxShadow: "lg",
-                      bg: "red.600",
-                    }}
-                    transition="all 0.2s"
+                    colorScheme="red"
+                    variant="outline"
                     isLoading={loading}
                     onClick={onOpen}
                   >
