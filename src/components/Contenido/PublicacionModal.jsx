@@ -38,20 +38,20 @@ const TIPOS = ["foto", "reel", "carrusel", "historia", "otro"];
 
 // Checklist de producción precargado según el tipo de pieza.
 const CHECKLIST_TEMPLATES = {
-  foto: ["Preparar producto / set", "Sacar fotos", "Seleccionar y retocar", "Escribir copy"],
+  foto: ["Preparar producto / set", "Sacar fotos", "Seleccionar y retocar", "Texto de posteo"],
   reel: [
     "Pensar idea / guion",
     "Grabar video",
     "Editar (cortes, música, subtítulos)",
     "Diseñar portada",
-    "Escribir copy",
+    "Texto de posteo",
   ],
   carrusel: [
     "Preparar producto / set",
     "Sacar fotos",
     "Seleccionar y retocar",
     "Armar carrusel",
-    "Escribir copy",
+    "Texto de posteo",
   ],
   historia: ["Sacar foto / grabar", "Agregar sticker / encuesta / link"],
   otro: [],
