@@ -1,6 +1,7 @@
 import { Box, useColorModeValue } from "@chakra-ui/react";
 import { useLocation } from "react-router-dom";
 import { SidebarWithHeader } from "../components/SideBar";
+import { ChatWidget } from "../components/Chat/ChatWidget.jsx";
 
 const MainLayout = ({ children }) => {
   const location = useLocation();
@@ -58,9 +59,12 @@ const MainLayout = ({ children }) => {
   }
 
   return (
-    <SidebarWithHeader>
-      {children}
-    </SidebarWithHeader>
+    <>
+      <SidebarWithHeader>
+        {children}
+      </SidebarWithHeader>
+      <ChatWidget />
+    </>
   );
 };
 
