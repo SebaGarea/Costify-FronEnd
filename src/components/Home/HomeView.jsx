@@ -38,7 +38,7 @@ import {
   FaTruck,
   FaWarehouse,
 } from "react-icons/fa";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiMaximize2, FiMinimize2 } from "react-icons/fi";
 import { Loader } from "..";
 import {
   useGetAllPlantillas,
@@ -201,6 +201,7 @@ export const HomeView = () => {
   const errorMessage = ventasError || plantillasError;
 
   const [dateFilterMode, setDateFilterMode] = useState("last30");
+  const [calExpanded, setCalExpanded] = useState(false);
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
 
   const dayModal = useDisclosure();
@@ -802,7 +803,7 @@ export const HomeView = () => {
           gap={6}
           align={{ base: "stretch", xl: "flex-start" }}
         >
-          <Stack spacing={3} flex="1">
+          <Stack spacing={3} flex="1" display={calExpanded ? "none" : "flex"}>
             {/* <Badge
               alignSelf="flex-start"
               colorScheme="teal"
@@ -941,14 +942,28 @@ export const HomeView = () => {
 
           <Box
             w="100%"
-            maxW={{ base: "100%", xl: "620px" }}
+            maxW={calExpanded ? "100%" : { base: "100%", xl: "620px" }}
+            flex={calExpanded ? "1" : undefined}
             flexShrink={0}
           >
+            <Flex justify="flex-end" mb={1}>
+              <Tooltip label={calExpanded ? "Contraer calendario" : "Expandir calendario"}>
+                <IconButton
+                  aria-label={calExpanded ? "Contraer calendario" : "Expandir calendario"}
+                  icon={calExpanded ? <FiMinimize2 /> : <FiMaximize2 />}
+                  size="sm"
+                  variant="ghost"
+                  colorScheme="teal"
+                  onClick={() => setCalExpanded((v) => !v)}
+                />
+              </Tooltip>
+            </Flex>
             <UnifiedCalendar
+              key={calExpanded ? "cal-expandido" : "cal-normal"}
               events={fcEvents}
               onDateClick={openDayModal}
               onEventClick={handleCalendarEventClick}
-              height={400}
+              height={calExpanded ? 560 : 400}
             />
           </Box>
         </Flex>
