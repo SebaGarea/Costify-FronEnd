@@ -38,7 +38,7 @@ import {
   FaTruck,
   FaWarehouse,
 } from "react-icons/fa";
-import { FiChevronLeft, FiChevronRight, FiMaximize2, FiMinimize2 } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { Loader } from "..";
 import {
   useGetAllPlantillas,
@@ -946,24 +946,14 @@ export const HomeView = () => {
             flex={calExpanded ? "1" : undefined}
             flexShrink={0}
           >
-            <Flex justify="flex-end" mb={1}>
-              <Tooltip label={calExpanded ? "Contraer calendario" : "Expandir calendario"}>
-                <IconButton
-                  aria-label={calExpanded ? "Contraer calendario" : "Expandir calendario"}
-                  icon={calExpanded ? <FiMinimize2 /> : <FiMaximize2 />}
-                  size="sm"
-                  variant="ghost"
-                  colorScheme="teal"
-                  onClick={() => setCalExpanded((v) => !v)}
-                />
-              </Tooltip>
-            </Flex>
             <UnifiedCalendar
               key={calExpanded ? "cal-expandido" : "cal-normal"}
               events={fcEvents}
               onDateClick={openDayModal}
               onEventClick={handleCalendarEventClick}
               height={calExpanded ? 560 : 400}
+              expanded={calExpanded}
+              onToggleExpand={() => setCalExpanded((v) => !v)}
             />
           </Box>
         </Flex>
