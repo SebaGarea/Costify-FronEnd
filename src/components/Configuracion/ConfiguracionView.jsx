@@ -29,6 +29,7 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  Textarea,
   Tooltip,
   Collapse,
   useDisclosure,
@@ -415,10 +416,68 @@ export const ConfiguracionView = () => {
         </Card>
       )}
 
+      <PerfilNegocioSection />
+
       <PlataformasSection />
 
       <PerfilesPinturaSection />
     </Box>
+  );
+};
+
+const PerfilNegocioSection = () => {
+  const { config, refetch } = useConfiguracion();
+  const toast = useToast();
+  const cardBg = useColorModeValue("white", "gray.800");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const muted = useColorModeValue("gray.600", "gray.400");
+  const [texto, setTexto] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setTexto(config?.perfilNegocio || "");
+  }, [config?.perfilNegocio]);
+
+  const guardar = async () => {
+    setSaving(true);
+    try {
+      await updateConfiguracion({ perfilNegocio: texto });
+      await refetch?.();
+      toast({ status: "success", title: "Perfil del negocio guardado", duration: 2000, isClosable: true });
+    } catch {
+      toast({ status: "error", title: "No se pudo guardar el perfil", duration: 3000, isClosable: true });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card bg={cardBg} borderColor={borderColor} borderWidth="1px" mb={6}>
+      <CardHeader>
+        <Heading size="md">Perfil del negocio (para el asistente IA)</Heading>
+        <Text color={muted} fontSize="sm" mt={1}>
+          Contale al asistente quién sos: rubro, nombre, qué hacés, tono de marca. Lo va a tener
+          presente en cada conversación.
+        </Text>
+      </CardHeader>
+      <CardBody>
+        <Textarea
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder="Ej: Somos El Portal, una herrería artesanal. Hacemos muebles a medida en hierro y madera, vendemos por Instagram y Tienda Nube. Tono cercano y profesional."
+          minH="120px"
+          maxLength={2000}
+        />
+        <Flex justify="space-between" align="center" mt={2}>
+          <Text fontSize="xs" color={muted}>
+            {texto.length}/2000
+          </Text>
+          <Button colorScheme="teal" size="sm" onClick={guardar} isLoading={saving}>
+            Guardar perfil
+          </Button>
+        </Flex>
+      </CardBody>
+    </Card>
   );
 };
 
