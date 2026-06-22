@@ -112,7 +112,15 @@ const SidebarContent = ({ onClose, ...rest }) => {
         pt="8"
         mb="6"
       >
-        <Image src={logoSrc} alt="Costify Logo" h="40" w="auto" objectFit="contain" />
+        <Text
+          fontSize="2xl"
+          fontWeight="bold"
+          fontFamily="heading"
+          letterSpacing="-0.02em"
+          color={useColorModeValue("teal.600", "teal.300")}
+        >
+          Costify
+        </Text>
         <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
       </Flex>
 

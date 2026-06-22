@@ -130,7 +130,15 @@ export const LoginView = () => {
       >
         <VStack as="form" spacing={4} align="stretch" onSubmit={handleSubmit}>
           <VStack spacing={0}>
-            <Image src={logoSrc} alt="El Portal" h="48" objectFit="contain" />
+            <Heading
+              textAlign="center"
+              size="2xl"
+              fontFamily="heading"
+              letterSpacing="-0.02em"
+              color={useColorModeValue("teal.600", "teal.300")}
+            >
+              Costify
+            </Heading>
             <Heading textAlign="center" size="md">Iniciar sesión</Heading>
           </VStack>
           <Stack spacing={3}>
