@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useGetAllVentas } from "../ventas/useGetAllVentas.js";
 import { useGetTareasPaginated } from "../tareas/useGetTareasPaginated.js";
 import { useGetEventos } from "../eventosCalendario/useGetEventos.js";
+import { getAllContenido } from "../../services/contenido.service.js";
 
 const getProductLabel = (venta = {}) => {
   if (venta?.productoNombre) return venta.productoNombre;
@@ -25,6 +26,7 @@ const COLORS = {
   venta: "#38A169",   // green.500
   tarea: "#E53E3E",   // red.500
   evento: "#4299E1",  // blue.400 (celeste)
+  contenido: "#805AD5", // purple.500 (publicaciones de redes)
 };
 
 // Estados de venta que se consideran "terminadas" → no se muestran en el calendario.
@@ -46,7 +48,7 @@ const toIsoDate = (date) => {
  *
  * También retorna `itemsByDay` (Map<string, item[]>) usado por el modal de día.
  */
-export const useCalendarEvents = ({ ventasDataExt, tareasDataExt } = {}) => {
+export const useCalendarEvents = ({ ventasDataExt, tareasDataExt, contenidoDataExt } = {}) => {
   // Ventas: si vienen de afuera (HomeView ya las tiene), reusar para no doble fetch
   const ventasInternal = useGetAllVentas();
   const ventasData = ventasDataExt ?? ventasInternal.ventasData ?? [];
@@ -57,6 +59,21 @@ export const useCalendarEvents = ({ ventasDataExt, tareasDataExt } = {}) => {
 
   // Eventos manuales
   const { items: eventosItems = [], refetch: refetchEventos } = useGetEventos();
+
+  // Contenido (publicaciones de redes): fetch propio salvo que venga de afuera
+  const [contenidoInternal, setContenidoInternal] = useState([]);
+  const fetchContenido = useCallback(async () => {
+    try {
+      const data = await getAllContenido();
+      setContenidoInternal(Array.isArray(data) ? data : data?.items ?? []);
+    } catch {
+      setContenidoInternal([]);
+    }
+  }, []);
+  useEffect(() => {
+    if (!contenidoDataExt) fetchContenido();
+  }, [contenidoDataExt, fetchContenido]);
+  const contenidoItems = contenidoDataExt ?? contenidoInternal;
 
   const { events, itemsByDay } = useMemo(() => {
     const fcEvents = [];
@@ -168,13 +185,43 @@ export const useCalendarEvents = ({ ventasDataExt, tareasDataExt } = {}) => {
       });
     });
 
+    // 4) Publicaciones de redes con fecha programada
+    (contenidoItems || []).forEach((c) => {
+      if (!c?.fechaPublicacion) return;
+      const fecha = new Date(c.fechaPublicacion);
+      if (Number.isNaN(fecha.getTime())) return;
+
+      const canales = Array.isArray(c.canales) ? c.canales.join(", ") : "";
+      const itemModal = {
+        id: `contenido-${c?._id}`,
+        type: "contenido",
+        title: c.titulo || "Publicación",
+        subtitle: canales,
+        raw: c,
+      };
+      const dayKey = buildDayKey(fecha);
+      pushDay(dayKey, itemModal);
+
+      fcEvents.push({
+        id: itemModal.id,
+        title: `📢 ${c.titulo || "Publicación"}`,
+        start: toIsoDate(fecha),
+        allDay: true,
+        backgroundColor: COLORS.contenido,
+        borderColor: COLORS.contenido,
+        textColor: "#fff",
+        extendedProps: { type: "contenido", raw: c, modalItem: itemModal, dayKey },
+      });
+    });
+
     return { events: fcEvents, itemsByDay: byDay };
-  }, [ventasData, tareasItems, eventosItems]);
+  }, [ventasData, tareasItems, eventosItems, contenidoItems]);
 
   const refetchAll = () =>
     Promise.all([
       tareasDataExt ? Promise.resolve() : (refetchTareas?.() ?? Promise.resolve()),
       refetchEventos?.() ?? Promise.resolve(),
+      contenidoDataExt ? Promise.resolve() : fetchContenido(),
     ]);
 
   return {

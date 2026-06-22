@@ -24,8 +24,89 @@ import {
   Textarea,
   Wrap,
   WrapItem,
+  useColorModeValue,
 } from "@chakra-ui/react";
 import { FiPlus, FiX } from "react-icons/fi";
+
+// Combobox de producto con búsqueda (el <select> nativo no filtra).
+const ProductoSelect = ({ productos, value, onChange }) => {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const listBg = useColorModeValue("white", "gray.700");
+  const border = useColorModeValue("gray.200", "gray.600");
+  const hover = useColorModeValue("gray.100", "gray.600");
+  const muted = useColorModeValue("gray.500", "gray.400");
+
+  const selected = productos.find((p) => p._id === value);
+  const selectedLabel = selected ? `${selected.nombre ?? ""} ${selected.modelo ?? ""}`.trim() : "";
+  const list = productos
+    .filter((p) => `${p.nombre ?? ""} ${p.modelo ?? ""}`.toLowerCase().includes(query.toLowerCase()))
+    .slice(0, 40);
+
+  const pick = (id) => {
+    onChange(id);
+    setOpen(false);
+    setQuery("");
+  };
+
+  return (
+    <Box position="relative">
+      <Input
+        value={open ? query : selectedLabel}
+        placeholder="Buscar producto…"
+        onFocus={() => {
+          setOpen(true);
+          setQuery("");
+        }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+      />
+      {open && (
+        <Box
+          position="absolute"
+          zIndex={20}
+          top="100%"
+          left={0}
+          right={0}
+          mt={1}
+          bg={listBg}
+          borderWidth="1px"
+          borderColor={border}
+          borderRadius="md"
+          boxShadow="lg"
+          maxH="220px"
+          overflowY="auto"
+        >
+          <Box px={3} py={2} cursor="pointer" _hover={{ bg: hover }} onMouseDown={() => pick("")}>
+            <Text fontSize="sm" color={muted}>
+              Sin producto
+            </Text>
+          </Box>
+          {list.map((p) => (
+            <Box
+              key={p._id}
+              px={3}
+              py={2}
+              cursor="pointer"
+              _hover={{ bg: hover }}
+              onMouseDown={() => pick(p._id)}
+            >
+              <Text fontSize="sm">{`${p.nombre ?? ""} ${p.modelo ?? ""}`.trim()}</Text>
+            </Box>
+          ))}
+          {list.length === 0 && (
+            <Text px={3} py={2} fontSize="sm" color={muted}>
+              Sin coincidencias
+            </Text>
+          )}
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 const CANALES = [
   { value: "instagram", label: "Instagram" },
@@ -73,6 +154,7 @@ const emptyForm = {
   copy: "",
   notas: "",
   checklist: [],
+  enlaces: [],
 };
 
 export const PublicacionModal = ({
@@ -106,6 +188,9 @@ export const PublicacionModal = ({
         checklist: Array.isArray(initial.checklist)
           ? initial.checklist.map((i) => ({ text: i.text || "", done: !!i.done }))
           : [],
+        enlaces: Array.isArray(initial.enlaces)
+          ? initial.enlaces.map((e) => ({ titulo: e.titulo || "", url: e.url || "" }))
+          : [],
       });
     } else {
       // Nueva publicación: precargar checklist según el tipo y la fecha del bucket (si vino).
@@ -129,6 +214,16 @@ export const PublicacionModal = ({
 
   const applyTemplate = () =>
     setForm((p) => ({ ...p, checklist: templateItems(p.tipo) }));
+
+  const addEnlace = () =>
+    setForm((p) => ({ ...p, enlaces: [...p.enlaces, { titulo: "", url: "" }] }));
+  const updateEnlace = (idx, patch) =>
+    setForm((p) => ({
+      ...p,
+      enlaces: p.enlaces.map((e, i) => (i === idx ? { ...e, ...patch } : e)),
+    }));
+  const removeEnlace = (idx) =>
+    setForm((p) => ({ ...p, enlaces: p.enlaces.filter((_, i) => i !== idx) }));
 
   const addChecklistItem = () =>
     setForm((p) => ({ ...p, checklist: [...p.checklist, { text: "", done: false }] }));
@@ -154,6 +249,9 @@ export const PublicacionModal = ({
       checklist: form.checklist
         .map((i) => ({ text: (i.text || "").trim(), done: !!i.done }))
         .filter((i) => i.text),
+      enlaces: form.enlaces
+        .map((e) => ({ titulo: (e.titulo || "").trim(), url: (e.url || "").trim() }))
+        .filter((e) => e.url),
     };
     onSubmit(payload);
   };
@@ -215,17 +313,11 @@ export const PublicacionModal = ({
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               <FormControl>
                 <FormLabel fontSize="sm">Producto asociado</FormLabel>
-                <Select
-                  placeholder="Sin producto"
+                <ProductoSelect
+                  productos={productos}
                   value={form.producto}
-                  onChange={(e) => set("producto", e.target.value)}
-                >
-                  {productos.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {`${p.nombre ?? ""} ${p.modelo ?? ""}`.trim()}
-                    </option>
-                  ))}
-                </Select>
+                  onChange={(id) => set("producto", id)}
+                />
               </FormControl>
               <FormControl>
                 <FormLabel fontSize="sm">Responsable</FormLabel>
@@ -251,6 +343,49 @@ export const PublicacionModal = ({
                 placeholder="Texto, hashtags, llamado a la acción…"
                 minH="80px"
               />
+            </FormControl>
+
+            <FormControl>
+              <Flex justify="space-between" align="center" mb={2}>
+                <FormLabel fontSize="sm" mb={0}>
+                  Imágenes / archivos (links)
+                </FormLabel>
+                <Button size="xs" leftIcon={<FiPlus />} variant="ghost" colorScheme="teal" onClick={addEnlace}>
+                  Agregar link
+                </Button>
+              </Flex>
+              <Stack spacing={2}>
+                {form.enlaces.length === 0 ? (
+                  <Text fontSize="xs" color="gray.500">
+                    Pegá el link de la carpeta de Drive, las fotos o el video editado.
+                  </Text>
+                ) : (
+                  form.enlaces.map((enlace, idx) => (
+                    <HStack key={idx} align="flex-start">
+                      <Input
+                        size="sm"
+                        maxW="160px"
+                        value={enlace.titulo}
+                        onChange={(e) => updateEnlace(idx, { titulo: e.target.value })}
+                        placeholder="Etiqueta (ej: fotos)"
+                      />
+                      <Input
+                        size="sm"
+                        value={enlace.url}
+                        onChange={(e) => updateEnlace(idx, { url: e.target.value })}
+                        placeholder="https://drive.google.com/…"
+                      />
+                      <IconButton
+                        aria-label="Quitar"
+                        icon={<FiX />}
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeEnlace(idx)}
+                      />
+                    </HStack>
+                  ))
+                )}
+              </Stack>
             </FormControl>
 
             <FormControl>

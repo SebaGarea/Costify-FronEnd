@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogBody,
@@ -9,120 +9,56 @@ import {
   Badge,
   Box,
   Button,
+  Checkbox,
   Flex,
   Heading,
   HStack,
+  IconButton,
+  Input,
+  Select,
   Text,
   VStack,
+  Wrap,
+  WrapItem,
   useColorModeValue,
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-import { FiPlus } from "react-icons/fi";
-import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  useDroppable,
-  closestCorners,
-} from "@dnd-kit/core";
+import { FiPlus, FiEdit2, FiTrash2, FiCalendar, FiChevronDown, FiChevronUp, FiLink } from "react-icons/fi";
 import { useContenido } from "../../hooks/contenido/useContenido.js";
 import { useItems } from "../../hooks";
+import { useCalendarEvents } from "../../hooks/calendar/useCalendarEvents.js";
+import { UnifiedCalendar } from "../Calendar/UnifiedCalendar.jsx";
+import { DayEventsModal } from "../Home/DayEventsModal.jsx";
 import { Loader } from "../Loader/Loader.jsx";
-import { PublicacionCard } from "./PublicacionCard.jsx";
 import { PublicacionModal } from "./PublicacionModal.jsx";
 
-// Tablero por TIEMPO: las columnas son cuándo se publica.
-const COLUMNS = [
-  { key: "sinfecha", label: "Sin fecha" },
-  { key: "esta", label: "Esta semana" },
-  { key: "proxima", label: "Próxima" },
-  { key: "publicado", label: "Publicado" },
-];
+const CANAL_LABEL = { instagram: "IG", facebook: "FB", tiktok: "TikTok", tiendanube: "Nube" };
+const CANALES = ["instagram", "facebook", "tiktok", "tiendanube"];
 
-const noonISO = (d) => {
-  const x = new Date(d);
-  x.setHours(12, 0, 0, 0);
-  return x.toISOString();
+const toDateInput = (v) => (v ? String(v).slice(0, 10) : "");
+const toISO = (v) => (v ? new Date(`${v}T12:00:00.000Z`).toISOString() : null);
+const fmtFecha = (v) => {
+  if (!v) return "";
+  try {
+    return new Date(v).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+  } catch {
+    return "";
+  }
 };
-
-// Calcula límites de fechas (fin de esta semana, lunes próximo) una vez.
-const buildDateInfo = () => {
-  const now = new Date();
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const dow = now.getDay(); // 0 dom .. 6 sáb
-  const daysToSun = (7 - dow) % 7;
-  const endWeek = new Date(today);
-  endWeek.setDate(endWeek.getDate() + daysToSun);
-  endWeek.setHours(23, 59, 59, 999);
-  const nextMon = new Date(today);
-  const addMon = ((8 - dow) % 7) || 7;
-  nextMon.setDate(nextMon.getDate() + addMon);
-  return {
-    endWeekTs: endWeek.getTime(),
-    isoToday: noonISO(today),
-    isoNextMonday: noonISO(nextMon),
-  };
-};
-
-const RECENT_DAYS = 30;
-
-const KanbanColumn = ({ col, items, onEdit, onDelete, onAdd }) => {
-  const colBg = useColorModeValue("gray.100", "gray.800");
-  const overBg = useColorModeValue("teal.50", "rgba(45,212,191,0.12)");
-  const border = useColorModeValue("gray.200", "gray.700");
-  const muted = useColorModeValue("gray.600", "gray.400");
-  const { setNodeRef, isOver } = useDroppable({ id: col.key });
-
-  return (
-    <Box minW="280px" w="280px" flexShrink={0}>
-      <Flex justify="space-between" align="center" mb={2} px={1}>
-        <HStack spacing={2}>
-          <Heading size="sm" fontFamily="heading">
-            {col.label}
-          </Heading>
-          <Badge colorScheme="gray" borderRadius="full">
-            {items.length}
-          </Badge>
-        </HStack>
-        <Button size="xs" variant="ghost" colorScheme="teal" leftIcon={<FiPlus />} onClick={() => onAdd(col.key)}>
-          Agregar
-        </Button>
-      </Flex>
-      <VStack
-        ref={setNodeRef}
-        align="stretch"
-        spacing={2}
-        bg={isOver ? overBg : colBg}
-        borderWidth="1px"
-        borderColor={isOver ? "teal.400" : border}
-        borderRadius="xl"
-        p={2}
-        minH="140px"
-        transition="background-color 0.15s ease, border-color 0.15s ease"
-      >
-        {items.length === 0 ? (
-          <Text fontSize="xs" color={muted} textAlign="center" py={4}>
-            Soltá tarjetas acá
-          </Text>
-        ) : (
-          items.map((c) => (
-            <PublicacionCard key={c._id} contenido={c} onEdit={onEdit} onDelete={onDelete} />
-          ))
-        )}
-      </VStack>
-    </Box>
-  );
+const responsableLabel = (r) => {
+  if (!r || typeof r === "string") return null;
+  return `${r.first_name || ""} ${r.last_name || ""}`.trim() || r.email || null;
 };
 
 export const ContenidoView = () => {
   const bg = useColorModeValue("gray.50", "gray.900");
-  const panelBg = useColorModeValue("white", "gray.800");
+  const cardBg = useColorModeValue("white", "gray.800");
   const border = useColorModeValue("gray.200", "gray.700");
   const muted = useColorModeValue("gray.600", "gray.400");
   const heading = useColorModeValue("teal.600", "teal.300");
+  const overdueBg = useColorModeValue("red.50", "rgba(229,62,62,0.14)");
+  const overdueBorder = useColorModeValue("red.300", "red.500");
   const toast = useToast();
 
   const {
@@ -134,6 +70,7 @@ export const ContenidoView = () => {
     editContenido,
     moveContenido,
     removeContenido,
+    refetch,
   } = useContenido();
   const { productsData = [] } = useItems();
 
@@ -145,71 +82,91 @@ export const ContenidoView = () => {
   const [pendingDelete, setPendingDelete] = useState(null);
   const cancelRef = useRef();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
+  const [showCalendar, setShowCalendar] = useState(true);
+  const [showPublicadas, setShowPublicadas] = useState(false);
+  const [search, setSearch] = useState("");
+  const [canalFilter, setCanalFilter] = useState("todas");
+  const [responsableFilter, setResponsableFilter] = useState("todos");
+  const [calendarKey, setCalendarKey] = useState(0);
+  const bumpCalendar = () => setCalendarKey((k) => k + 1);
 
-  const dateInfo = useMemo(() => buildDateInfo(), []);
+  const todayStart = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }, []);
 
-  const bucketOf = useCallback(
-    (c) => {
-      if (c.estado === "publicado") return "publicado";
-      if (!c.fechaPublicacion) return "sinfecha";
-      return new Date(c.fechaPublicacion).getTime() <= dateInfo.endWeekTs ? "esta" : "proxima";
-    },
-    [dateInfo]
-  );
+  // Calendario unificado (reusa nuestras publicaciones -> sin doble fetch)
+  const { events: calendarEvents, itemsByDay, buildDayKey, refetchAll } = useCalendarEvents({
+    contenidoDataExt: contenidos,
+  });
+  const dayModal = useDisclosure();
+  const [selectedDay, setSelectedDay] = useState(null);
+  const selectedDayItems = useMemo(() => {
+    if (!selectedDay) return [];
+    return itemsByDay.get(buildDayKey(selectedDay)) || [];
+  }, [selectedDay, itemsByDay, buildDayKey]);
 
-  const byBucket = useMemo(() => {
-    const map = { sinfecha: [], esta: [], proxima: [], publicado: [] };
-    contenidos.forEach((c) => {
-      map[bucketOf(c)].push(c);
-    });
-    return map;
-  }, [contenidos, bucketOf]);
-
-  // Patch a aplicar al soltar una tarjeta en una columna de tiempo.
-  const patchForBucket = useCallback(
-    (target, card) => {
-      if (target === "publicado") return { estado: "publicado" };
-      const base = card.estado === "publicado" ? { estado: "idea" } : {};
-      if (target === "sinfecha") return { ...base, fechaPublicacion: null };
-      if (target === "esta") return { ...base, fechaPublicacion: dateInfo.isoToday };
-      if (target === "proxima") return { ...base, fechaPublicacion: dateInfo.isoNextMonday };
-      return null;
-    },
-    [dateInfo]
-  );
-
-  const productosRecientes = useMemo(() => {
-    const limite = Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000;
-    const acc = new Map();
-    contenidos.forEach((c) => {
-      const prod = c.producto;
-      if (!prod || typeof prod !== "object") return;
-      const fecha = c.fechaPublicacion ? new Date(c.fechaPublicacion).getTime() : null;
-      const reciente = c.estado === "publicado" || (fecha && fecha >= limite);
-      if (!reciente) return;
-      const nombre = `${prod.nombre ?? ""} ${prod.modelo ?? ""}`.trim() || "Producto";
-      const key = prod._id || nombre;
-      const current = acc.get(key) || { nombre, count: 0 };
-      current.count += 1;
-      acc.set(key, current);
-    });
-    return Array.from(acc.values()).sort((a, b) => b.count - a.count);
-  }, [contenidos]);
-
-  const openNew = (bucket = "sinfecha") => {
-    let initial = { estado: "idea", fechaPublicacion: null };
-    if (bucket === "publicado") initial = { estado: "publicado", fechaPublicacion: dateInfo.isoToday };
-    else if (bucket === "esta") initial = { estado: "idea", fechaPublicacion: dateInfo.isoToday };
-    else if (bucket === "proxima") initial = { estado: "idea", fechaPublicacion: dateInfo.isoNextMonday };
-    setEditing(initial);
-    modal.onOpen();
+  const handleCalendarDateClick = (date) => {
+    setSelectedDay(date);
+    dayModal.onOpen();
+  };
+  const handleCalendarEventClick = (info) => {
+    const dayKey = info.event.extendedProps?.dayKey;
+    if (dayKey) {
+      const [y, m, d] = dayKey.split("-").map(Number);
+      setSelectedDay(new Date(y, m, d));
+    } else if (info.event.start) {
+      setSelectedDay(new Date(info.event.start));
+    }
+    dayModal.onOpen();
+  };
+  const handleCalendarChanged = async () => {
+    await Promise.all([refetch(), refetchAll()]);
+    bumpCalendar();
   };
 
-  const openEdit = (contenido) => {
-    setEditing(contenido);
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return contenidos.filter((c) => {
+      if (canalFilter !== "todas" && !(c.canales || []).includes(canalFilter)) return false;
+      if (responsableFilter !== "todos") {
+        const rid = c.responsable && (c.responsable._id || c.responsable);
+        if (String(rid || "") !== responsableFilter) return false;
+      }
+      if (q) {
+        const hay = `${c.titulo || ""} ${c.copy || ""} ${c.notas || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [contenidos, search, canalFilter, responsableFilter]);
+
+  const ideas = useMemo(
+    () => filtered.filter((c) => c.estado !== "publicado" && !c.fechaPublicacion),
+    [filtered]
+  );
+  const programadas = useMemo(
+    () =>
+      filtered
+        .filter((c) => c.estado !== "publicado" && c.fechaPublicacion)
+        .sort((a, b) => new Date(a.fechaPublicacion) - new Date(b.fechaPublicacion)),
+    [filtered]
+  );
+  const publicadas = useMemo(
+    () =>
+      filtered
+        .filter((c) => c.estado === "publicado")
+        .sort((a, b) => new Date(b.fechaPublicacion || 0) - new Date(a.fechaPublicacion || 0)),
+    [filtered]
+  );
+
+  const openNew = () => {
+    setEditing(null);
+    modal.onOpen();
+  };
+  const openEdit = (c) => {
+    setEditing(c);
     modal.onOpen();
   };
 
@@ -220,11 +177,12 @@ export const ContenidoView = () => {
         await editContenido(editing._id, payload);
         toast({ status: "success", title: "Publicación actualizada", duration: 2000, isClosable: true });
       } else {
-        await addContenido({ ...payload, estado: editing?.estado || "idea" });
+        await addContenido({ ...payload, estado: "idea" });
         toast({ status: "success", title: "Publicación creada", duration: 2000, isClosable: true });
       }
       modal.onClose();
       setEditing(null);
+      bumpCalendar();
     } catch (err) {
       toast({
         status: "error",
@@ -238,92 +196,269 @@ export const ContenidoView = () => {
     }
   };
 
-  const askDelete = (contenido) => {
-    setPendingDelete(contenido);
+  const askDelete = (c) => {
+    setPendingDelete(c);
     deleteDialog.onOpen();
   };
-
   const confirmDelete = async () => {
     if (!pendingDelete?._id) return;
     try {
       await removeContenido(pendingDelete._id);
+      bumpCalendar();
     } finally {
       setPendingDelete(null);
       deleteDialog.onClose();
     }
   };
 
-  const onDragEnd = ({ active, over }) => {
-    if (!over) return;
-    const card = contenidos.find((c) => c._id === active.id);
-    if (!card) return;
-    if (bucketOf(card) === over.id) return;
-    const patch = patchForBucket(over.id, card);
-    if (patch) moveContenido(active.id, patch);
+  const schedule = (c, dateStr) => moveContenido(c._id, { fechaPublicacion: toISO(dateStr) });
+  const togglePublicada = (c, checked) =>
+    moveContenido(c._id, { estado: checked ? "publicado" : "idea" });
+
+  const renderRow = (c) => {
+    const isPub = c.estado === "publicado";
+    const dueTime = c.fechaPublicacion ? new Date(c.fechaPublicacion).getTime() : null;
+    const overdue = !isPub && dueTime !== null && dueTime < todayStart;
+    const checklist = Array.isArray(c.checklist) ? c.checklist : [];
+    const checkDone = checklist.filter((i) => i?.done).length;
+    const enlaces = Array.isArray(c.enlaces) ? c.enlaces : [];
+    const resp = responsableLabel(c.responsable);
+    const prod = c.producto;
+    const prodNombre = prod && typeof prod === "object" ? `${prod.nombre ?? ""} ${prod.modelo ?? ""}`.trim() : null;
+
+    return (
+      <Box
+        key={c._id}
+        borderWidth="1px"
+        borderRadius="lg"
+        p={3}
+        bg={overdue ? overdueBg : cardBg}
+        borderColor={overdue ? overdueBorder : border}
+      >
+        <Flex gap={3} align="flex-start" justify="space-between" flexWrap="wrap">
+          <HStack align="flex-start" spacing={3} flex="1 1 420px" minW={0}>
+            <Checkbox
+              mt={1}
+              colorScheme="green"
+              isChecked={isPub}
+              onChange={(e) => togglePublicada(c, e.target.checked)}
+              title="Marcar como publicada"
+            />
+            <Box minW={0} flex="1" cursor="pointer" onClick={() => openEdit(c)}>
+              <Text fontWeight="semibold" noOfLines={1} textDecoration={isPub ? "line-through" : "none"}>
+                {c.titulo}
+              </Text>
+              <Wrap spacing={1} mt={1}>
+                {(c.canales || []).map((ch) => (
+                  <WrapItem key={ch}>
+                    <Badge colorScheme="teal" variant="subtle" fontSize="0.65rem">
+                      {CANAL_LABEL[ch] || ch}
+                    </Badge>
+                  </WrapItem>
+                ))}
+                {c.tipo && (
+                  <WrapItem>
+                    <Badge colorScheme="gray" variant="subtle" fontSize="0.65rem" textTransform="capitalize">
+                      {c.tipo}
+                    </Badge>
+                  </WrapItem>
+                )}
+              </Wrap>
+              <HStack mt={1} spacing={3} color={muted} fontSize="xs" flexWrap="wrap">
+                {prodNombre && <Text noOfLines={1}>🛋 {prodNombre}</Text>}
+                {resp && <Text noOfLines={1}>👤 {resp}</Text>}
+                {checklist.length > 0 && (
+                  <Text>
+                    ✓ {checkDone}/{checklist.length}
+                  </Text>
+                )}
+                {enlaces.length > 0 && (
+                  <HStack spacing={1}>
+                    <FiLink />
+                    <Text>{enlaces.length}</Text>
+                  </HStack>
+                )}
+              </HStack>
+            </Box>
+          </HStack>
+
+          <HStack spacing={2} align="center">
+            {!isPub && (
+              <Input
+                type="date"
+                size="sm"
+                w="150px"
+                value={toDateInput(c.fechaPublicacion)}
+                onChange={(e) => schedule(c, e.target.value)}
+                title="Programar fecha de publicación"
+              />
+            )}
+            {overdue && <Badge colorScheme="red">Vencida</Badge>}
+            {isPub && c.fechaPublicacion && (
+              <Text fontSize="xs" color={muted}>
+                {fmtFecha(c.fechaPublicacion)}
+              </Text>
+            )}
+            <IconButton aria-label="Editar" icon={<FiEdit2 />} size="sm" variant="ghost" onClick={() => openEdit(c)} />
+            <IconButton
+              aria-label="Eliminar"
+              icon={<FiTrash2 />}
+              size="sm"
+              variant="ghost"
+              colorScheme="red"
+              onClick={() => askDelete(c)}
+            />
+          </HStack>
+        </Flex>
+      </Box>
+    );
   };
+
+  const Section = ({ title, count, items, emptyText }) => (
+    <Box>
+      <HStack mb={2} spacing={2}>
+        <Heading size="sm" fontFamily="heading">
+          {title}
+        </Heading>
+        <Badge colorScheme="gray" borderRadius="full">
+          {count}
+        </Badge>
+      </HStack>
+      {items.length === 0 ? (
+        <Text fontSize="sm" color={muted} mb={2}>
+          {emptyText}
+        </Text>
+      ) : (
+        <VStack align="stretch" spacing={2}>
+          {items.map(renderRow)}
+        </VStack>
+      )}
+    </Box>
+  );
 
   if (loading && contenidos.length === 0) return <Loader />;
 
   return (
     <Box bg={bg} minH="100vh" p={{ base: 3, md: 5 }}>
-      <Flex justify="space-between" align="center" flexWrap="wrap" gap={3} mb={5} maxW="100%">
-        <Box>
-          <Heading color={heading} size="lg" fontFamily="heading">
-            Contenido
-          </Heading>
-          <Text color={muted} fontSize="sm">
-            Planificá y organizá tus publicaciones de redes.
-          </Text>
-        </Box>
-        <Button colorScheme="teal" leftIcon={<FiPlus />} onClick={() => openNew("sinfecha")}>
-          Nueva publicación
-        </Button>
-      </Flex>
-
-      {error && (
-        <Text color="red.400" mb={4}>
-          {error}
-        </Text>
-      )}
-
-      {/* Tablero Kanban */}
-      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
-        <Flex gap={4} align="flex-start" overflowX="auto" pb={3}>
-          {COLUMNS.map((col) => (
-            <KanbanColumn
-              key={col.key}
-              col={col}
-              items={byBucket[col.key]}
-              onEdit={openEdit}
-              onDelete={askDelete}
-              onAdd={openNew}
-            />
-          ))}
+      <VStack spacing={5} align="stretch" maxW="1100px" mx="auto">
+        <Flex justify="space-between" align="center" flexWrap="wrap" gap={3}>
+          <Box>
+            <Heading color={heading} size="lg" fontFamily="heading">
+              Contenido
+            </Heading>
+            <Text color={muted} fontSize="sm">
+              Cargá ideas y programalas. Las que tienen fecha aparecen en el calendario.
+            </Text>
+          </Box>
+          <Button colorScheme="teal" leftIcon={<FiPlus />} onClick={openNew}>
+            Nueva publicación
+          </Button>
         </Flex>
-      </DndContext>
 
-      {/* Productos con contenido reciente */}
-      <Box mt={6} p={4} bg={panelBg} borderWidth="1px" borderColor={border} borderRadius="xl" maxW="900px">
-        <Heading size="sm" fontFamily="heading" mb={1}>
-          Productos con contenido reciente
-        </Heading>
-        <Text fontSize="xs" color={muted} mb={3}>
-          Productos promocionados (publicados o programados) en los últimos {RECENT_DAYS} días.
-        </Text>
-        {productosRecientes.length === 0 ? (
-          <Text fontSize="sm" color={muted}>
-            Todavía no hay productos con contenido reciente.
-          </Text>
-        ) : (
-          <Flex gap={2} flexWrap="wrap">
-            {productosRecientes.map((p) => (
-              <Badge key={p.nombre} colorScheme="teal" variant="subtle" borderRadius="full" px={3} py={1}>
-                {p.nombre} · {p.count}
-              </Badge>
-            ))}
+        {error && <Text color="red.400">{error}</Text>}
+
+        {/* Calendario colapsable */}
+        <Box bg={cardBg} borderWidth="1px" borderColor={border} borderRadius="xl" p={{ base: 3, md: 4 }}>
+          <Flex justify="space-between" align="center">
+            <HStack spacing={2}>
+              <FiCalendar />
+              <Heading size="sm" fontFamily="heading">
+                Calendario
+              </Heading>
+            </HStack>
+            <Button
+              size="sm"
+              variant="ghost"
+              colorScheme="teal"
+              onClick={() => setShowCalendar((v) => !v)}
+              rightIcon={showCalendar ? <FiChevronUp /> : <FiChevronDown />}
+            >
+              {showCalendar ? "Ocultar" : "Mostrar"}
+            </Button>
           </Flex>
+          {showCalendar && (
+            <Box mt={3} maxW="900px" mx="auto" w="100%">
+              <UnifiedCalendar
+                key={calendarKey}
+                events={calendarEvents}
+                onDateClick={handleCalendarDateClick}
+                onEventClick={handleCalendarEventClick}
+                height={420}
+              />
+            </Box>
+          )}
+        </Box>
+
+        {/* Filtros */}
+        <Flex gap={2} flexWrap="wrap" align="center">
+          <Input
+            size="sm"
+            maxW="260px"
+            placeholder="Buscar…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Select size="sm" maxW="160px" value={canalFilter} onChange={(e) => setCanalFilter(e.target.value)}>
+            <option value="todas">Todos los canales</option>
+            {CANALES.map((ch) => (
+              <option key={ch} value={ch}>
+                {CANAL_LABEL[ch]}
+              </option>
+            ))}
+          </Select>
+          <Select
+            size="sm"
+            maxW="190px"
+            value={responsableFilter}
+            onChange={(e) => setResponsableFilter(e.target.value)}
+          >
+            <option value="todos">Todos los responsables</option>
+            {usuarios.map((u) => (
+              <option key={u._id} value={u._id}>
+                {`${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || u.email}
+              </option>
+            ))}
+          </Select>
+          <Checkbox
+            colorScheme="teal"
+            isChecked={showPublicadas}
+            onChange={(e) => setShowPublicadas(e.target.checked)}
+          >
+            <Text fontSize="sm">Mostrar publicadas</Text>
+          </Checkbox>
+        </Flex>
+
+        <Section
+          title="Ideas (sin fecha)"
+          count={ideas.length}
+          items={ideas}
+          emptyText="No hay ideas sin fecha. Creá una con “Nueva publicación”."
+        />
+
+        <Section
+          title="Programadas"
+          count={programadas.length}
+          items={programadas}
+          emptyText="Todavía no programaste ninguna publicación."
+        />
+
+        {showPublicadas && (
+          <Section
+            title="Publicadas"
+            count={publicadas.length}
+            items={publicadas}
+            emptyText="Aún no marcaste publicaciones como publicadas."
+          />
         )}
-      </Box>
+      </VStack>
+
+      <DayEventsModal
+        isOpen={dayModal.isOpen}
+        onClose={dayModal.onClose}
+        date={selectedDay}
+        items={selectedDayItems}
+        onChanged={handleCalendarChanged}
+      />
 
       <PublicacionModal
         isOpen={modal.isOpen}
