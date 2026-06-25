@@ -44,7 +44,7 @@ export const streamChatMessage = async ({ messages, onChunk, onAction, onTool, s
         const ct = res.headers.get("content-type") || "";
         if (ct.includes("application/json")) {
           const data = await res.json();
-          msg = data.error || data.message || msg;
+          msg = data.error || data.message || data.mensaje || msg;
         } else {
           const txt = await res.text();
           if (txt) msg = `${msg} ${txt}`.slice(0, 200);
