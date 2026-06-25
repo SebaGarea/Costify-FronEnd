@@ -78,7 +78,7 @@ import {
   NumberDecrementStepper,
   Textarea,
 } from "@chakra-ui/react";
-import { FiPlus, FiMinus, FiRefreshCw } from "react-icons/fi";
+import { FiPlus, FiMinus, FiRefreshCw, FiChevronDown, FiChevronUp } from "react-icons/fi";
 import { useNavigate } from "react-router";
 import {
   getPlantillaById,
@@ -225,6 +225,16 @@ const createEmptyItem = () => ({
   costoPintura: 0,
 });
 
+// Una sección "tiene carga" si algún ítem tiene material elegido, es material
+// personalizado, o tiene un valor cargado.
+const categoriaTieneCarga = (items) =>
+  Array.isArray(items) &&
+  items.some(
+    (it) =>
+      it &&
+      (it.selectedMaterialId || it.isCustomMaterial || (it.valor !== "" && it.valor != null))
+  );
+
 const createDefaultExtrasState = () => ({
   creditoCamioneta: { valor: "15000", porcentaje: "0" },
   envio: { valor: "", porcentaje: "0" },
@@ -293,6 +303,16 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const [pintura, setPintura] = useState([createEmptyItem()]);
   const [otros, setOtros] = useState([createEmptyItem()]);
 
+  // Secciones colapsables: las vacías arrancan minimizadas y se maximizan al
+  // cargar una materia prima.
+  const [abiertas, setAbiertas] = useState({
+    herreria: false,
+    carpinteria: false,
+    pintura: false,
+    otros: false,
+  });
+  const prevCargaRef = useRef({});
+
   // Estado para consumibles por categoría
   const [consumibles, setConsumibles] = useState({
     herreria: "",
@@ -305,6 +325,11 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const [precioPinturaM2, setPrecioPinturaM2] = useState(15000);
   const [precioPinturaPersonalizado, setPrecioPinturaPersonalizado] = useState(false);
   const [comentarios, setComentarios] = useState("");
+  const [ultimaModificacion, setUltimaModificacion] = useState(null);
+  // Detección de "cambios sin guardar": comparamos el estado actual contra un
+  // snapshot de referencia que se fija al cargar y tras cada guardado.
+  const [baselineSnap, setBaselineSnap] = useState(null);
+  const baselinePendienteRef = useRef(false);
   const [archivos, setArchivos] = useState([]);
   const [uploadingArchivos, setUploadingArchivos] = useState(false);
   const [deletingArchivoId, setDeletingArchivoId] = useState(null);
@@ -453,6 +478,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const inputBg = useColorModeValue("white", "gray.700");
   const precioBg = useColorModeValue("green.50", "green.900");
   const precioBorder = useColorModeValue("green.200", "green.600");
+  const stickyBg = useColorModeValue("white", "gray.800");
+  const stickyBorder = useColorModeValue("gray.200", "gray.700");
 
   const obtenerPrecioUnitario = (item) => {
     const valorManual =
@@ -607,6 +634,39 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   const precioFinalTotal = preview.precioFinal ?? 0;
   const gananciaTotal = preview.ganancia ?? 0;
 
+  // Snapshot serializado de los campos editables (para detectar cambios sin
+  // guardar). El precio de pintura solo cuenta si es personalizado, porque si no
+  // se autocompleta desde el material y generaría falsos "cambios".
+  const snapActual = useMemo(
+    () =>
+      JSON.stringify({
+        form,
+        herreria,
+        carpinteria,
+        pintura,
+        otros,
+        consumibles,
+        extras,
+        comentarios,
+        precioPintura: precioPinturaPersonalizado ? precioPinturaM2 : null,
+      }),
+    [form, herreria, carpinteria, pintura, otros, consumibles, extras, comentarios, precioPinturaPersonalizado, precioPinturaM2]
+  );
+  const hasPendingSave = baselineSnap !== null && snapActual !== baselineSnap;
+
+  // Fijar baseline inicial para plantillas nuevas.
+  useEffect(() => {
+    if (!PlantillasId && baselineSnap === null) setBaselineSnap(snapActual);
+  }, [PlantillasId, baselineSnap, snapActual]);
+
+  // Fijar baseline después de cargar una plantilla existente.
+  useEffect(() => {
+    if (baselinePendienteRef.current) {
+      setBaselineSnap(snapActual);
+      baselinePendienteRef.current = false;
+    }
+  }, [snapActual]);
+
   // Cálculos para plataformas de venta
   const preciosMercadoLibre = useMemo(
     () => getMercadoLibrePrices(precioFinalTotal, porcentajesPlataformas),
@@ -647,6 +707,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
           setComentarios(plantilla.comentarios || "");
           setArchivos(Array.isArray(plantilla.archivos) ? plantilla.archivos : []);
+          setUltimaModificacion(plantilla.updatedAt || null);
 
           // Precio base guardado en la plantilla
           if (plantilla.precioPinturaPersonalizado && plantilla.precioPinturaM2 != null) {
@@ -909,6 +970,10 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               if (draft.comentarios !== undefined) setComentarios(draft.comentarios);
             }
           } catch { /* borrador corrupto, ignorar */ }
+
+          // Tras cargar (y restaurar borrador si había), fijar el baseline para
+          // que "cambios sin guardar" parta de este estado.
+          baselinePendienteRef.current = true;
         })
         .catch((error) => {
           console.error("Error al cargar la plantilla:", error);
@@ -933,6 +998,29 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     );
     if (mp?.precio != null) setPrecioPinturaM2(Number(mp.precio));
   }, [rawsMaterialData, precioPinturaPersonalizado]);
+
+  // Auto-maximizar una sección cuando pasa a tener materia prima cargada
+  // (incluye la carga inicial al editar una plantilla existente).
+  useEffect(() => {
+    const estados = {
+      herreria: categoriaTieneCarga(herreria),
+      carpinteria: categoriaTieneCarga(carpinteria),
+      pintura: categoriaTieneCarga(pintura),
+      otros: categoriaTieneCarga(otros),
+    };
+    setAbiertas((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k of Object.keys(estados)) {
+        if (estados[k] && prevCargaRef.current[k] !== true && !prev[k]) {
+          next[k] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    prevCargaRef.current = estados;
+  }, [herreria, carpinteria, pintura, otros]);
 
   // useEffect para auto-llenar datos del producto cuando cambian los datos de la plantilla
   useEffect(() => {
@@ -1834,6 +1922,9 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         mostrarToastPlantilla();
       }
 
+      setUltimaModificacion(new Date());
+      setBaselineSnap(snapActual); // ya no hay cambios pendientes
+
       if (shouldRedirect) {
         setTimeout(() => { navigate("/plantillas"); }, 1000);
       } else if (!PlantillasId && plantillaGuardadaId) {
@@ -1926,24 +2017,54 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     color,
     subtotal,
     precioFinal
-  ) => (
+  ) => {
+    const isOpen = abiertas[categoria];
+    const tieneCargaCat = categoriaTieneCarga(items);
+    return (
     <Card>
       <CardHeader>
         <HStack justify="space-between">
-          <Heading size="md" color={color} textTransform="capitalize">
-            {seccionLabels[categoria] || categoria}
-          </Heading>
+          <HStack
+            spacing={2}
+            flex="1"
+            cursor="pointer"
+            onClick={() => setAbiertas((p) => ({ ...p, [categoria]: !p[categoria] }))}
+          >
+            <IconButton
+              aria-label={isOpen ? "Minimizar sección" : "Maximizar sección"}
+              icon={isOpen ? <FiChevronUp /> : <FiChevronDown />}
+              size="xs"
+              variant="ghost"
+              colorScheme={color.split(".")[0]}
+              onClick={(e) => {
+                e.stopPropagation();
+                setAbiertas((p) => ({ ...p, [categoria]: !p[categoria] }));
+              }}
+            />
+            <Heading size="md" color={color} textTransform="capitalize">
+              {seccionLabels[categoria] || categoria}
+            </Heading>
+            {!tieneCargaCat && (
+              <Badge colorScheme="gray" variant="subtle">
+                vacía
+              </Badge>
+            )}
+          </HStack>
           <Button
             leftIcon={<FiPlus />}
             colorScheme={color.split(".")[0]}
             size="sm"
-            onClick={() => addItem(categoria)}
+            onClick={() => {
+              addItem(categoria);
+              setAbiertas((p) => ({ ...p, [categoria]: true }));
+            }}
           >
             Agregar Material
           </Button>
         </HStack>
       </CardHeader>
 
+      {isOpen && (
       <CardBody>
         <VStack spacing={4} align="stretch">
           {items.map((item, index) => {
@@ -2552,8 +2673,10 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           </Box>
         </VStack>
       </CardBody>
+      )}
     </Card>
-  );
+    );
+  };
 
   return (
     <Box maxW="7xl" w="100%" mx="auto" p={6}>
@@ -2831,17 +2954,6 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               subtotalHerreria,
               precioFinalHerreria
             )}
-            <Button
-              onClick={() => savePlantilla(false)}
-              colorScheme="teal"
-              variant="outline"
-              size="sm"
-              alignSelf="flex-end"
-              isLoading={addLoading || updateLoading}
-              loadingText="Guardando..."
-            >
-              Guardar cambios
-            </Button>
 
             {renderCategorySection(
               "carpinteria",
@@ -2850,17 +2962,6 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               subtotalCarpinteria,
               precioFinalCarpinteria
             )}
-            <Button
-              onClick={() => savePlantilla(false)}
-              colorScheme="teal"
-              variant="outline"
-              size="sm"
-              alignSelf="flex-end"
-              isLoading={addLoading || updateLoading}
-              loadingText="Guardando..."
-            >
-              Guardar cambios
-            </Button>
 
             {renderCategorySection(
               "pintura",
@@ -2869,17 +2970,6 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               subtotalPintura + totalPinturaHorno,
               precioFinalPintura + totalPinturaHorno
             )}
-            <Button
-              onClick={() => savePlantilla(false)}
-              colorScheme="teal"
-              variant="outline"
-              size="sm"
-              alignSelf="flex-end"
-              isLoading={addLoading || updateLoading}
-              loadingText="Guardando..."
-            >
-              Guardar cambios
-            </Button>
 
             {renderCategorySection(
               "otros",
@@ -2888,17 +2978,6 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
               subtotalOtros,
               precioFinalOtros
             )}
-            <Button
-              onClick={() => savePlantilla(false)}
-              colorScheme="teal"
-              variant="outline"
-              size="sm"
-              alignSelf="flex-end"
-              isLoading={addLoading || updateLoading}
-              loadingText="Guardando..."
-            >
-              Guardar cambios
-            </Button>
 
             {/* Sección Extras */}
             <Card>
@@ -3272,112 +3351,143 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             </CardBody>
           </Card>
 
-          {/* Cuadro de totales generales */}
-          <Card bg={cardBg} borderWidth="2px" borderColor={cardBorder}>
-            <CardHeader>
-              <Heading size="lg" color={titleColor} textAlign="center">
-                📊 RESUMEN TOTAL
+          {/* Barra de acción fija (sticky), arriba de Precios por plataforma */}
+          <Box
+            position="sticky"
+            bottom={{ base: 2, md: 4 }}
+            zIndex={20}
+            bg={stickyBg}
+            borderWidth="1px"
+            borderColor={stickyBorder}
+            borderRadius="xl"
+            boxShadow="lg"
+            pl={{ base: 3, md: 5 }}
+            pr={{ base: 16, md: 20 }}
+            py={3}
+          >
+            <Flex align="center" gap={{ base: 3, md: 6 }} flexWrap="wrap" justify="space-between">
+              <HStack spacing={2} minW={{ base: "auto", md: "210px" }}>
+                <Box
+                  w="9px"
+                  h="9px"
+                  borderRadius="full"
+                  bg={hasPendingSave ? "orange.400" : ultimaModificacion ? "green.400" : "gray.400"}
+                />
+                <Text fontSize="xs" color={mutedTextColor} noOfLines={1}>
+                  {hasPendingSave
+                    ? "Cambios sin guardar"
+                    : ultimaModificacion
+                      ? `Última modificación: ${new Date(ultimaModificacion).toLocaleString("es-AR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}`
+                      : "Sin guardar todavía"}
+                </Text>
+                {hasPendingSave && (
+                  <Badge colorScheme="orange" variant="subtle">
+                    Sin guardar
+                  </Badge>
+                )}
+              </HStack>
+
+              <HStack spacing={{ base: 4, md: 8 }} flex="1" justify="center" flexWrap="wrap">
+                <Box textAlign="center">
+                  <Text fontSize="xs" color={mutedTextColor}>Costo materiales</Text>
+                  <Text fontSize="lg" fontWeight="bold" className="tnum">
+                    {formatPrice(costoTotal)}
+                  </Text>
+                </Box>
+                <Box textAlign="center">
+                  <Text fontSize="xs" color={mutedTextColor}>Ganancia total</Text>
+                  <Text fontSize="lg" fontWeight="bold" color="green.500" className="tnum">
+                    {formatPrice(gananciaTotal)}
+                  </Text>
+                </Box>
+                <Box textAlign="center">
+                  <Text fontSize="xs" color={mutedTextColor}>Precio final</Text>
+                  <Text fontSize="lg" fontWeight="bold" color={titleColor} className="tnum">
+                    {formatPrice(precioFinalTotal)}
+                  </Text>
+                </Box>
+              </HStack>
+
+              <Button
+                size="sm"
+                colorScheme="teal"
+                onClick={() => savePlantilla(false)}
+                isDisabled={!hasPendingSave || addLoading || updateLoading}
+                isLoading={addLoading || updateLoading}
+                loadingText="Guardando"
+              >
+                Guardar
+              </Button>
+            </Flex>
+          </Box>
+
+          {/* Precios por plataforma */}
+          <Card bg={cardBg} borderWidth="1px" borderColor={cardBorder}>
+            <CardHeader pb={2}>
+              <Heading size="md" color={titleColor}>
+                💰 Precios por plataforma
               </Heading>
             </CardHeader>
             <CardBody>
-              <VStack spacing={4}>
-                <HStack w="100%" justify="space-between" fontSize="xl">
-                  <Text fontWeight="bold">Costo Total de Materiales:</Text>
-                  <Badge colorScheme="teal" fontSize="xl" p={3}>
-                    {formatPrice(costoTotal)}
-                  </Badge>
-                </HStack>
-
-                <HStack w="100%" justify="space-between" fontSize="xl">
-                  <Text fontWeight="bold" color="orange.600">
-                    Ganancia Total:
-                  </Text>
-                  <Badge colorScheme="orange" fontSize="xl" p={3}>
-                    {formatPrice(gananciaTotal)}
-                  </Badge>
-                </HStack>
-
-                <HStack w="100%" justify="space-between" fontSize="xl">
-                  <Text fontWeight="bold">Precio Final con Ganancia:</Text>
-                  <Badge colorScheme="green" fontSize="xl" p={3}>
-                    {formatPrice(precioFinalTotal)}
-                  </Badge>
-                </HStack>
-
-                <Divider />
-
-                {/* Precios de Plataformas */}
-                <Text
-                  fontSize="lg"
-                  fontWeight="bold"
-                  color={titleColor}
-                  textAlign="center"
-                >
-                  💰 PRECIOS POR PLATAFORMA
-                </Text>
-
-                {preciosMercadoLibre.map((plan) => (
-                  <HStack
-                    key={plan.key}
-                    w="80%"
-                    justify="space-between"
-                    fontSize="lg"
+              <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={4} w="100%">
+                {[
+                  ...preciosMercadoLibre.map((plan) => ({
+                    key: plan.key,
+                    titulo: plan.label,
+                    precio: plan.precio,
+                    caption: `Base ${plan.basePercent}% + Cuotas ${plan.extraPercent}%`,
+                    pill: `${plan.comisionTotalPercent}%`,
+                    color: plan.badgeColor,
+                  })),
+                  {
+                    key: "nube",
+                    titulo: "🌟 Valor Nube",
+                    precio: valorNube,
+                    caption: `Base ${nubeBasePercent}%`,
+                    pill: `${nubeBasePercent}%`,
+                    color: "teal",
+                  },
+                  {
+                    key: "nube-cuotas",
+                    titulo: "☁️ Valor Nube Cuotas",
+                    precio: valorNubeCuotas,
+                    caption: `Base ${nubeBasePercent}% + Cuotas ${nubeCuotasExtraPercent}%`,
+                    pill: `${nubeCuotasTotalPercent}%`,
+                    color: "teal",
+                  },
+                ].map((p) => (
+                  <Box
+                    key={p.key}
+                    bg={inputBg}
+                    borderWidth="1px"
+                    borderColor={cardBorder}
+                    borderRadius="lg"
+                    p={4}
+                    transition="all 0.15s ease"
+                    _hover={{ borderColor: titleColor, transform: "translateY(-2px)", boxShadow: "sm" }}
                   >
-                    <Text fontWeight="bold">
-                      {plan.label} ({plan.comisionTotalPercent}%):
-                    </Text>
-                    <VStack spacing={0} align="flex-end">
-                      <Badge
-                        colorScheme={plan.badgeColor}
-                        fontSize="lg"
-                        p={2}
-                      >
-                        {formatPrice(plan.precio)}
-                      </Badge>
-                      <Text fontSize="xs" color={mutedTextColor}>
-                        Base {plan.basePercent}% + Cuotas {plan.extraPercent}%
+                    <HStack justify="space-between" align="center" mb={1}>
+                      <Text fontWeight="semibold" fontSize="sm" noOfLines={1}>
+                        {p.titulo}
                       </Text>
-                    </VStack>
-                  </HStack>
-                ))}
-
-                <HStack w="80%" justify="space-between" fontSize="lg">
-                  <Text fontWeight="bold">
-                    🌟 Valor Nube (Base {nubeBasePercent}%):
-                  </Text>
-                  <Badge colorScheme="teal" fontSize="lg" p={2}>
-                    {formatPrice(valorNube)}
-                  </Badge>
-                </HStack>
-
-                <HStack w="80%" justify="space-between" fontSize="lg">
-                  <VStack align="flex-start" spacing={0}>
-                    <Text fontWeight="bold">
-                      ☁️ Valor Nube Cuotas ({nubeCuotasTotalPercent}%):
+                      <Badge colorScheme={p.color} borderRadius="full" px={2} flexShrink={0}>
+                        {p.pill}
+                      </Badge>
+                    </HStack>
+                    <Text fontSize="2xl" fontWeight="bold" color={titleColor} className="tnum">
+                      {formatPrice(p.precio)}
                     </Text>
                     <Text fontSize="xs" color={mutedTextColor}>
-                      Base {nubeBasePercent}% + Cuotas {nubeCuotasExtraPercent}%
+                      {p.caption}
                     </Text>
-                  </VStack>
-                  <Badge colorScheme="teal" fontSize="lg" p={2}>
-                    {formatPrice(valorNubeCuotas)}
-                  </Badge>
-                </HStack>
-              </VStack>
+                  </Box>
+                ))}
+              </SimpleGrid>
             </CardBody>
           </Card>
-
-          <Button
-            onClick={() => savePlantilla(false)}
-            colorScheme="teal"
-            variant="outline"
-            size="sm"
-            alignSelf="flex-end"
-            isLoading={addLoading || updateLoading}
-            loadingText="Guardando..."
-          >
-            Guardar cambios
-          </Button>
 
           {/* Botón de envío */}
           <Button
