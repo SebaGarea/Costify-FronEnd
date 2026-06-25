@@ -28,6 +28,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiCalendar, FiChevronDown, FiChevronUp, FiLi
 import { useContenido } from "../../hooks/contenido/useContenido.js";
 import { useItems } from "../../hooks";
 import { useCalendarEvents } from "../../hooks/calendar/useCalendarEvents.js";
+import { useDataChanged } from "../../hooks/useDataChanged.js";
 import { UnifiedCalendar } from "../Calendar/UnifiedCalendar.jsx";
 import { DayEventsModal } from "../Home/DayEventsModal.jsx";
 import { Loader } from "../Loader/Loader.jsx";
@@ -125,6 +126,9 @@ export const ContenidoView = () => {
     await Promise.all([refetch(), refetchAll()]);
     bumpCalendar();
   };
+
+  // Refrescar cuando la IA crea una publicación desde el chat.
+  useDataChanged(handleCalendarChanged, ["contenido"]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
