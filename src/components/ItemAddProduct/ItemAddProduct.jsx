@@ -32,6 +32,11 @@ const resolveImageUrl = (imgPath) => {
   return imgPath.startsWith("http") ? imgPath : `${BASE_URL}${imgPath}`;
 };
 
+// Un borrador solo es válido si tiene algún campo con contenido. Así evitamos
+// que un borrador vacío (ej: el que queda tras guardar) pise los datos cargados.
+const draftTieneContenido = (f) =>
+  !!f && Object.values(f).some((v) => String(v ?? "").trim() !== "");
+
 export const ItemAddProduct = ({ productId }) => {
   const [form, setForm] = useState({
     nombre: "",
@@ -59,6 +64,7 @@ export const ItemAddProduct = ({ productId }) => {
   // Guardar borrador en sessionStorage (seguridad ante recargas)
   useEffect(() => {
     if (!isDraftLoaded.current) return;
+    if (!draftTieneContenido(form)) return; // no persistir borradores vacíos
     const timer = setTimeout(() => {
       try {
         sessionStorage.setItem(draftKey, JSON.stringify({ form }));
@@ -74,7 +80,7 @@ export const ItemAddProduct = ({ productId }) => {
       const raw = sessionStorage.getItem(draftKey);
       if (!raw) return;
       const draft = JSON.parse(raw);
-      if (draft.form) setForm(draft.form);
+      if (draftTieneContenido(draft.form)) setForm(draft.form);
     } catch { /* borrador corrupto, ignorar */ }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Cargar datos si es edición
@@ -93,7 +99,11 @@ export const ItemAddProduct = ({ productId }) => {
           descripcion: res.data.descripcion,
           planillaCosto: res.data.planillaCosto?._id || "", // Cargar ID de plantilla si existe
         });
-        setImagenesActuales(res.data.imagenes || []);
+        // Emparejar cada imagen con su publicId de Cloudinary (por índice) para
+        // poder borrar una sola sin afectar al resto.
+        const urls = res.data.imagenes || [];
+        const pids = res.data.imagenesPublicIds || [];
+        setImagenesActuales(urls.map((url, i) => ({ url, publicId: pids[i] || "" })));
         setImagenes([]);
         
         // Si tiene plantilla asociada, cargarla para mostrar información
@@ -107,7 +117,7 @@ export const ItemAddProduct = ({ productId }) => {
           const raw = sessionStorage.getItem(draftKey);
           if (raw) {
             const draft = JSON.parse(raw);
-            if (draft.form) setForm(draft.form);
+            if (draftTieneContenido(draft.form)) setForm(draft.form);
           }
         } catch { /* borrador corrupto, ignorar */ }
       });
@@ -138,6 +148,13 @@ export const ItemAddProduct = ({ productId }) => {
       formData.append("imagenes", img);
     });
 
+    // En edición, avisamos qué imágenes actuales se conservan (las que no se
+    // borraron). El backend mantiene esas, elimina el resto y agrega las nuevas.
+    if (productId) {
+      formData.append("keepImagenes", JSON.stringify(imagenesActuales.map((i) => i.url)));
+      formData.append("keepPublicIds", JSON.stringify(imagenesActuales.map((i) => i.publicId)));
+    }
+
     let result;
     if (productId) {
       // Modo edición
@@ -150,8 +167,10 @@ export const ItemAddProduct = ({ productId }) => {
     if (result) {
       sessionStorage.removeItem(draftKey);
       // Actualizar las imágenes actuales con las devueltas por el servidor
-      if (result.imagenes) {
-        setImagenesActuales(result.imagenes);
+      const prod = result?.data ?? result;
+      if (prod?.imagenes) {
+        const pids = prod.imagenesPublicIds || [];
+        setImagenesActuales(prod.imagenes.map((url, i) => ({ url, publicId: pids[i] || "" })));
       }
       setImagenes([]);
       
@@ -188,11 +207,20 @@ export const ItemAddProduct = ({ productId }) => {
   };
 
   const handleFileChange = (e) => {
-    setImagenes(Array.from(e.target.files));
+    const nuevas = Array.from(e.target.files);
+    // Acumular en vez de reemplazar, para poder ir cargando de a una sin guardar.
+    setImagenes((prev) => [...prev, ...nuevas]);
+    // Limpiar el input para poder volver a elegir el mismo archivo si hace falta.
+    e.target.value = "";
   };
 
   const handleRemoveImage = (idx) => {
     setImagenes((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // Quita una imagen ya guardada de la lista (se borrará al guardar el producto).
+  const handleRemoveCurrentImage = (idx) => {
+    setImagenesActuales((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleChange = (e) => {
@@ -364,16 +392,16 @@ export const ItemAddProduct = ({ productId }) => {
             >
               Elegir imágenes
             </Button>
-            {/* Previsualización de imágenes actuales */}
+            {/* Previsualización de imágenes actuales (con opción de borrar) */}
             {imagenesActuales.length > 0 && (
-              <Stack direction="row" spacing={2} mt={2}>
+              <Stack direction="row" spacing={2} mt={2} flexWrap="wrap">
                 {imagenesActuales.map((img, idx) => (
                   <div
-                    key={idx}
+                    key={img.publicId || img.url || idx}
                     style={{ position: "relative", display: "inline-block" }}
                   >
                     <img
-                      src={resolveImageUrl(img)}
+                      src={resolveImageUrl(img.url)}
                       alt={`actual-${idx}`}
                       style={{
                         width: 120,
@@ -383,6 +411,23 @@ export const ItemAddProduct = ({ productId }) => {
                         border: "1px solid #ccc",
                       }}
                     />
+                    <Button
+                      size="xs"
+                      colorScheme="red"
+                      borderRadius="full"
+                      onClick={() => handleRemoveCurrentImage(idx)}
+                      style={{
+                        position: "absolute",
+                        top: -8,
+                        right: -8,
+                        padding: 0,
+                        minWidth: 0,
+                        width: 20,
+                        height: 20,
+                      }}
+                    >
+                      ×
+                    </Button>
                   </div>
                 ))}
               </Stack>
