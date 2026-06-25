@@ -44,6 +44,7 @@ import { useGetTareasPaginated } from "../../hooks/tareas/useGetTareasPaginated.
 import { useUpdateTarea } from "../../hooks/tareas/useUpdateTarea.js";
 import { UnifiedCalendar } from "../Calendar/UnifiedCalendar.jsx";
 import { useCalendarEvents } from "../../hooks/calendar/useCalendarEvents.js";
+import { useDataChanged } from "../../hooks/useDataChanged.js";
 import { DayEventsModal } from "../Home/DayEventsModal.jsx";
 
 const PAGE_SIZE = 15;
@@ -343,6 +344,9 @@ export const TareasView = () => {
     await Promise.all([refetchTareas(), refetchAll()]);
     bumpCalendar();
   };
+
+  // Refrescar cuando la IA crea/edita una tarea desde el chat.
+  useDataChanged(handleCalendarChanged, ["tarea"]);
 
   if (loading && allTareas.length === 0) return <Loader />;
 

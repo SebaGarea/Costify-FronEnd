@@ -48,6 +48,7 @@ import {
 } from "../../hooks";
 import { useGetTareasPaginated } from "../../hooks/tareas/useGetTareasPaginated.js";
 import { useCalendarEvents } from "../../hooks/calendar/useCalendarEvents.js";
+import { useDataChanged } from "../../hooks/useDataChanged.js";
 import { DayEventsModal } from "./DayEventsModal.jsx";
 import { UnifiedCalendar } from "../Calendar/UnifiedCalendar.jsx";
 
@@ -184,6 +185,7 @@ export const HomeView = () => {
     items: tareasItems,
     loading: tareasLoading,
     error: tareasError,
+    refetch: refetchTareasPreview,
   } = useGetTareasPaginated(1, 50);
   const { productsData = [], loading: productsLoading } = useItems();
   const {
@@ -258,6 +260,12 @@ export const HomeView = () => {
     buildDayKey,
     refetchAll: refetchCalendar,
   } = useCalendarEvents({ ventasDataExt: ventas });
+
+  // Refrescar dashboard cuando la IA crea/edita datos desde el chat.
+  useDataChanged(() => {
+    refetchCalendar();
+    refetchTareasPreview();
+  });
 
   const pendingHistoric = useMemo(() => {
     if (!ventas.length) return { pendingCount: 0, pendingAmount: 0 };
