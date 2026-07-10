@@ -78,7 +78,7 @@ import {
   NumberDecrementStepper,
   Textarea,
 } from "@chakra-ui/react";
-import { FiPlus, FiMinus, FiRefreshCw, FiChevronDown, FiChevronUp } from "react-icons/fi";
+import { FiPlus, FiMinus, FiRefreshCw, FiChevronDown, FiChevronUp, FiLayers } from "react-icons/fi";
 import { useNavigate } from "react-router";
 import {
   getPlantillaById,
@@ -225,15 +225,19 @@ const createEmptyItem = () => ({
   costoPintura: 0,
 });
 
-// Una sección "tiene carga" si algún ítem tiene material elegido, es material
-// personalizado, o tiene un valor cargado.
+// Un ítem "tiene carga" si tiene material elegido, es material personalizado,
+// o tiene un valor cargado (sirve para distinguir filas reales de las vacías).
+const itemTieneCarga = (it) =>
+  Boolean(it) &&
+  (it.selectedMaterialId || it.isCustomMaterial || (it.valor !== "" && it.valor != null));
+
+// Una sección "tiene carga" si algún ítem tiene carga.
 const categoriaTieneCarga = (items) =>
-  Array.isArray(items) &&
-  items.some(
-    (it) =>
-      it &&
-      (it.selectedMaterialId || it.isCustomMaterial || (it.valor !== "" && it.valor != null))
-  );
+  Array.isArray(items) && items.some(itemTieneCarga);
+
+// Cantidad de ítems reales (con carga) de una sección, ignorando las filas vacías.
+const contarItemsCargados = (items) =>
+  Array.isArray(items) ? items.filter(itemTieneCarga).length : 0;
 
 const createDefaultExtrasState = () => ({
   creditoCamioneta: { valor: "15000", porcentaje: "0" },
@@ -2029,6 +2033,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
   ) => {
     const isOpen = abiertas[categoria];
     const tieneCargaCat = categoriaTieneCarga(items);
+    const cantidadItems = contarItemsCargados(items);
     return (
     <Card>
       <CardHeader>
@@ -2053,7 +2058,22 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             <Heading size="md" color={color} textTransform="capitalize">
               {seccionLabels[categoria] || categoria}
             </Heading>
-            {!tieneCargaCat && (
+            {tieneCargaCat ? (
+              <Badge
+                colorScheme={color.split(".")[0]}
+                variant="outline"
+                borderRadius="full"
+                display="inline-flex"
+                alignItems="center"
+                gap={1}
+                px={2}
+                py={0.5}
+                textTransform="none"
+              >
+                <FiLayers />
+                {cantidadItems}
+              </Badge>
+            ) : (
               <Badge colorScheme="gray" variant="subtle">
                 vacía
               </Badge>
