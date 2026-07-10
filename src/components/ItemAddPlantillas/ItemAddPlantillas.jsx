@@ -1974,17 +1974,26 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         };
         const tipoDetectado = detectarTipo(tipoNorm);
         const tiposEnPulgadas = ["L", "planchuela", "tee", "cuadMacizo", "redMacizo"];
+        // El caño redondo se mide por un solo diámetro en pulgadas (ej. "1,1/4"),
+        // no por dos dimensiones NxN como el caño cuadrado/rectangular ("40x40").
+        const esCanioRedondo = esCanio && tipoNorm.includes("redondo");
         const esPulgadas = tiposEnPulgadas.includes(tipoDetectado);
-        const tiposPermitidos = tipoDetectado ? [tipoDetectado] : ["cuadrado", "rectangular", "redondo"];
+        // Se matchea por un solo número cuando es un perfil en pulgadas o un caño redondo.
+        const usaNumeroUnico = esPulgadas || esCanioRedondo;
+        const tiposPermitidos = esCanioRedondo
+          ? ["redondo"]
+          : tipoDetectado
+            ? [tipoDetectado]
+            : ["cuadrado", "rectangular", "redondo"];
 
         const candidatos = perfilesPintura.filter((p) => tiposPermitidos.includes(p.tipo));
 
-        // Tipos en pulgadas: comparar medida exacta (ej. "1,1/2")
-        // Tipos en mm (caños): buscar dimensiones "40x40" en el nombre del perfil
+        // Un solo número (pulgadas/diámetro): comparar medida exacta (ej. "1,1/2")
+        // Dos dimensiones (caño cuadrado/rectangular): buscar "40x40" en el nombre
         // Normaliza "1 1/4", "1,1/4", "1-1/4" → todos a "11/4" para comparar igual
         const extractNum = (s) => s?.replace(/[^0-9\/]/g, "") ?? "";
         const medida = norm(item.medidaMP);
-        const perfil = esPulgadas
+        const perfil = usaNumeroUnico
           ? candidatos.find((p) => extractNum(p.nombre) === extractNum(item.medidaMP) && extractNum(item.medidaMP).length > 0)
           : candidatos.find((p) => {
               const dims = norm(p.nombre).match(/(\d+)x(\d+)/);
@@ -3366,29 +3375,40 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
             py={3}
           >
             <Flex align="center" gap={{ base: 3, md: 6 }} flexWrap="wrap" justify="space-between">
-              <HStack spacing={2} minW={{ base: "auto", md: "210px" }}>
-                <Box
-                  w="9px"
-                  h="9px"
-                  borderRadius="full"
-                  bg={hasPendingSave ? "orange.400" : ultimaModificacion ? "green.400" : "gray.400"}
-                />
-                <Text fontSize="xs" color={mutedTextColor} noOfLines={1}>
-                  {hasPendingSave
-                    ? "Cambios sin guardar"
-                    : ultimaModificacion
-                      ? `Última modificación: ${new Date(ultimaModificacion).toLocaleString("es-AR", {
-                          dateStyle: "short",
-                          timeStyle: "short",
-                        })}`
-                      : "Sin guardar todavía"}
+              <VStack align="start" spacing={1} minW={{ base: "auto", md: "210px" }}>
+                <Text
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color={titleColor}
+                  noOfLines={1}
+                  maxW={{ base: "220px", md: "260px" }}
+                >
+                  {form.nombre?.trim() || "Plantilla sin nombre"}
                 </Text>
-                {hasPendingSave && (
-                  <Badge colorScheme="orange" variant="subtle">
-                    Sin guardar
-                  </Badge>
-                )}
-              </HStack>
+                <HStack spacing={2}>
+                  <Box
+                    w="9px"
+                    h="9px"
+                    borderRadius="full"
+                    bg={hasPendingSave ? "orange.400" : ultimaModificacion ? "green.400" : "gray.400"}
+                  />
+                  <Text fontSize="xs" color={mutedTextColor} noOfLines={1}>
+                    {hasPendingSave
+                      ? "Cambios sin guardar"
+                      : ultimaModificacion
+                        ? `Última modificación: ${new Date(ultimaModificacion).toLocaleString("es-AR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })}`
+                        : "Sin guardar todavía"}
+                  </Text>
+                  {hasPendingSave && (
+                    <Badge colorScheme="orange" variant="subtle">
+                      Sin guardar
+                    </Badge>
+                  )}
+                </HStack>
+              </VStack>
 
               <HStack spacing={{ base: 4, md: 8 }} flex="1" justify="center" flexWrap="wrap">
                 <Box textAlign="center">
