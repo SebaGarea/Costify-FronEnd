@@ -714,7 +714,7 @@ const ListaCompraSeccion = ({
             <Box key={item.id} p={4} borderRadius="xl" bg={innerCardBg} borderWidth="1px" borderColor={noteBorder}>
             <Stack spacing={3}>
               {item.esPersonalizado ? (
-                <Grid templateColumns={{ base: "repeat(1, 1fr)", lg: "repeat(12, 1fr)" }} gap={2} alignItems="flex-end">
+                <Grid templateColumns={{ base: "repeat(12, minmax(0, 1fr))", lg: "repeat(12, 1fr)" }} gap={2} alignItems="flex-end">
                   <GridItem colSpan={{ base: 12, lg: 4 }}>
                     <FormControl>
                       <FormLabel fontSize="sm">Nombre del material</FormLabel>
@@ -803,15 +803,15 @@ const ListaCompraSeccion = ({
                 <Grid
                     templateColumns={
                       showMaterialField
-                        ? { base: "repeat(1, 1fr)", lg: "repeat(20, 1fr)" }
+                        ? { base: "repeat(12, minmax(0, 1fr))", lg: "repeat(20, 1fr)" }
                         : isHerreria
-                        ? { base: "repeat(1, 1fr)", lg: "repeat(16, 1fr)" }
-                        : { base: "repeat(1, 1fr)", lg: "repeat(14, 1fr)" }
+                        ? { base: "repeat(12, minmax(0, 1fr))", lg: "repeat(16, 1fr)" }
+                        : { base: "repeat(12, minmax(0, 1fr))", lg: "repeat(14, 1fr)" }
                     }
                     gap={2}
                     alignItems="flex-end"
                   >
-                    <GridItem colSpan={{ base: 12, lg: 2 }}>
+                    <GridItem colSpan={{ base: 6, lg: 2 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Categoría</FormLabel>
                         <Select
@@ -831,7 +831,7 @@ const ListaCompraSeccion = ({
                         </Select>
                       </FormControl>
                     </GridItem>
-                    <GridItem colSpan={{ base: 12, lg: 2 }}>
+                    <GridItem colSpan={{ base: 6, lg: 2 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Tipo</FormLabel>
                         <Select
@@ -872,7 +872,7 @@ const ListaCompraSeccion = ({
                         </FormControl>
                       </GridItem>
                     )}
-                    <GridItem colSpan={{ base: 12, lg: 2 }}>
+                    <GridItem colSpan={{ base: 6, lg: 2 }}>
                       <FormControl>
                         <FormLabel fontSize="sm">Medida</FormLabel>
                         <Select
@@ -891,7 +891,7 @@ const ListaCompraSeccion = ({
                       </FormControl>
                     </GridItem>
                     {showEspesorField && (
-                      <GridItem colSpan={{ base: 12, lg: 2 }}>
+                      <GridItem colSpan={{ base: 6, lg: 2 }}>
                         <FormControl>
                           <FormLabel fontSize="sm">Espesor</FormLabel>
                           <Select
