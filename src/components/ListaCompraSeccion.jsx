@@ -17,8 +17,10 @@ import {
   FormControl,
   FormLabel,
   Flex,
+  Link,
   useColorModeValue,
 } from "@chakra-ui/react";
+import { Link as RouterLink } from "react-router-dom";
 import { AddIcon, DeleteIcon, RepeatIcon } from "@chakra-ui/icons";
 import { getMaterialTypeLabel } from "../constants/materialTypes";
 
@@ -713,6 +715,22 @@ const ListaCompraSeccion = ({
           return (
             <Box key={item.id} p={4} borderRadius="xl" bg={innerCardBg} borderWidth="1px" borderColor={noteBorder}>
             <Stack spacing={3}>
+              {item.origen?.plantillaId && (
+                <HStack spacing={2}>
+                  <Badge colorScheme={buttonScheme} variant="subtle" textTransform="none">
+                    📋 Desde planilla
+                  </Badge>
+                  <Link
+                    as={RouterLink}
+                    to={`/plantillas/plantillaAdd/${item.origen.plantillaId}`}
+                    fontSize="xs"
+                    color={mutedText}
+                    noOfLines={1}
+                  >
+                    {item.origen.plantillaNombre || "Ver planilla"}
+                  </Link>
+                </HStack>
+              )}
               {item.esPersonalizado ? (
                 <Grid templateColumns={{ base: "repeat(12, minmax(0, 1fr))", lg: "repeat(12, 1fr)" }} gap={2} alignItems="flex-end">
                   <GridItem colSpan={{ base: 12, lg: 4 }}>
