@@ -2744,49 +2744,23 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   </FormControl>
                 )}
 
-                {isHerreria && (
-                  <Box borderTop="1px" borderColor="orange.200" pt={2}>
-                    <HStack spacing={3} align="center" width="100%">
-                      <FormLabel fontSize="sm" mb={0} whiteSpace="nowrap">🔥 Pintura al horno</FormLabel>
-                      <Switch
-                        colorScheme="orange"
-                        isChecked={item.pinturaAlHorno}
-                        onChange={(e) => handlePinturaToggle(index, e.target.checked)}
-                      />
-                      {item.pinturaAlHorno && (
-                        item.perfilPinturaId && item.perfilPinturaPerimetro > 0 ? (
-                          <>
-                            <Text fontSize="xs" color="orange.500" whiteSpace="nowrap">
-                              {perfilesPintura.find((p) => p._id === item.perfilPinturaId)?.nombre ?? "Perfil detectado"}
-                            </Text>
-                            <Badge colorScheme="orange" fontSize="sm" px={3} py={1} ml="auto" whiteSpace="nowrap">
-                              {formatPrice(item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * METROS_POR_UNIDAD * precioPinturaM2)}
-                            </Badge>
-                          </>
-                        ) : (
-                          <Text fontSize="xs" color="gray.400" fontStyle="italic">
-                            Sin perfil detectado
-                          </Text>
-                        )
-                      )}
-                    </HStack>
-                  </Box>
-                )}
-
-                {itemTieneCarga(item) && (() => {
-                  const vinculo = item.uid ? itemsEnLista.get(item.uid) : null;
-                  const enLista = Boolean(vinculo);
-                  const pendiente = Boolean(item.uid && itemsListaPendientes.has(item.uid));
-                  const motivo = enLista
-                    ? !PlantillasId ? motivoListaDeshabilitada(item) : null
-                    : motivoListaDeshabilitada(item);
-                  const cantidadActual = redondearCantidadCompra(item.cantidad);
-                  const cambiaAlGuardar =
-                    enLista && parseFloat(item.cantidad) > 0 && cantidadActual !== vinculo.sincronizada;
-                  const switchId = `lista-compra-${item.uid || `${categoria}-${index}`}`;
-                  return (
-                    <Box borderTop="1px" borderColor="teal.200" pt={2}>
-                      <HStack spacing={3} align="center" width="100%" flexWrap="wrap">
+                {(() => {
+                  // Controles al pie del ítem: pintura al horno (solo herrería) y, pegado
+                  // a su lado, "Agregar a lista de compras", en la misma fila.
+                  let listaCompraControl = null;
+                  if (itemTieneCarga(item)) {
+                    const vinculo = item.uid ? itemsEnLista.get(item.uid) : null;
+                    const enLista = Boolean(vinculo);
+                    const pendiente = Boolean(item.uid && itemsListaPendientes.has(item.uid));
+                    const motivo = enLista
+                      ? !PlantillasId ? motivoListaDeshabilitada(item) : null
+                      : motivoListaDeshabilitada(item);
+                    const cantidadActual = redondearCantidadCompra(item.cantidad);
+                    const cambiaAlGuardar =
+                      enLista && parseFloat(item.cantidad) > 0 && cantidadActual !== vinculo.sincronizada;
+                    const switchId = `lista-compra-${item.uid || `${categoria}-${index}`}`;
+                    listaCompraControl = (
+                      <HStack spacing={3} align="center" flexWrap="wrap">
                         <FormLabel htmlFor={switchId} fontSize="sm" mb={0} whiteSpace="nowrap">
                           🛒 Agregar a lista de compras
                         </FormLabel>
@@ -2805,18 +2779,52 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                         </Tooltip>
                         {pendiente && <Spinner size="xs" color="teal.400" />}
                         {enLista && (
-                          <HStack spacing={2} ml="auto">
-                            {cambiaAlGuardar && (
-                              <Text fontSize="xs" color="gray.500" fontStyle="italic" whiteSpace="nowrap">
-                                Al guardar: {cantidadActual} u.
-                              </Text>
-                            )}
-                            <Badge colorScheme="teal" fontSize="sm" px={3} py={1} whiteSpace="nowrap">
-                              En lista: {vinculo.cantidad} u.
-                            </Badge>
-                          </HStack>
+                          <Badge colorScheme="teal" fontSize="sm" px={3} py={1} whiteSpace="nowrap">
+                            En lista: {vinculo.cantidad} u.
+                          </Badge>
+                        )}
+                        {enLista && cambiaAlGuardar && (
+                          <Text fontSize="xs" color="gray.500" fontStyle="italic" whiteSpace="nowrap">
+                            Al guardar: {cantidadActual} u.
+                          </Text>
                         )}
                       </HStack>
+                    );
+                  }
+
+                  if (!isHerreria && !listaCompraControl) return null;
+
+                  return (
+                    <Box borderTop="1px" borderColor={isHerreria ? "orange.200" : "teal.200"} pt={2}>
+                      <Flex align="center" width="100%" columnGap={6} rowGap={2} flexWrap="wrap">
+                        {isHerreria && (
+                          <HStack spacing={3} align="center">
+                            <FormLabel fontSize="sm" mb={0} whiteSpace="nowrap">🔥 Pintura al horno</FormLabel>
+                            <Switch
+                              colorScheme="orange"
+                              isChecked={item.pinturaAlHorno}
+                              onChange={(e) => handlePinturaToggle(index, e.target.checked)}
+                            />
+                            {item.pinturaAlHorno && (
+                              item.perfilPinturaId && item.perfilPinturaPerimetro > 0 ? (
+                                <>
+                                  <Text fontSize="xs" color="orange.500" whiteSpace="nowrap">
+                                    {perfilesPintura.find((p) => p._id === item.perfilPinturaId)?.nombre ?? "Perfil detectado"}
+                                  </Text>
+                                  <Badge colorScheme="orange" fontSize="sm" px={3} py={1} whiteSpace="nowrap">
+                                    {formatPrice(item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * METROS_POR_UNIDAD * precioPinturaM2)}
+                                  </Badge>
+                                </>
+                              ) : (
+                                <Text fontSize="xs" color="gray.400" fontStyle="italic">
+                                  Sin perfil detectado
+                                </Text>
+                              )
+                            )}
+                          </HStack>
+                        )}
+                        {listaCompraControl}
+                      </Flex>
                     </Box>
                   );
                 })()}
