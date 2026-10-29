@@ -20,6 +20,7 @@ const ENTIDAD_DESTINO = {
   venta: { ruta: "/ventas", label: "venta" },
   producto: { ruta: "/productos", label: "producto" },
   compra: { ruta: "/lista-compras", label: "lista de compras" },
+  caja: { ruta: "/caja", label: "movimiento de caja" },
 };
 
 export const ChatWidget = () => {

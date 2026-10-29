@@ -20,4 +20,4 @@ export * from './Configuracion.jsx';
 export * from './Perfil.jsx';
 export * from './Tareas.jsx';
 export * from './Asistente.jsx';
-
+export * from './Caja.jsx';

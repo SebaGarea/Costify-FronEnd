@@ -28,6 +28,8 @@ const TOOL_LABELS = {
   crearVenta: "Registrando venta",
   crearProducto: "Creando producto",
   agregarListaCompra: "Agregando a la lista",
+  registrarMovimiento: "Registrando en la caja",
+  consultarCaja: "Consultando la caja",
 };
 
 const ChatContext = createContext(null);

@@ -10,6 +10,7 @@ import { useItems, useGetAllPlantillas } from "../../hooks/index.js";
 import { useAddVenta } from "../../hooks/ventas/useAddVenta.js";
 import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
 import api from "../../services/auth.service.js";
+import { useCuentasCaja } from "../../hooks/caja/useCuentasCaja.js";
 
 const mediosVenta = [
   { value: "mercado_libre", label: "Mercado Libre" },
@@ -31,6 +32,12 @@ export const ItemAddVenta = () => {
   const { plantillasData = [], loading: plantillasLoading } = useGetAllPlantillas();
   const { addVenta, loading } = useAddVenta();
   const { updateVenta } = useUpdateVentas();
+  // Cuenta de Caja donde entra la seña (y cualquier cobro nuevo al guardar).
+  const { cuentasActivas, cuentaCobroDefault } = useCuentasCaja();
+  const [cuentaCobro, setCuentaCobro] = useState("");
+  useEffect(() => {
+    if (!cuentaCobro && cuentaCobroDefault) setCuentaCobro(cuentaCobroDefault);
+  }, [cuentaCobro, cuentaCobroDefault]);
   const navigate = useNavigate();
   const toast = useToast();
   const { id: ventaId } = useParams();
@@ -274,6 +281,7 @@ export const ItemAddVenta = () => {
       valorTotal: Number(valorTotal),
       precioManual: isManualProduct ? Number(form.precioUnitario || 0) : null,
       fechaLimite: form.fechaLimite ? form.fechaLimite : null,
+      cuentaCobro: cuentaCobro || undefined,
     };
 
     if (form.plantillaId) {
@@ -562,6 +570,16 @@ export const ItemAddVenta = () => {
               <Input type="number" value={form.seña} onChange={onChange("seña", true)} />
             </InputGroup>
           </FormControl>
+          {Number(form.seña) > 0 && cuentasActivas.length > 0 && (
+            <FormControl minW={{ base: "48%", md: "200px" }} flex="1">
+              <FormLabel>Cobrado en</FormLabel>
+              <Select size="sm" value={cuentaCobro} onChange={(e) => setCuentaCobro(e.target.value)}>
+                {cuentasActivas.map((c) => (
+                  <option key={c._id} value={c._id}>{c.nombre}</option>
+                ))}
+              </Select>
+            </FormControl>
+          )}
           <FormControl minW={{ base: "48%", md: "200px" }} flex="1" isReadOnly>
             <FormLabel>Total</FormLabel>
             <InputGroup size="sm">

@@ -31,6 +31,7 @@ import {
   FiMenu,
   FiChevronDown,
   FiCheckSquare,
+  FiDollarSign,
 } from "react-icons/fi";
 import { FaHammer, FaRobot } from "react-icons/fa";
 import { PiAlignLeftDuotone } from "react-icons/pi";
@@ -41,6 +42,7 @@ import { useAuth } from "../../hooks/auth/useAuth.jsx";
 const LinkItems = [
   { name: "Inicio", icon: FiHome, to: "/" },
   { name: "Ventas", icon: PiAlignLeftDuotone, to: "/ventas" },
+  { name: "Caja", icon: FiDollarSign, to: "/caja" },
   { name: "Planillas", icon: FiTrendingUp, to: "/plantillas" },
   { name: "Productos", icon: FiCompass, to: "/productos" },
   { name: "Materia Primas", icon: FaHammer, to: "/materias-primas" },
