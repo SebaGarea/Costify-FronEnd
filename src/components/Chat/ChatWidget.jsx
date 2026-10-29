@@ -17,7 +17,6 @@ import { ChatPanel } from "./ChatPanel.jsx";
 // Entidad afectada -> a dónde llevar al usuario para verla.
 const ENTIDAD_DESTINO = {
   tarea: { ruta: "/tareas", label: "tarea" },
-  contenido: { ruta: "/contenido", label: "publicación" },
   venta: { ruta: "/ventas", label: "venta" },
   producto: { ruta: "/productos", label: "producto" },
   compra: { ruta: "/lista-compras", label: "lista de compras" },

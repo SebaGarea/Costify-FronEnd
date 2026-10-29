@@ -32,7 +32,7 @@ import {
   FiChevronDown,
   FiCheckSquare,
 } from "react-icons/fi";
-import { FaHammer, FaBullhorn, FaRobot } from "react-icons/fa";
+import { FaHammer, FaRobot } from "react-icons/fa";
 import { PiAlignLeftDuotone } from "react-icons/pi";
 import { CiViewList } from "react-icons/ci";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -46,7 +46,6 @@ const LinkItems = [
   { name: "Materia Primas", icon: FaHammer, to: "/materias-primas" },
   { name: "Lista de Compras", icon: CiViewList, to: "/lista-compras" },
   { name: "Tareas", icon: FiCheckSquare, to: "/tareas" },
-  { name: "Contenido", icon: FaBullhorn, to: "/contenido" },
   { name: "Asistente IA", icon: FaRobot, to: "/asistente" },
 ];
 
