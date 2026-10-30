@@ -44,8 +44,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGetVentasPaginated } from "../../hooks/ventas/useGetVentasPaginated.js";
 import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
 import { Loader } from "../Loader/Loader.jsx";
-import { useCuentasCaja } from "../../hooks/caja/useCuentasCaja.js";
-import { CobroCuentaPopover } from "../Caja/CobroCuentaPopover.jsx";
 
 const normalizeString = (value = "") =>
   value
@@ -132,7 +130,6 @@ export const ItemListVentas = () => {
   const { updateVenta } = useUpdateVentas();
   const [deletingId, setDeletingId] = useState(null);
   const [markingPaidId, setMarkingPaidId] = useState(null);
-  const { cuentasActivas, cuentaCobroDefault } = useCuentasCaja();
   const [isOpen, setIsOpen] = useState(false);
   const cancelRef = useRef();
   const medioLabels = {
@@ -454,9 +451,8 @@ export const ItemListVentas = () => {
     }
   };
 
-  // Al marcarla pagada, lo que restaba se registra como ingreso en Caja
-  // en la cuenta elegida (cuentaCobro). Al desmarcarla, se quita.
-  const handleTogglePaid = async (venta, cuentaCobro = null) => {
+  // Marcar pagada solo cambia la venta: la Caja no se entera de las ventas.
+  const handleTogglePaid = async (venta) => {
     if (!venta) return;
     const restanValue = Number(venta.restan ?? 0);
     const valorTotal = Number(venta.valorTotal ?? 0);
@@ -468,10 +464,7 @@ export const ItemListVentas = () => {
     patchVentaLocal(venta._id, { restan: nextRestan });
 
     try {
-      const result = await updateVenta(venta._id, {
-        restan: nextRestan,
-        ...(cuentaCobro ? { cuentaCobro } : {}),
-      });
+      const result = await updateVenta(venta._id, { restan: nextRestan });
       const serverPatch =
         result && typeof result === "object"
           ? result.venta && typeof result.venta === "object"
@@ -848,39 +841,19 @@ export const ItemListVentas = () => {
                       <Text color={heading} fontWeight="bold" fontSize="sm" className="tnum">
                         Restan: {restanLabel}
                       </Text>
-                        {isPaid ? (
-                          <IconButton
-                            aria-label={togglePaidLabel}
-                            icon={<FiCheckCircle />}
-                            colorScheme="green"
-                            variant="solid"
-                            size="sm"
-                            isLoading={markingPaidId === venta._id}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleTogglePaid(venta);
-                            }}
-                          />
-                        ) : (
-                          <CobroCuentaPopover
-                            monto={restanValue}
-                            cuentas={cuentasActivas}
-                            cuentaDefault={cuentaCobroDefault}
-                            onConfirm={(cuenta) => handleTogglePaid(venta, cuenta)}
-                          >
-                            <IconButton
-                              aria-label={togglePaidLabel}
-                              icon={<FiCircle />}
-                              colorScheme="gray"
-                              variant="ghost"
-                              size="sm"
-                              isLoading={markingPaidId === venta._id}
-                              // Sin preventDefault: el Popover necesita el click para abrirse.
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </CobroCuentaPopover>
-                        )}
+                        <IconButton
+                          aria-label={togglePaidLabel}
+                          icon={isPaid ? <FiCheckCircle /> : <FiCircle />}
+                          colorScheme={isPaid ? "green" : "gray"}
+                          variant={isPaid ? "solid" : "ghost"}
+                          size="sm"
+                          isLoading={markingPaidId === venta._id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleTogglePaid(venta);
+                          }}
+                        />
                     </Flex>
                   </HStack>
 

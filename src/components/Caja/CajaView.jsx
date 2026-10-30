@@ -82,7 +82,6 @@ export const CajaView = () => {
     cuentas,
     cuentasActivas,
     totales,
-    cuentaCobroDefault,
     loading: loadingCuentas,
     refetch: refetchCuentas,
   } = useCuentasCaja({ incluirArchivadas: true });
@@ -390,11 +389,6 @@ export const CajaView = () => {
                       <Badge variant="subtle" colorScheme={cuenta.esDigital ? "blue" : "green"} textTransform="none">
                         {cuenta.esDigital ? "Digital" : "Efectivo"}
                       </Badge>
-                      {String(cuenta._id) === String(cuentaCobroDefault) && (
-                        <Badge variant="subtle" colorScheme="purple" textTransform="none">
-                          Cobros
-                        </Badge>
-                      )}
                     </HStack>
                     {cuenta.integracion === "mercadopago" && mpEstado?.habilitado && (
                       <Flex align="center" justify="space-between" mt={2} gap={2}>
@@ -683,7 +677,6 @@ export const CajaView = () => {
               <CuentasCategoriasPanel
                 cuentas={cuentas}
                 categorias={categorias}
-                cuentaCobroDefault={cuentaCobroDefault}
                 onChanged={refrescarTodo}
               />
             </TabPanel>
@@ -696,7 +689,7 @@ export const CajaView = () => {
         onClose={movimientoModal.onClose}
         movimiento={movimientoEditando}
         tipoInicial={tipoNuevo}
-        cuentas={cuentasActivas}
+        cuentas={cuentasActivas.filter((c) => c.integracion !== "mercadopago")}
         categorias={categorias.filter((c) => c.activa)}
         onSaved={refrescarTodo}
       />

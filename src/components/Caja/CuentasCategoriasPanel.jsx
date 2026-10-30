@@ -27,13 +27,12 @@ import {
   createCategoriaCaja,
   createCuentaCaja,
   deleteCategoriaCaja,
-  setCuentaCobroDefault,
   updateCategoriaCaja,
   updateCuentaCaja,
 } from "../../services/caja.service.js";
 import { COLORES, TIPOS_CUENTA, fechaInput, formatMoney, getApiError, hoyISO } from "../../constants/caja.js";
 
-const CuentaRow = ({ cuenta, esDefault, onChanged }) => {
+const CuentaRow = ({ cuenta, onChanged }) => {
   const toast = useToast();
   const border = useColorModeValue("gray.200", "gray.700");
   const muted = useColorModeValue("gray.600", "gray.400");
@@ -130,7 +129,9 @@ const CuentaRow = ({ cuenta, esDefault, onChanged }) => {
           <Badge variant="subtle" colorScheme={cuenta.esDigital ? "blue" : "green"} textTransform="none">
             {cuenta.esDigital ? "Digital" : "Efectivo"}
           </Badge>
-          {esDefault && <Badge colorScheme="purple" textTransform="none">Cobros por defecto</Badge>}
+          {cuenta.integracion === "mercadopago" && (
+            <Badge colorScheme="blue" textTransform="none">Se importa solo</Badge>
+          )}
           {!cuenta.activa && <Badge textTransform="none">Archivada</Badge>}
         </HStack>
         <Text fontSize="sm" color={muted} className="tnum">
@@ -216,7 +217,7 @@ const CategoriaRow = ({ categoria, onChanged }) => {
   );
 };
 
-export const CuentasCategoriasPanel = ({ cuentas = [], categorias = [], cuentaCobroDefault, onChanged }) => {
+export const CuentasCategoriasPanel = ({ cuentas = [], categorias = [], onChanged }) => {
   const toast = useToast();
   const cardBg = useColorModeValue("white", "gray.800");
   const border = useColorModeValue("gray.200", "gray.700");
@@ -248,18 +249,6 @@ export const CuentasCategoriasPanel = ({ cuentas = [], categorias = [], cuentaCo
     }
   };
 
-  const cambiarDefault = async (cuentaId) => {
-    try {
-      await setCuentaCobroDefault(cuentaId);
-      toast({ status: "success", title: "Cuenta de cobro actualizada", duration: 1500 });
-      onChanged?.();
-    } catch (error) {
-      toast({ status: "error", title: "No se pudo cambiar", description: getApiError(error) });
-    }
-  };
-
-  const activas = cuentas.filter((c) => c.activa);
-
   return (
     <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="start">
       <Box p={5} borderRadius="xl" bg={cardBg} borderWidth="1px" borderColor={border}>
@@ -269,17 +258,9 @@ export const CuentasCategoriasPanel = ({ cuentas = [], categorias = [], cuentaCo
         </Text>
         <Stack spacing={2} mb={5}>
           {cuentas.map((c) => (
-            <CuentaRow key={c._id} cuenta={c} esDefault={String(c._id) === String(cuentaCobroDefault)} onChanged={onChanged} />
+            <CuentaRow key={c._id} cuenta={c} onChanged={onChanged} />
           ))}
         </Stack>
-
-        <FormControl mb={5}>
-          <FormLabel fontSize="sm">Los cobros de ventas entran por defecto en</FormLabel>
-          <Select size="sm" value={cuentaCobroDefault || ""} onChange={(e) => cambiarDefault(e.target.value)}>
-            {activas.map((c) => <option key={c._id} value={c._id}>{c.nombre}</option>)}
-          </Select>
-          <FormHelperText>Al cobrar una venta se puede elegir otra.</FormHelperText>
-        </FormControl>
 
         <Text fontSize="sm" fontWeight="semibold" mb={2}>Nueva cuenta</Text>
         <Flex gap={2} flexWrap="wrap">

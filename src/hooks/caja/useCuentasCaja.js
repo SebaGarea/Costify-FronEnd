@@ -7,7 +7,6 @@ import { useDataChanged } from "../useDataChanged.js";
 export const useCuentasCaja = ({ incluirArchivadas = false } = {}) => {
   const [cuentas, setCuentas] = useState([]);
   const [totales, setTotales] = useState({ total: 0, efectivo: 0, digital: 0 });
-  const [cuentaCobroDefault, setCuentaCobroDefault] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -16,7 +15,6 @@ export const useCuentasCaja = ({ incluirArchivadas = false } = {}) => {
       const res = await getCuentasCaja(incluirArchivadas ? { archivadas: "true" } : undefined);
       setCuentas(res.data?.cuentas ?? []);
       setTotales(res.data?.totales ?? { total: 0, efectivo: 0, digital: 0 });
-      setCuentaCobroDefault(res.data?.cuentaCobroDefault ?? null);
       setError(null);
     } catch (err) {
       setError(err.response?.data?.mensaje || "No se pudieron cargar las cuentas");
@@ -36,7 +34,6 @@ export const useCuentasCaja = ({ incluirArchivadas = false } = {}) => {
     cuentas,
     cuentasActivas: cuentas.filter((c) => c.activa),
     totales,
-    cuentaCobroDefault,
     loading,
     error,
     refetch: fetchCuentas,
