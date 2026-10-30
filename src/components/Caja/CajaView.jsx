@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Badge,
   Box,
@@ -103,7 +103,7 @@ export const CajaView = () => {
   const [tipoNuevo, setTipoNuevo] = useState("egreso");
   const [cuentaAjuste, setCuentaAjuste] = useState(null);
 
-  // Integración con Mercado Pago (la importación corre sola cada 10 minutos).
+  // Integración con Mercado Pago (la importación corre sola cada minuto).
   const [mpEstado, setMpEstado] = useState(null);
   const [sincronizando, setSincronizando] = useState(false);
 
@@ -198,6 +198,28 @@ export const CajaView = () => {
   };
 
   useDataChanged(() => refrescarTodo(), ["caja", "venta"]);
+
+  // Mercado Pago se importa solo cada minuto: si entraron movimientos nuevos
+  // mientras la página está abierta (y visible), se refresca.
+  const importadosRef = useRef(null);
+  useEffect(() => {
+    importadosRef.current = mpEstado?.importados ?? null;
+  }, [mpEstado?.importados]);
+  useEffect(() => {
+    if (!mpEstado?.habilitado) return undefined;
+    const id = setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const res = await getMercadoPagoEstado();
+        const importados = res.data?.importados ?? null;
+        if (importados !== importadosRef.current) refrescarTodo();
+        else setMpEstado(res.data);
+      } catch {
+        /* sin conexión: se reintenta en el próximo ciclo */
+      }
+    }, 60 * 1000);
+    return () => clearInterval(id);
+  }, [mpEstado?.habilitado, refrescarTodo]);
 
   const abrirNuevo = (tipo) => {
     setMovimientoEditando(null);
@@ -380,7 +402,7 @@ export const CajaView = () => {
                           label={
                             mpEstado.ultimoError
                               ? `Último error: ${mpEstado.ultimoError}`
-                              : "Se sincroniza sola cada 10 minutos"
+                              : "Se sincroniza sola cada minuto"
                           }
                         >
                           <Text fontSize="xs" color={mpEstado.ultimoError ? "red.400" : muted} noOfLines={1}>
