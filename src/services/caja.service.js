@@ -22,3 +22,7 @@ export const getResumenCaja = (params) => api.get("/api/caja/resumen", { params 
 
 // Registra una compra de la lista de compras como egreso (categoría Materiales).
 export const registrarCompraCaja = (data) => api.post("/api/caja/compras", data);
+
+// Integración con Mercado Pago: estado y sincronización manual.
+export const getMercadoPagoEstado = () => api.get("/api/caja/mercadopago");
+export const syncMercadoPago = () => api.post("/api/caja/mercadopago/sync");

@@ -17,6 +17,7 @@ import {
   Select,
   SimpleGrid,
   Stack,
+  Text,
   useToast,
 } from "@chakra-ui/react";
 import { createMovimientoCaja, updateMovimientoCaja } from "../../services/caja.service.js";
@@ -43,6 +44,8 @@ export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuen
   const [form, setForm] = useState(() => buildForm(movimiento, tipoInicial, cuentas));
   const [saving, setSaving] = useState(false);
   const editando = Boolean(movimiento?._id);
+  // Lo importado de Mercado Pago es real: solo se edita categoría y descripción.
+  const importado = Boolean(movimiento?.origen?.mpPaymentId);
 
   useEffect(() => {
     if (isOpen) setForm(buildForm(movimiento, tipoInicial, cuentas));
@@ -113,7 +116,12 @@ export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuen
         <ModalCloseButton />
         <ModalBody>
           <Stack spacing={4}>
-            <ButtonGroup isAttached size="sm" w="100%">
+            {importado && (
+              <Text fontSize="sm" color="blue.400">
+                Importado de Mercado Pago: podés cambiar la categoría y la descripción.
+              </Text>
+            )}
+            <ButtonGroup isAttached size="sm" w="100%" isDisabled={importado}>
               {TIPOS.map((t) => (
                 <Button
                   key={t.value}
@@ -139,21 +147,22 @@ export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuen
                     value={form.monto}
                     onChange={set("monto")}
                     placeholder="0"
-                    autoFocus
+                    autoFocus={!importado}
+                    isDisabled={importado}
                     className="tnum"
                   />
                 </InputGroup>
               </FormControl>
               <FormControl isRequired>
                 <FormLabel>Fecha</FormLabel>
-                <Input type="date" value={form.fecha} onChange={set("fecha")} />
+                <Input type="date" value={form.fecha} onChange={set("fecha")} isDisabled={importado} />
               </FormControl>
             </SimpleGrid>
 
             <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
               <FormControl isRequired>
                 <FormLabel>{form.tipo === "transferencia" ? "Desde" : form.tipo === "ingreso" ? "Entró en" : "Salió de"}</FormLabel>
-                <Select value={form.cuenta} onChange={set("cuenta")}>
+                <Select value={form.cuenta} onChange={set("cuenta")} isDisabled={importado}>
                   {cuentas.map((c) => <option key={c._id} value={c._id}>{c.nombre}</option>)}
                 </Select>
               </FormControl>
