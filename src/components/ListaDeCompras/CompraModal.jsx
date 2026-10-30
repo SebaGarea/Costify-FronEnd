@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
+  AlertIcon,
   Box,
   Button,
   Checkbox,
   Divider,
   Flex,
   FormControl,
+  FormHelperText,
   FormLabel,
   Input,
+  InputGroup,
+  InputLeftAddon,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -23,8 +28,11 @@ import {
 } from "@chakra-ui/react";
 import { formatMoney, hoyISO } from "../../constants/caja.js";
 
-// Modal "Compré esto": elegir qué ítems se compraron, con qué cuenta se pagó
-// y la fecha. Al confirmar se registra el egreso en Caja y se sacan de la lista.
+// Modal "Registrar pago": arranca con los ítems tildados como comprados.
+// Se elige con qué se pagó y el monto real (puede diferir de la lista).
+// - Efectivo / Naranja X: el gasto se registra al momento.
+// - Mercado Pago: se registra "esperando Mercado Pago" y se une con el pago
+//   que traiga la sincronización por el mismo monto (sin duplicar).
 export const CompraModal = ({
   isOpen,
   onClose,
@@ -42,17 +50,22 @@ export const CompraModal = ({
   const [seleccion, setSeleccion] = useState(() => new Set());
   const [cuenta, setCuenta] = useState("");
   const [fecha, setFecha] = useState(hoyISO());
+  const [montoReal, setMontoReal] = useState("");
+  const [montoEditado, setMontoEditado] = useState(false);
 
   const clave = (sectionKey, item, idx) => `${sectionKey}::${item?.id ?? idx}`;
 
   useEffect(() => {
     if (!isOpen) return;
-    const todos = new Set();
+    const comprados = new Set();
     sections.forEach((section) => {
-      (sectionItems[section.key] ?? []).forEach((item, idx) => todos.add(clave(section.key, item, idx)));
+      (sectionItems[section.key] ?? []).forEach((item, idx) => {
+        if (item?.comprado) comprados.add(clave(section.key, item, idx));
+      });
     });
-    setSeleccion(todos);
+    setSeleccion(comprados);
     setFecha(hoyISO());
+    setMontoEditado(false);
     // Por defecto, la primera cuenta en efectivo (las compras suelen pagarse así).
     setCuenta((cuentas.find((c) => !c.esDigital) ?? cuentas[0])?._id ?? "");
     // Solo al abrir.
@@ -69,7 +82,16 @@ export const CompraModal = ({
     return lista;
   }, [sections, sectionItems, seleccion]);
 
-  const total = seleccionados.reduce((acc, { item }) => acc + (getLineTotal(item) || 0), 0);
+  const totalLista = seleccionados.reduce((acc, { item }) => acc + (getLineTotal(item) || 0), 0);
+
+  // Mientras no lo toquen, el monto real sigue al total de la lista.
+  useEffect(() => {
+    if (!montoEditado) setMontoReal(String(Math.round(totalLista)));
+  }, [totalLista, montoEditado]);
+
+  const monto = Number(String(montoReal).replace(",", "."));
+  const cuentaElegida = cuentas.find((c) => c._id === cuenta);
+  const esMercadoPago = cuentaElegida?.integracion === "mercadopago";
 
   const toggle = (k) =>
     setSeleccion((prev) => {
@@ -103,7 +125,7 @@ export const CompraModal = ({
       quitar[section.key] = quitar[section.key] ?? new Set();
       quitar[section.key].add(item?.id ?? idx);
     });
-    onConfirm?.({ cuenta, fecha, total, items, quitar });
+    onConfirm?.({ cuenta, fecha, total: monto, items, quitar, esMercadoPago });
   };
 
   const seccionesConItems = sections.filter((s) => (sectionItems[s.key] ?? []).length > 0);
@@ -112,11 +134,12 @@ export const CompraModal = ({
     <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside">
       <ModalOverlay />
       <ModalContent mx={4}>
-        <ModalHeader fontFamily="heading">Registrar compra</ModalHeader>
+        <ModalHeader fontFamily="heading">Registrar pago</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
           <Text fontSize="sm" color={muted} mb={4}>
-            Marcá lo que compraste. Se registra como gasto (Materiales) en la Caja y esos ítems salen de la lista.
+            Están marcados los ítems que tildaste como comprados. Se registra como gasto (Materiales) en la Caja y
+            esos ítems salen de la lista.
           </Text>
           <Stack spacing={4}>
             {seccionesConItems.map((section) => {
@@ -160,7 +183,7 @@ export const CompraModal = ({
           </Stack>
 
           <Divider my={4} />
-          <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+          <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4}>
             <FormControl isRequired>
               <FormLabel fontSize="sm">Pagado con</FormLabel>
               <Select size="sm" value={cuenta} onChange={(e) => setCuenta(e.target.value)}>
@@ -172,26 +195,51 @@ export const CompraModal = ({
               </Select>
             </FormControl>
             <FormControl isRequired>
+              <FormLabel fontSize="sm">Monto pagado</FormLabel>
+              <InputGroup size="sm">
+                <InputLeftAddon>$</InputLeftAddon>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={montoReal}
+                  onChange={(e) => {
+                    setMontoReal(e.target.value);
+                    setMontoEditado(true);
+                  }}
+                  className="tnum"
+                />
+              </InputGroup>
+              {montoEditado && Math.abs(monto - totalLista) >= 1 && (
+                <FormHelperText fontSize="xs">
+                  Lista: {formatMoney(totalLista)}
+                </FormHelperText>
+              )}
+            </FormControl>
+            <FormControl isRequired>
               <FormLabel fontSize="sm">Fecha</FormLabel>
               <Input size="sm" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
             </FormControl>
           </SimpleGrid>
+          {esMercadoPago && (
+            <Alert status="info" borderRadius="md" mt={4} fontSize="sm">
+              <AlertIcon />
+              Queda esperando a Mercado Pago: cuando se sincronice el pago por {formatMoney(monto)}, se unen en un solo
+              gasto. Poné el monto exacto que pagaste.
+            </Alert>
+          )}
         </ModalBody>
         <ModalFooter gap={3} flexWrap="wrap">
-          <Text fontWeight="bold" mr="auto" className="tnum">
-            Total: {formatMoney(total)}
-            <Text as="span" fontWeight="normal" color={muted} fontSize="sm" ml={2}>
-              ({seleccionados.length} ítems)
-            </Text>
+          <Text fontSize="sm" color={muted} mr="auto">
+            {seleccionados.length} ítems
           </Text>
           <Button variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button
             colorScheme="teal"
             onClick={confirmar}
             isLoading={isSaving}
-            isDisabled={!seleccionados.length || !(total > 0) || !cuenta}
+            isDisabled={!seleccionados.length || !(monto > 0) || !cuenta}
           >
-            Registrar compra
+            Registrar pago de {formatMoney(monto)}
           </Button>
         </ModalFooter>
       </ModalContent>
