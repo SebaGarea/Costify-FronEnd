@@ -83,13 +83,9 @@ const formatDueDiffText = (diffDays) => {
 // Filtros de la lista (se resuelven en el servidor, sobre todas las ventas).
 const FILTROS_VENTAS = [
   { key: "todas", label: "Todas" },
-  { key: "sin_despachar", label: "Sin despachar", scheme: "teal" },
-  { key: "pendiente", label: "Pendientes", scheme: "gray" },
-  { key: "en_proceso", label: "En fabricación", scheme: "orange" },
+  { key: "en_proceso", label: "En proceso", scheme: "orange" },
   { key: "finalizada", label: "Finalizadas", scheme: "green" },
   { key: "despachada", label: "Despachadas", scheme: "red" },
-  { key: "cancelada", label: "Canceladas", scheme: "gray" },
-  { key: "con_saldo", label: "Con saldo por cobrar", scheme: "orange" },
 ];
 const FILTROS_VALIDOS = new Set(FILTROS_VENTAS.map((f) => f.key));
 
@@ -358,8 +354,6 @@ export const ItemListVentas = () => {
       helper: "Ventas con saldo",
       icon: FiDollarSign,
       accent: "orange.400",
-      onClick: () => aplicarFiltro("con_saldo"),
-      isActive: filtro === "con_saldo",
     },
     {
       key: "alerts",
