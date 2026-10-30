@@ -103,7 +103,7 @@ export const CajaView = () => {
   const [tipoNuevo, setTipoNuevo] = useState("egreso");
   const [cuentaAjuste, setCuentaAjuste] = useState(null);
 
-  // Integración con Mercado Pago (la importación corre sola cada minuto).
+  // Integración con Mercado Pago (la importación corre sola: webhook + cada minuto).
   const [mpEstado, setMpEstado] = useState(null);
   const [sincronizando, setSincronizando] = useState(false);
 
@@ -199,8 +199,9 @@ export const CajaView = () => {
 
   useDataChanged(() => refrescarTodo(), ["caja", "venta"]);
 
-  // Mercado Pago se importa solo cada minuto: si entraron movimientos nuevos
-  // mientras la página está abierta (y visible), se refresca.
+  // Mercado Pago se importa solo (al instante por webhook, y cada minuto de
+  // respaldo): si entraron movimientos nuevos con la página abierta y visible,
+  // se refresca. La consulta es mínima, así que se chequea cada 20 segundos.
   const importadosRef = useRef(null);
   useEffect(() => {
     importadosRef.current = mpEstado?.importados ?? null;
@@ -217,7 +218,7 @@ export const CajaView = () => {
       } catch {
         /* sin conexión: se reintenta en el próximo ciclo */
       }
-    }, 60 * 1000);
+    }, 20 * 1000);
     return () => clearInterval(id);
   }, [mpEstado?.habilitado, refrescarTodo]);
 
@@ -402,7 +403,7 @@ export const CajaView = () => {
                           label={
                             mpEstado.ultimoError
                               ? `Último error: ${mpEstado.ultimoError}`
-                              : "Se sincroniza sola cada minuto"
+                              : "Se sincroniza sola al instante (y cada minuto de respaldo)"
                           }
                         >
                           <Text fontSize="xs" color={mpEstado.ultimoError ? "red.400" : muted} noOfLines={1}>
@@ -581,6 +582,10 @@ export const CajaView = () => {
                         const deVenta = m.origen?.tipo === "venta" && m.origen?.venta;
                         const deMp = Boolean(m.origen?.mpPaymentId);
                         const porLiberar = m.liberacion && new Date(m.liberacion) > new Date();
+                        // Cargado a mano en la cuenta de MP: espera el pago importado por el mismo monto.
+                        const esperandoMp = m.esperaMP && !deMp;
+                        const esperaVencida =
+                          esperandoMp && Date.now() - new Date(m.fecha).getTime() > 3 * 24 * 60 * 60 * 1000;
                         return (
                           <Flex
                             key={m._id}
@@ -617,6 +622,20 @@ export const CajaView = () => {
                                 )}
                                 {deMp && (
                                   <Badge colorScheme="blue" variant="subtle" textTransform="none">Mercado Pago</Badge>
+                                )}
+                                {esperandoMp && (
+                                  <Tooltip
+                                    hasArrow
+                                    label={
+                                      esperaVencida
+                                        ? "Pasaron 3 días y no llegó un pago de Mercado Pago por este monto. Revisá el monto o si se pagó por otro medio."
+                                        : "Se une solo cuando la sincronización traiga el pago de Mercado Pago por el mismo monto."
+                                    }
+                                  >
+                                    <Badge colorScheme={esperaVencida ? "red" : "orange"} variant="subtle" textTransform="none">
+                                      {esperaVencida ? "No apareció en Mercado Pago" : "Esperando Mercado Pago"}
+                                    </Badge>
+                                  </Tooltip>
                                 )}
                                 {porLiberar && (
                                   <Text fontSize="xs" color="orange.400">· se libera el {formatFecha(m.liberacion)}</Text>

@@ -385,6 +385,17 @@ export const ListaDeComprasView = () => {
     setHasPendingSave(hasChanges);
   }, [currentPayload, isSyncReady]);
 
+  // Tildar "comprado" se guarda al instante (no espera al botón Guardar).
+  const guardarTrasTildeRef = useRef(false);
+  const handleCompradoChange = useCallback(() => {
+    guardarTrasTildeRef.current = true;
+  }, []);
+  useEffect(() => {
+    if (!guardarTrasTildeRef.current || !isSyncReady || isSaving) return;
+    guardarTrasTildeRef.current = false;
+    persistShoppingList(currentPayload);
+  }, [currentPayload, isSyncReady, isSaving, persistShoppingList]);
+
   const handleManualSave = useCallback(() => {
     if (!hasPendingSave || isSaving) return;
     persistShoppingList(currentPayload);
@@ -763,13 +774,16 @@ export const ListaDeComprasView = () => {
 
   const compraModal = useDisclosure();
   const [isRegistrandoCompra, setIsRegistrandoCompra] = useState(false);
-  const hayItems = Object.values(sectionItems).some(
-    (items) => Array.isArray(items) && items.length > 0
+  // Ítems tildados como comprados (falta registrar con qué se pagaron).
+  const cantidadComprados = Object.values(sectionItems).reduce(
+    (acc, items) =>
+      acc + (Array.isArray(items) ? items.filter((item) => item?.comprado).length : 0),
+    0
   );
 
   // Registra la compra como egreso en Caja y saca los ítems comprados de la lista.
   const handleRegistrarCompra = useCallback(
-    async ({ cuenta, fecha, total, items, quitar }) => {
+    async ({ cuenta, fecha, total, items, quitar, esMercadoPago }) => {
       setIsRegistrandoCompra(true);
       try {
         await registrarCompraCaja({ cuenta, fecha, total, items });
@@ -802,8 +816,12 @@ export const ListaDeComprasView = () => {
       setIsRegistrandoCompra(false);
       compraModal.onClose();
       toast({
-        title: "Compra registrada en la Caja",
-        description: `${items.length} ítems · ${currencyFormatter.format(total)}`,
+        title: esMercadoPago
+          ? "Pago registrado: esperando a Mercado Pago"
+          : "Pago registrado en la Caja",
+        description: esMercadoPago
+          ? `${items.length} ítems · ${currencyFormatter.format(total)}. Se une solo cuando llegue el pago de Mercado Pago.`
+          : `${items.length} ítems · ${currencyFormatter.format(total)}`,
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -898,6 +916,7 @@ export const ListaDeComprasView = () => {
               showMaterialField={section.showMaterialField}
               materialFieldLabel={section.materialFieldLabel}
               onSubtotalChange={onSubtotalChangeBySection[section.key]}
+              onCompradoChange={handleCompradoChange}
             />
           ))}
         </Stack>
@@ -1023,9 +1042,10 @@ export const ListaDeComprasView = () => {
               size="sm"
               colorScheme="green"
               onClick={compraModal.onOpen}
-              isDisabled={!hayItems}
+              isDisabled={cantidadComprados === 0}
+              title={cantidadComprados === 0 ? "Tildá los ítems que ya compraste" : undefined}
             >
-              Compré esto
+              Registrar pago{cantidadComprados > 0 ? ` (${cantidadComprados})` : ""}
             </Button>
             <Button
               size="sm"

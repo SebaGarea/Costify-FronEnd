@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback, useRef, memo } from "react";
 import {
   Badge,
   Box,
+  Checkbox,
   Heading,
   HStack,
   Stack,
@@ -160,6 +161,7 @@ const ListaCompraSeccion = ({
   onItemsChange,
   showMaterialField = false,
   materialFieldLabel = "Materia prima",
+  onCompradoChange,
 }) => {
   const [items, setItems] = useState(controlledItems);
   const skipSyncRef = useRef(false);
@@ -713,8 +715,33 @@ const ListaCompraSeccion = ({
           const quantityValue = formatQuantityValue(item.cantidad);
 
           return (
-            <Box key={item.id} p={4} borderRadius="xl" bg={innerCardBg} borderWidth="1px" borderColor={noteBorder}>
+            <Box
+              key={item.id}
+              p={4}
+              borderRadius="xl"
+              bg={innerCardBg}
+              borderWidth="1px"
+              borderColor={item.comprado ? "green.400" : noteBorder}
+            >
             <Stack spacing={3}>
+              <Flex align="center" gap={3} flexWrap="wrap">
+                <Checkbox
+                  colorScheme="green"
+                  isChecked={Boolean(item.comprado)}
+                  onChange={(e) => {
+                    handleChange(idx, "comprado", e.target.checked);
+                    onCompradoChange?.();
+                  }}
+                >
+                  <Text
+                    as="span"
+                    fontSize="sm"
+                    fontWeight="semibold"
+                    color={item.comprado ? "green.500" : undefined}
+                  >
+                    {item.comprado ? "Comprado" : "Marcar como comprado"}
+                  </Text>
+                </Checkbox>
               {item.origen?.plantillaId && (
                 <HStack spacing={2}>
                   <Badge colorScheme={buttonScheme} variant="subtle" textTransform="none">
@@ -731,6 +758,8 @@ const ListaCompraSeccion = ({
                   </Link>
                 </HStack>
               )}
+              </Flex>
+              <Box opacity={item.comprado ? 0.55 : 1} transition="opacity 0.15s">
               {item.esPersonalizado ? (
                 <Grid templateColumns={{ base: "repeat(12, minmax(0, 1fr))", lg: "repeat(12, 1fr)" }} gap={2} alignItems="flex-end">
                   <GridItem colSpan={{ base: 12, lg: 4 }}>
@@ -993,6 +1022,7 @@ const ListaCompraSeccion = ({
                     </GridItem>
                   </Grid>
               )}
+              </Box>
 
             </Stack>
           </Box>
