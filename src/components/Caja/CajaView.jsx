@@ -10,7 +10,6 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
-  Link,
   Progress,
   Select,
   SimpleGrid,
@@ -29,7 +28,6 @@ import {
 } from "@chakra-ui/react";
 import { AddIcon, DeleteIcon, DownloadIcon, EditIcon } from "@chakra-ui/icons";
 import { FiRefreshCw, FiSearch, FiSliders } from "react-icons/fi";
-import { Link as RouterLink } from "react-router-dom";
 import {
   deleteMovimientoCaja,
   getCategoriasCaja,
@@ -573,7 +571,6 @@ export const CajaView = () => {
                         const tipo = TIPOS_MOVIMIENTO[m.tipo] ?? TIPOS_MOVIMIENTO.ajuste;
                         const negativo = m.tipo === "egreso" || (m.tipo === "ajuste" && m.direccion === "-");
                         const colorMonto = m.tipo === "transferencia" || m.tipo === "ajuste" ? undefined : negativo ? "red.400" : "green.500";
-                        const deVenta = m.origen?.tipo === "venta" && m.origen?.venta;
                         const deMp = Boolean(m.origen?.mpPaymentId);
                         const porLiberar = m.liberacion && new Date(m.liberacion) > new Date();
                         return (
@@ -602,11 +599,6 @@ export const CajaView = () => {
                                   {m.cuenta?.nombre}
                                   {m.tipo === "transferencia" && m.cuentaDestino ? ` → ${m.cuentaDestino.nombre}` : ""}
                                 </Text>
-                                {deVenta && (
-                                  <Link as={RouterLink} to={`/ventas/itemAdd/${m.origen.venta._id ?? m.origen.venta}`} fontSize="xs" color="teal.500">
-                                    Desde venta
-                                  </Link>
-                                )}
                                 {m.origen?.tipo === "compra" && (
                                   <Text fontSize="xs" color={muted}>· Lista de compras</Text>
                                 )}
@@ -625,13 +617,11 @@ export const CajaView = () => {
                             <HStack spacing={0}>
                               <Tooltip
                                 label={
-                                  deVenta
-                                    ? "Se modifica desde la venta"
-                                    : m.tipo === "ajuste"
-                                      ? "Los ajustes no se editan"
-                                      : deMp
-                                        ? "Editar categoría y descripción"
-                                        : "Editar"
+                                  m.tipo === "ajuste"
+                                    ? "Los ajustes no se editan"
+                                    : deMp
+                                      ? "Editar categoría y descripción"
+                                      : "Editar"
                                 }
                                 hasArrow
                               >
@@ -640,18 +630,17 @@ export const CajaView = () => {
                                   icon={<EditIcon />}
                                   size="sm"
                                   variant="ghost"
-                                  isDisabled={Boolean(deVenta) || m.tipo === "ajuste"}
+                                  isDisabled={m.tipo === "ajuste"}
                                   onClick={() => abrirEdicion(m)}
                                 />
                               </Tooltip>
-                              <Tooltip label={deVenta ? "Se modifica desde la venta" : "Eliminar"} hasArrow>
+                              <Tooltip label="Eliminar" hasArrow>
                                 <IconButton
                                   aria-label="Eliminar movimiento"
                                   icon={<DeleteIcon />}
                                   size="sm"
                                   variant="ghost"
                                   colorScheme="red"
-                                  isDisabled={Boolean(deVenta)}
                                   onClick={() => handleDelete(m)}
                                 />
                               </Tooltip>
