@@ -582,10 +582,6 @@ export const CajaView = () => {
                         const deVenta = m.origen?.tipo === "venta" && m.origen?.venta;
                         const deMp = Boolean(m.origen?.mpPaymentId);
                         const porLiberar = m.liberacion && new Date(m.liberacion) > new Date();
-                        // Cargado a mano en la cuenta de MP: espera el pago importado por el mismo monto.
-                        const esperandoMp = m.esperaMP && !deMp;
-                        const esperaVencida =
-                          esperandoMp && Date.now() - new Date(m.fecha).getTime() > 3 * 24 * 60 * 60 * 1000;
                         return (
                           <Flex
                             key={m._id}
@@ -622,20 +618,6 @@ export const CajaView = () => {
                                 )}
                                 {deMp && (
                                   <Badge colorScheme="blue" variant="subtle" textTransform="none">Mercado Pago</Badge>
-                                )}
-                                {esperandoMp && (
-                                  <Tooltip
-                                    hasArrow
-                                    label={
-                                      esperaVencida
-                                        ? "Pasaron 3 días y no llegó un pago de Mercado Pago por este monto. Revisá el monto o si se pagó por otro medio."
-                                        : "Se une solo cuando la sincronización traiga el pago de Mercado Pago por el mismo monto."
-                                    }
-                                  >
-                                    <Badge colorScheme={esperaVencida ? "red" : "orange"} variant="subtle" textTransform="none">
-                                      {esperaVencida ? "No apareció en Mercado Pago" : "Esperando Mercado Pago"}
-                                    </Badge>
-                                  </Tooltip>
                                 )}
                                 {porLiberar && (
                                   <Text fontSize="xs" color="orange.400">· se libera el {formatFecha(m.liberacion)}</Text>

@@ -12,7 +12,6 @@ import {
   Button,
   Link,
   SimpleGrid,
-  useDisclosure,
   useToast,
 } from "@chakra-ui/react";
 import { DownloadIcon } from "@chakra-ui/icons";
@@ -25,7 +24,6 @@ import { getShoppingList, saveShoppingList } from "../../services/shoppingList.s
 import { registrarCompraCaja } from "../../services/caja.service.js";
 import { useCuentasCaja } from "../../hooks/caja/useCuentasCaja.js";
 import { getApiError } from "../../constants/caja.js";
-import { CompraModal } from "./CompraModal.jsx";
 
 const SECTIONS = [
   {
@@ -385,17 +383,6 @@ export const ListaDeComprasView = () => {
     setHasPendingSave(hasChanges);
   }, [currentPayload, isSyncReady]);
 
-  // Tildar "comprado" se guarda al instante (no espera al botón Guardar).
-  const guardarTrasTildeRef = useRef(false);
-  const handleCompradoChange = useCallback(() => {
-    guardarTrasTildeRef.current = true;
-  }, []);
-  useEffect(() => {
-    if (!guardarTrasTildeRef.current || !isSyncReady || isSaving) return;
-    guardarTrasTildeRef.current = false;
-    persistShoppingList(currentPayload);
-  }, [currentPayload, isSyncReady, isSaving, persistShoppingList]);
-
   const handleManualSave = useCallback(() => {
     if (!hasPendingSave || isSaving) return;
     persistShoppingList(currentPayload);
@@ -475,7 +462,7 @@ export const ListaDeComprasView = () => {
   );
 
   // Lo disponible sale de la Caja: efectivo = cuentas no digitales,
-  // digital = billeteras (Mercado Pago, Naranja X, ...).
+  // digital = billeteras (Mercado Pago, cuenta secundaria, ...).
   const {
     cuentasActivas,
     totales: totalesCaja,
@@ -772,63 +759,79 @@ export const ListaDeComprasView = () => {
     totalGeneral,
   ]);
 
-  const compraModal = useDisclosure();
-  const [isRegistrandoCompra, setIsRegistrandoCompra] = useState(false);
-  // Ítems tildados como comprados (falta registrar con qué se pagaron).
-  const cantidadComprados = Object.values(sectionItems).reduce(
-    (acc, items) =>
-      acc + (Array.isArray(items) ? items.filter((item) => item?.comprado).length : 0),
-    0
-  );
 
-  // Registra la compra como egreso en Caja y saca los ítems comprados de la lista.
-  const handleRegistrarCompra = useCallback(
-    async ({ cuenta, fecha, total, items, quitar, esMercadoPago }) => {
-      setIsRegistrandoCompra(true);
-      try {
-        await registrarCompraCaja({ cuenta, fecha, total, items });
-      } catch (error) {
-        toast({
-          title: "No se pudo registrar la compra",
-          description: getApiError(error),
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        setIsRegistrandoCompra(false);
-        return;
+  // Botón "Comprado" de un ítem: si se pagó en efectivo (o con una cuenta sin
+  // integración, como la cuenta secundaria) se registra el gasto en Caja; si se pagó con
+  // Mercado Pago no se carga nada (el gasto entra solo al sincronizar).
+  // En los dos casos el ítem sale de la lista.
+  const handleComprarItem = useCallback(
+    async (sectionKey, item, { cuenta, monto, esMercadoPago }) => {
+      if (!esMercadoPago) {
+        try {
+          await registrarCompraCaja({
+            cuenta,
+            total: monto,
+            items: [
+              {
+                nombre: getMaterialName(item),
+                seccion: sectionKey,
+                cantidad: Number(item.cantidad) || 0,
+                precioUnitario: getUnitPrice(item) || 0,
+                subtotal: getLineTotal(item) || 0,
+              },
+            ],
+          });
+        } catch (error) {
+          toast({
+            title: "No se pudo registrar el pago",
+            description: getApiError(error),
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        }
       }
 
-      const restantes = Object.keys(sectionItems).reduce((acc, key) => {
-        const aQuitar = quitar[key];
-        acc[key] = aQuitar
-          ? (sectionItems[key] || []).filter((item, idx) => !aQuitar.has(item?.id ?? idx))
-          : sectionItems[key];
-        return acc;
-      }, {});
+      const restantes = {
+        ...sectionItems,
+        [sectionKey]: (sectionItems[sectionKey] || []).filter((it) => it?.id !== item.id),
+      };
       setSectionItems(restantes);
-      await persistShoppingList({
-        sectionItems: restantes,
-        efectivoDisponible,
-        dineroDigital,
-      });
+      await persistShoppingList({ sectionItems: restantes, efectivoDisponible, dineroDigital });
       refetchCaja();
-      setIsRegistrandoCompra(false);
-      compraModal.onClose();
+      const cuentaNombre = cuentasActivas.find((c) => c._id === cuenta)?.nombre ?? "la cuenta";
       toast({
-        title: esMercadoPago
-          ? "Pago registrado: esperando a Mercado Pago"
-          : "Pago registrado en la Caja",
+        title: `${getMaterialName(item)}: comprado`,
         description: esMercadoPago
-          ? `${items.length} ítems · ${currencyFormatter.format(total)}. Se une solo cuando llegue el pago de Mercado Pago.`
-          : `${items.length} ítems · ${currencyFormatter.format(total)}`,
+          ? "El gasto entra solo cuando llegue el pago de Mercado Pago."
+          : `Se descontaron ${currencyFormatter.format(monto)} de ${cuentaNombre}.`,
         status: "success",
         duration: 3000,
         isClosable: true,
       });
     },
-    [sectionItems, efectivoDisponible, dineroDigital, persistShoppingList, refetchCaja, compraModal, toast]
+    [
+      sectionItems,
+      efectivoDisponible,
+      dineroDigital,
+      persistShoppingList,
+      refetchCaja,
+      cuentasActivas,
+      getMaterialName,
+      getUnitPrice,
+      getLineTotal,
+      toast,
+    ]
   );
+
+  const onComprarItemBySection = useMemo(() => {
+    const handlers = {};
+    SECTIONS.forEach((section) => {
+      handlers[section.key] = (item, datos) => handleComprarItem(section.key, item, datos);
+    });
+    return handlers;
+  }, [handleComprarItem]);
 
   const isPageLoading =
     (loading && rawsMaterialData.length === 0) || isShoppingListLoading;
@@ -916,7 +919,8 @@ export const ListaDeComprasView = () => {
               showMaterialField={section.showMaterialField}
               materialFieldLabel={section.materialFieldLabel}
               onSubtotalChange={onSubtotalChangeBySection[section.key]}
-              onCompradoChange={handleCompradoChange}
+              cuentas={cuentasActivas}
+              onComprarItem={onComprarItemBySection[section.key]}
             />
           ))}
         </Stack>
@@ -1040,15 +1044,6 @@ export const ListaDeComprasView = () => {
             </Button>
             <Button
               size="sm"
-              colorScheme="green"
-              onClick={compraModal.onOpen}
-              isDisabled={cantidadComprados === 0}
-              title={cantidadComprados === 0 ? "Tildá los ítems que ya compraste" : undefined}
-            >
-              Registrar pago{cantidadComprados > 0 ? ` (${cantidadComprados})` : ""}
-            </Button>
-            <Button
-              size="sm"
               variant="outline"
               colorScheme="teal"
               leftIcon={<DownloadIcon />}
@@ -1059,18 +1054,6 @@ export const ListaDeComprasView = () => {
           </HStack>
         </Flex>
       </Box>
-      <CompraModal
-        isOpen={compraModal.isOpen}
-        onClose={compraModal.onClose}
-        sections={SECTIONS}
-        sectionItems={sectionItems}
-        getMaterialName={getMaterialName}
-        getLineTotal={getLineTotal}
-        getUnitPrice={getUnitPrice}
-        cuentas={cuentasActivas}
-        onConfirm={handleRegistrarCompra}
-        isSaving={isRegistrandoCompra}
-      />
     </Box>
   );
 };
