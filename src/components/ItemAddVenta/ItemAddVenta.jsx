@@ -123,7 +123,10 @@ export const ItemAddVenta = () => {
   const precioUnit = Number(form.precioUnitario || 0);
   const subtotal = Number(form.cantidad || 0) * precioUnit;
   const valorTotal = subtotal + Number(form.valorEnvio || 0);
-  const restanPreview = valorTotal - Number(form.seña || 0);
+  // Lo ya cobrado aparte de la seña (por ejemplo, si se marcó pagada) se
+  // respeta al editar, igual que en el backend.
+  const [pagadoAparteDeSeña, setPagadoAparteDeSeña] = useState(0);
+  const restanPreview = Math.max(0, valorTotal - Number(form.seña || 0) - pagadoAparteDeSeña);
 
   // Handlers
   const onChange = (key, number = false) => (e) => {
@@ -317,6 +320,9 @@ export const ItemAddVenta = () => {
         const precioUnitarioVenta = Number.isFinite(netoVenta / cantidadVenta)
           ? netoVenta / cantidadVenta
           : 0;
+        setPagadoAparteDeSeña(
+          Math.max(0, Number(v.valorTotal || 0) - Number(v.restan || 0) - Number(v.seña || 0))
+        );
         setForm((prev) => ({
           ...prev,
           fecha: fmt(v.fecha),
