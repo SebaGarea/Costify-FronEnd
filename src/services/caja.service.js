@@ -5,8 +5,6 @@ export const createCuentaCaja = (data) => api.post("/api/caja/cuentas", data);
 export const updateCuentaCaja = (id, data) => api.put(`/api/caja/cuentas/${id}`, data);
 export const ajustarSaldoCuenta = (id, saldoReal) =>
   api.post(`/api/caja/cuentas/${id}/ajuste`, { saldoReal });
-export const setCuentaCobroDefault = (cuentaId) =>
-  api.put("/api/caja/cuenta-cobro-default", { cuentaId });
 
 export const getCategoriasCaja = (params) => api.get("/api/caja/categorias", { params });
 export const createCategoriaCaja = (data) => api.post("/api/caja/categorias", data);

@@ -40,12 +40,10 @@ import { MdDeleteForever } from "react-icons/md";
 import { FaTruck, FaStar } from "react-icons/fa";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDeleteVenta } from "../../hooks/ventas/useDeleteVenta.js";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGetVentasPaginated } from "../../hooks/ventas/useGetVentasPaginated.js";
 import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
 import { Loader } from "../Loader/Loader.jsx";
-import { useCuentasCaja } from "../../hooks/caja/useCuentasCaja.js";
-import { CobroCuentaPopover } from "../Caja/CobroCuentaPopover.jsx";
 
 const normalizeString = (value = "") =>
   value
@@ -80,7 +78,22 @@ const formatDueDiffText = (diffDays) => {
   return `Vence en ${diffDays} días`;
 };
 
+// Filtros de la lista (se resuelven en el servidor, sobre todas las ventas).
+const FILTROS_VENTAS = [
+  { key: "todas", label: "Todas" },
+  { key: "pendiente", label: "Pendientes", scheme: "gray" },
+  { key: "en_proceso", label: "En proceso", scheme: "orange" },
+  { key: "finalizada", label: "Finalizadas", scheme: "green" },
+  { key: "despachada", label: "Despachadas", scheme: "red" },
+];
+const FILTROS_VALIDOS = new Set(FILTROS_VENTAS.map((f) => f.key));
+
 export const ItemListVentas = () => {
+  // El filtro queda en la URL (?estado=...) para que sobreviva a recargas.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filtroInicial = FILTROS_VALIDOS.has(searchParams.get("estado"))
+    ? searchParams.get("estado")
+    : "todas";
   const {
     items,
     total,
@@ -94,8 +107,21 @@ export const ItemListVentas = () => {
     error,
     setPage,
     refetch,
+    filtro,
+    setFiltro,
+    conteosFiltro,
   } =
-    useGetVentasPaginated(1, 10);
+    useGetVentasPaginated(1, 10, filtroInicial);
+
+  const aplicarFiltro = (nuevo) => {
+    const valor = nuevo === filtro ? "todas" : nuevo;
+    setFiltro(valor);
+    const params = new URLSearchParams(searchParams);
+    if (valor === "todas") params.delete("estado");
+    else params.set("estado", valor);
+    setSearchParams(params, { replace: true });
+  };
+  const filtroActual = FILTROS_VENTAS.find((f) => f.key === filtro) ?? FILTROS_VENTAS[0];
   const [ventas, setVentas] = useState([]);
   const [clienteQuery, setClienteQuery] = useState("");
   const [productoQuery, setProductoQuery] = useState("");
@@ -105,7 +131,6 @@ export const ItemListVentas = () => {
   const { updateVenta } = useUpdateVentas();
   const [deletingId, setDeletingId] = useState(null);
   const [markingPaidId, setMarkingPaidId] = useState(null);
-  const { cuentasActivas, cuentaCobroDefault } = useCuentasCaja();
   const [isOpen, setIsOpen] = useState(false);
   const cancelRef = useRef();
   const medioLabels = {
@@ -297,6 +322,8 @@ export const ItemListVentas = () => {
       helper: "Ventas activas",
       icon: FiRefreshCw,
       accent: "teal.400",
+      onClick: () => aplicarFiltro("en_proceso"),
+      isActive: filtro === "en_proceso",
     },
     {
       key: "finalizada",
@@ -305,6 +332,8 @@ export const ItemListVentas = () => {
       helper: "Listas para cobrar",
       icon: FiCheck,
       accent: "green.400",
+      onClick: () => aplicarFiltro("finalizada"),
+      isActive: filtro === "finalizada",
     },
     {
       key: "despachada",
@@ -313,6 +342,8 @@ export const ItemListVentas = () => {
       helper: "Entregas últimos 30 días",
       icon: FaTruck,
       accent: "teal.400",
+      onClick: () => aplicarFiltro("despachada"),
+      isActive: filtro === "despachada",
     },
     {
       key: "pending",
@@ -421,9 +452,8 @@ export const ItemListVentas = () => {
     }
   };
 
-  // Al marcarla pagada, lo que restaba se registra como ingreso en Caja
-  // en la cuenta elegida (cuentaCobro). Al desmarcarla, se quita.
-  const handleTogglePaid = async (venta, cuentaCobro = null) => {
+  // Marcar pagada solo cambia la venta: la Caja no se entera de las ventas.
+  const handleTogglePaid = async (venta) => {
     if (!venta) return;
     const restanValue = Number(venta.restan ?? 0);
     const valorTotal = Number(venta.valorTotal ?? 0);
@@ -435,10 +465,7 @@ export const ItemListVentas = () => {
     patchVentaLocal(venta._id, { restan: nextRestan });
 
     try {
-      const result = await updateVenta(venta._id, {
-        restan: nextRestan,
-        ...(cuentaCobro ? { cuentaCobro } : {}),
-      });
+      const result = await updateVenta(venta._id, { restan: nextRestan });
       const serverPatch =
         result && typeof result === "object"
           ? result.venta && typeof result.venta === "object"
@@ -591,8 +618,32 @@ export const ItemListVentas = () => {
             Agregar venta
           </Button>
         </Flex>
+        <Flex gap={2} flexWrap="wrap" align="center">
+          {FILTROS_VENTAS.map((f) => {
+            const activo = filtro === f.key;
+            const cantidad = conteosFiltro?.[f.key];
+            return (
+              <Button
+                key={f.key}
+                size="xs"
+                borderRadius="full"
+                colorScheme={activo ? f.scheme || "teal" : "gray"}
+                variant={activo ? "solid" : "outline"}
+                onClick={() => aplicarFiltro(f.key === "todas" ? "todas" : f.key)}
+              >
+                {f.label}
+                {typeof cantidad === "number" && (
+                  <Badge ml={1.5} borderRadius="full" fontSize="2xs" colorScheme={activo ? "whiteAlpha" : "gray"}>
+                    {cantidad}
+                  </Badge>
+                )}
+              </Button>
+            );
+          })}
+        </Flex>
         <Text fontSize="small" color={mutedText}>
-          Mostrando {filteredVentas.length} de {ventasOrdenadas.length} ventas.
+          {filtro !== "todas" && `${filtroActual.label}: ${total} ${total === 1 ? "venta" : "ventas"}. `}
+          Mostrando {filteredVentas.length} de {ventasOrdenadas.length} en esta página.
           {clienteQuery &&
             ` Clientes encontrados: ${clienteMatches}.`}
           {productoQuery &&
@@ -791,39 +842,19 @@ export const ItemListVentas = () => {
                       <Text color={heading} fontWeight="bold" fontSize="sm" className="tnum">
                         Restan: {restanLabel}
                       </Text>
-                        {isPaid ? (
-                          <IconButton
-                            aria-label={togglePaidLabel}
-                            icon={<FiCheckCircle />}
-                            colorScheme="green"
-                            variant="solid"
-                            size="sm"
-                            isLoading={markingPaidId === venta._id}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleTogglePaid(venta);
-                            }}
-                          />
-                        ) : (
-                          <CobroCuentaPopover
-                            monto={restanValue}
-                            cuentas={cuentasActivas}
-                            cuentaDefault={cuentaCobroDefault}
-                            onConfirm={(cuenta) => handleTogglePaid(venta, cuenta)}
-                          >
-                            <IconButton
-                              aria-label={togglePaidLabel}
-                              icon={<FiCircle />}
-                              colorScheme="gray"
-                              variant="ghost"
-                              size="sm"
-                              isLoading={markingPaidId === venta._id}
-                              // Sin preventDefault: el Popover necesita el click para abrirse.
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </CobroCuentaPopover>
-                        )}
+                        <IconButton
+                          aria-label={togglePaidLabel}
+                          icon={isPaid ? <FiCheckCircle /> : <FiCircle />}
+                          colorScheme={isPaid ? "green" : "gray"}
+                          variant={isPaid ? "solid" : "ghost"}
+                          size="sm"
+                          isLoading={markingPaidId === venta._id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleTogglePaid(venta);
+                          }}
+                        />
                     </Flex>
                   </HStack>
 
