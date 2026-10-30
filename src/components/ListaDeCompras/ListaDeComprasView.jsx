@@ -462,7 +462,7 @@ export const ListaDeComprasView = () => {
   );
 
   // Lo disponible sale de la Caja: efectivo = cuentas no digitales,
-  // digital = billeteras (Mercado Pago, Naranja X, ...).
+  // digital = billeteras (Mercado Pago, cuenta secundaria, ...).
   const {
     cuentasActivas,
     totales: totalesCaja,
@@ -761,7 +761,7 @@ export const ListaDeComprasView = () => {
 
 
   // Botón "Comprado" de un ítem: si se pagó en efectivo (o con una cuenta sin
-  // integración, como Naranja X) se registra el gasto en Caja; si se pagó con
+  // integración, como la cuenta secundaria) se registra el gasto en Caja; si se pagó con
   // Mercado Pago no se carga nada (el gasto entra solo al sincronizar).
   // En los dos casos el ítem sale de la lista.
   const handleComprarItem = useCallback(

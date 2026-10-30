@@ -23,7 +23,7 @@ import {
 import { CheckIcon } from "@chakra-ui/icons";
 
 // Botón "Comprado" de un ítem de la lista: pregunta con qué se pagó.
-// - Efectivo / Naranja X (sin API): se descuenta de esa cuenta en Caja.
+// - Efectivo / cuentas sin integración: se descuenta de esa cuenta en Caja.
 // - Mercado Pago: no se carga nada; el gasto entra solo desde Mercado Pago.
 export const ComprarItemPopover = ({ cuentas = [], montoSugerido = 0, onConfirm, isLoading = false }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
