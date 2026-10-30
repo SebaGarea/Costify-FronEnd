@@ -8,19 +8,24 @@ import {
   Text,
   Divider,
   Flex,
-  FormControl,
-  FormLabel,
-  Input,
   useColorModeValue,
   Button,
+  Link,
+  SimpleGrid,
+  useDisclosure,
   useToast,
 } from "@chakra-ui/react";
 import { DownloadIcon } from "@chakra-ui/icons";
+import { Link as RouterLink } from "react-router-dom";
 import { getMaterialTypeLabel } from "../../constants/materialTypes";
 import { Loader } from "..";
 import ListaCompraSeccion from "../ListaCompraSeccion.jsx";
 import { useItemsMateriasPrimas } from "../../hooks";
 import { getShoppingList, saveShoppingList } from "../../services/shoppingList.service.js";
+import { registrarCompraCaja } from "../../services/caja.service.js";
+import { useCuentasCaja } from "../../hooks/caja/useCuentasCaja.js";
+import { getApiError } from "../../constants/caja.js";
+import { CompraModal } from "./CompraModal.jsx";
 
 const SECTIONS = [
   {
@@ -140,25 +145,6 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
   currency: "ARS",
   maximumFractionDigits: 0,
 });
-
-const stripNbsp = (value = "") => value.replace(/\u00A0/g, "");
-
-const formatInputCurrency = (value) => {
-  if (value === null || value === undefined) return "";
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return "";
-  return stripNbsp(currencyFormatter.format(numeric));
-};
-
-const parseInputCurrency = (value) => {
-  if (!value) return 0;
-  const sanitized = value.replace(/[^0-9,.-]/g, "");
-  const normalized = sanitized
-    .replace(/\./g, "")
-    .replace(/,/g, ".");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
 
 export const ListaDeComprasView = () => {
   const {
@@ -477,10 +463,18 @@ export const ListaDeComprasView = () => {
     [subtotals]
   );
 
-  const totalDisponible = useMemo(
-    () => (Number(efectivoDisponible) || 0) + (Number(dineroDigital) || 0),
-    [efectivoDisponible, dineroDigital]
+  // Lo disponible sale de la Caja: efectivo = cuentas no digitales,
+  // digital = billeteras (Mercado Pago, Naranja X, ...).
+  const {
+    cuentasActivas,
+    totales: totalesCaja,
+    refetch: refetchCaja,
+  } = useCuentasCaja();
+  const cuentasDigitales = useMemo(
+    () => cuentasActivas.filter((c) => c.esDigital),
+    [cuentasActivas]
   );
+  const totalDisponible = Number(totalesCaja.total) || 0;
 
   const diferencia = useMemo(
     () => totalDisponible - totalGeneral,
@@ -767,6 +761,57 @@ export const ListaDeComprasView = () => {
     totalGeneral,
   ]);
 
+  const compraModal = useDisclosure();
+  const [isRegistrandoCompra, setIsRegistrandoCompra] = useState(false);
+  const hayItems = Object.values(sectionItems).some(
+    (items) => Array.isArray(items) && items.length > 0
+  );
+
+  // Registra la compra como egreso en Caja y saca los ítems comprados de la lista.
+  const handleRegistrarCompra = useCallback(
+    async ({ cuenta, fecha, total, items, quitar }) => {
+      setIsRegistrandoCompra(true);
+      try {
+        await registrarCompraCaja({ cuenta, fecha, total, items });
+      } catch (error) {
+        toast({
+          title: "No se pudo registrar la compra",
+          description: getApiError(error),
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        setIsRegistrandoCompra(false);
+        return;
+      }
+
+      const restantes = Object.keys(sectionItems).reduce((acc, key) => {
+        const aQuitar = quitar[key];
+        acc[key] = aQuitar
+          ? (sectionItems[key] || []).filter((item, idx) => !aQuitar.has(item?.id ?? idx))
+          : sectionItems[key];
+        return acc;
+      }, {});
+      setSectionItems(restantes);
+      await persistShoppingList({
+        sectionItems: restantes,
+        efectivoDisponible,
+        dineroDigital,
+      });
+      refetchCaja();
+      setIsRegistrandoCompra(false);
+      compraModal.onClose();
+      toast({
+        title: "Compra registrada en la Caja",
+        description: `${items.length} ítems · ${currencyFormatter.format(total)}`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+    [sectionItems, efectivoDisponible, dineroDigital, persistShoppingList, refetchCaja, compraModal, toast]
+  );
+
   const isPageLoading =
     (loading && rawsMaterialData.length === 0) || isShoppingListLoading;
 
@@ -802,41 +847,41 @@ export const ListaDeComprasView = () => {
           borderWidth="1px"
           borderColor={borderColor}
         >
-          <Heading size="sm" mb={3} fontFamily="heading">
-            Tu presupuesto
-          </Heading>
-          <Flex gap={4} direction={{ base: "column", sm: "row" }} align={{ base: "stretch", sm: "flex-end" }}>
-            <FormControl>
-              <FormLabel fontSize="sm">Efectivo disponible</FormLabel>
-              <Input
-                value={formatInputCurrency(efectivoDisponible)}
-                onChange={(event) =>
-                  setEfectivoDisponible(parseInputCurrency(event.target.value))
-                }
-                placeholder="$0"
-                size="sm"
-                inputMode="decimal"
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="sm">Dinero digital</FormLabel>
-              <Input
-                value={formatInputCurrency(dineroDigital)}
-                onChange={(event) =>
-                  setDineroDigital(parseInputCurrency(event.target.value))
-                }
-                placeholder="$0"
-                size="sm"
-                inputMode="decimal"
-              />
-            </FormControl>
-            <Box minW={{ base: "auto", sm: "160px" }} textAlign={{ base: "left", sm: "right" }}>
+          <Flex justify="space-between" align="center" mb={3}>
+            <Heading size="sm" fontFamily="heading">
+              Tu presupuesto
+            </Heading>
+            <Link as={RouterLink} to="/caja" fontSize="sm" color="teal.500">
+              Ver Caja
+            </Link>
+          </Flex>
+          <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4}>
+            <Box>
+              <Text fontSize="xs" color={mutedText}>Efectivo disponible</Text>
+              <Text fontSize="lg" fontWeight="bold" className="tnum">
+                {currencyFormatter.format(totalesCaja.efectivo || 0)}
+              </Text>
+            </Box>
+            <Box>
+              <Text fontSize="xs" color={mutedText}>Dinero digital</Text>
+              <Text fontSize="lg" fontWeight="bold" className="tnum">
+                {currencyFormatter.format(totalesCaja.digital || 0)}
+              </Text>
+              {cuentasDigitales.length > 1 && (
+                <Text fontSize="xs" color={mutedText} className="tnum">
+                  {cuentasDigitales
+                    .map((c) => `${c.nombre} ${currencyFormatter.format(c.saldo || 0)}`)
+                    .join(" · ")}
+                </Text>
+              )}
+            </Box>
+            <Box textAlign={{ base: "left", sm: "right" }}>
               <Text fontSize="xs" color={mutedText}>Disponible total</Text>
               <Text fontSize="lg" fontWeight="bold" className="tnum">
                 {currencyFormatter.format(totalDisponible)}
               </Text>
             </Box>
-          </Flex>
+          </SimpleGrid>
         </Box>
 
         <Stack spacing={6}>
@@ -976,6 +1021,14 @@ export const ListaDeComprasView = () => {
             </Button>
             <Button
               size="sm"
+              colorScheme="green"
+              onClick={compraModal.onOpen}
+              isDisabled={!hayItems}
+            >
+              Compré esto
+            </Button>
+            <Button
+              size="sm"
               variant="outline"
               colorScheme="teal"
               leftIcon={<DownloadIcon />}
@@ -986,6 +1039,18 @@ export const ListaDeComprasView = () => {
           </HStack>
         </Flex>
       </Box>
+      <CompraModal
+        isOpen={compraModal.isOpen}
+        onClose={compraModal.onClose}
+        sections={SECTIONS}
+        sectionItems={sectionItems}
+        getMaterialName={getMaterialName}
+        getLineTotal={getLineTotal}
+        getUnitPrice={getUnitPrice}
+        cuentas={cuentasActivas}
+        onConfirm={handleRegistrarCompra}
+        isSaving={isRegistrandoCompra}
+      />
     </Box>
   );
 };

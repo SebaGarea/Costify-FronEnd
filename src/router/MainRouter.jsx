@@ -19,7 +19,7 @@ import {
   Configuracion,
   Perfil,
   Tareas,
-  Contenido,
+  Caja,
   Asistente,
 } from "../pages";
 import Login from "../pages/Login.jsx";
@@ -61,7 +61,7 @@ export const MainRouter = () => {
               <Route path="/ventas/itemAdd/:id" element={<AddVenta />} />
               <Route path="/lista-compras" element={<ListaDeCompras />} />
               <Route path="/tareas" element={<Tareas />} />
-              <Route path="/contenido" element={<Contenido />} />
+              <Route path="/caja" element={<Caja />} />
               <Route path="/asistente" element={<Asistente />} />
               <Route path="/configuracion" element={<Configuracion />} />
               <Route path="/perfil" element={<Perfil />} />

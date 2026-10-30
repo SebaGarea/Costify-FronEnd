@@ -31,8 +31,9 @@ import {
   FiMenu,
   FiChevronDown,
   FiCheckSquare,
+  FiDollarSign,
 } from "react-icons/fi";
-import { FaHammer, FaBullhorn, FaRobot } from "react-icons/fa";
+import { FaHammer, FaRobot } from "react-icons/fa";
 import { PiAlignLeftDuotone } from "react-icons/pi";
 import { CiViewList } from "react-icons/ci";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -41,12 +42,12 @@ import { useAuth } from "../../hooks/auth/useAuth.jsx";
 const LinkItems = [
   { name: "Inicio", icon: FiHome, to: "/" },
   { name: "Ventas", icon: PiAlignLeftDuotone, to: "/ventas" },
+  { name: "Caja", icon: FiDollarSign, to: "/caja" },
   { name: "Planillas", icon: FiTrendingUp, to: "/plantillas" },
   { name: "Productos", icon: FiCompass, to: "/productos" },
   { name: "Materia Primas", icon: FaHammer, to: "/materias-primas" },
   { name: "Lista de Compras", icon: CiViewList, to: "/lista-compras" },
   { name: "Tareas", icon: FiCheckSquare, to: "/tareas" },
-  { name: "Contenido", icon: FaBullhorn, to: "/contenido" },
   { name: "Asistente IA", icon: FaRobot, to: "/asistente" },
 ];
 

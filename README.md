@@ -1,6 +1,6 @@
 # Costify — FrontEnd
 
-> Plataforma de gestión integral para talleres y emprendimientos de fabricación a medida: costos, ventas, producción, contenido de redes y un **asistente de IA** que opera sobre los datos reales del negocio. Construida con **React 19**, **Vite** y **Chakra UI**.
+> Plataforma de gestión integral para talleres y emprendimientos de fabricación a medida: costos, ventas, producción y un **asistente de IA** que opera sobre los datos reales del negocio. Construida con **React 19**, **Vite** y **Chakra UI**.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
@@ -19,7 +19,7 @@
 
 ## 📖 Descripción
 
-**Costify** es una solución integral pensada para talleres, fábricas y emprendimientos que fabrican a medida y necesitan calcular precios, controlar ventas y entregas, organizar la producción y planificar su contenido — todo en un solo lugar.
+**Costify** es una solución integral pensada para talleres, fábricas y emprendimientos que fabrican a medida y necesitan calcular precios, controlar ventas y entregas, organizar la producción — todo en un solo lugar.
 
 Este repositorio contiene el **frontend**, una SPA en React que consume la [API Costify-BackEnd](https://github.com/SebaGarea/Costify-BackEnd). Incluye un **dashboard operativo**, un **calendario unificado**, gestión completa del catálogo y un **asistente de IA** integrado que responde consultas y ejecuta acciones sobre el negocio.
 
@@ -29,7 +29,7 @@ Este repositorio contiene el **frontend**, una SPA en React que consume la [API 
 
 ### Núcleo del negocio
 - 📊 **Dashboard operativo** — facturación, ticket promedio, saldo pendiente, margen estimado, producto estrella, entregas próximas y atrasadas, y rankings de medios y productos.
-- 🗓️ **Calendario unificado** ([FullCalendar](https://fullcalendar.io/)) que combina en una sola vista: entregas de ventas, tareas pendientes, eventos manuales y publicaciones programadas.
+- 🗓️ **Calendario unificado** ([FullCalendar](https://fullcalendar.io/)) que combina en una sola vista: entregas de ventas, tareas pendientes y eventos manuales.
 - 💰 **Ventas** — alta y edición con estados (pendiente, en proceso, finalizada, despachada, cancelada), seña, saldo, fecha de entrega y cliente.
 - 📦 **Catálogo de productos** — con **gestión de imágenes** (subir, eliminar individualmente y acumular), stock y precio dinámico vinculado a su plantilla de costo.
 - 🧱 **Materias primas** — categorías, tipos, medidas, stock e importación masiva desde Excel.
@@ -40,12 +40,11 @@ Este repositorio contiene el **frontend**, una SPA en React que consume la [API 
   - **Archivos adjuntos** (PDF/imágenes) y comentarios del presupuesto.
 - 🛒 **Lista de compras** colaborativa por secciones, con totales y barra de acciones fija.
 
-### Productividad y contenido
+### Productividad
 - ✅ **Tareas** — prioridades, vencimientos, tags, filtros y búsqueda, integradas al calendario.
-- 📣 **Contenido de redes** — planificación de publicaciones (idea → programada → publicada) por canal, con copy y producto asociado.
 
 ### Asistente de IA 🤖
-- Chat flotante (y pantalla completa) que **lee datos reales** del negocio y puede **ejecutar acciones**: crear/completar/editar tareas, registrar cobros, marcar entregas, crear ventas y productos, sumar a la lista de compras y generar publicaciones.
+- Chat flotante (y pantalla completa) que **lee datos reales** del negocio y puede **ejecutar acciones**: crear/completar/editar tareas, registrar cobros, marcar entregas, crear ventas y productos, sumar a la lista de compras y sugerir ideas para redes.
 - **Resumen proactivo** del día al abrir el chat, indicador de "usando herramienta…", **refresco en vivo** de las vistas tras cada acción e **historial** persistente.
 
 ### Transversal
@@ -114,7 +113,7 @@ Costify-FronEnd/
 ├── public/                 # Archivos estáticos
 ├── src/
 │   ├── assets/             # Imágenes, íconos y recursos
-│   ├── components/         # Vistas y componentes (Home, Ventas, Tareas, Contenido, Chat…)
+│   ├── components/         # Vistas y componentes (Home, Ventas, Tareas, Chat…)
 │   ├── context/            # Contextos globales (ChatContext)
 │   ├── hooks/              # Custom hooks (auth, calendario, tareas, productos…)
 │   ├── layouts/            # Layout principal y Sidebar
@@ -138,7 +137,6 @@ Costify-FronEnd/
 | `/plantillas` | Plantillas de costo / presupuestos |
 | `/lista-compras` | Lista de compras |
 | `/tareas` | Tareas y recordatorios |
-| `/contenido` | Planificación de contenido de redes |
 | `/asistente` | Asistente de IA (pantalla completa) |
 | `/configuracion` | Configuración y perfil del negocio |
 
