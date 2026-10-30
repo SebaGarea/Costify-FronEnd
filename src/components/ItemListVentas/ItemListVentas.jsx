@@ -40,7 +40,7 @@ import { MdDeleteForever } from "react-icons/md";
 import { FaTruck, FaStar } from "react-icons/fa";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useDeleteVenta } from "../../hooks/ventas/useDeleteVenta.js";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useGetVentasPaginated } from "../../hooks/ventas/useGetVentasPaginated.js";
 import { useUpdateVentas } from "../../hooks/ventas/useUpdateVentas.js";
 import { Loader } from "../Loader/Loader.jsx";
@@ -80,7 +80,25 @@ const formatDueDiffText = (diffDays) => {
   return `Vence en ${diffDays} días`;
 };
 
+// Filtros de la lista (se resuelven en el servidor, sobre todas las ventas).
+const FILTROS_VENTAS = [
+  { key: "todas", label: "Todas" },
+  { key: "sin_despachar", label: "Sin despachar", scheme: "teal" },
+  { key: "pendiente", label: "Pendientes", scheme: "gray" },
+  { key: "en_proceso", label: "En fabricación", scheme: "orange" },
+  { key: "finalizada", label: "Finalizadas", scheme: "green" },
+  { key: "despachada", label: "Despachadas", scheme: "red" },
+  { key: "cancelada", label: "Canceladas", scheme: "gray" },
+  { key: "con_saldo", label: "Con saldo por cobrar", scheme: "orange" },
+];
+const FILTROS_VALIDOS = new Set(FILTROS_VENTAS.map((f) => f.key));
+
 export const ItemListVentas = () => {
+  // El filtro queda en la URL (?estado=...) para que sobreviva a recargas.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filtroInicial = FILTROS_VALIDOS.has(searchParams.get("estado"))
+    ? searchParams.get("estado")
+    : "todas";
   const {
     items,
     total,
@@ -94,8 +112,21 @@ export const ItemListVentas = () => {
     error,
     setPage,
     refetch,
+    filtro,
+    setFiltro,
+    conteosFiltro,
   } =
-    useGetVentasPaginated(1, 10);
+    useGetVentasPaginated(1, 10, filtroInicial);
+
+  const aplicarFiltro = (nuevo) => {
+    const valor = nuevo === filtro ? "todas" : nuevo;
+    setFiltro(valor);
+    const params = new URLSearchParams(searchParams);
+    if (valor === "todas") params.delete("estado");
+    else params.set("estado", valor);
+    setSearchParams(params, { replace: true });
+  };
+  const filtroActual = FILTROS_VENTAS.find((f) => f.key === filtro) ?? FILTROS_VENTAS[0];
   const [ventas, setVentas] = useState([]);
   const [clienteQuery, setClienteQuery] = useState("");
   const [productoQuery, setProductoQuery] = useState("");
@@ -297,6 +328,8 @@ export const ItemListVentas = () => {
       helper: "Ventas activas",
       icon: FiRefreshCw,
       accent: "teal.400",
+      onClick: () => aplicarFiltro("en_proceso"),
+      isActive: filtro === "en_proceso",
     },
     {
       key: "finalizada",
@@ -305,6 +338,8 @@ export const ItemListVentas = () => {
       helper: "Listas para cobrar",
       icon: FiCheck,
       accent: "green.400",
+      onClick: () => aplicarFiltro("finalizada"),
+      isActive: filtro === "finalizada",
     },
     {
       key: "despachada",
@@ -313,6 +348,8 @@ export const ItemListVentas = () => {
       helper: "Entregas últimos 30 días",
       icon: FaTruck,
       accent: "teal.400",
+      onClick: () => aplicarFiltro("despachada"),
+      isActive: filtro === "despachada",
     },
     {
       key: "pending",
@@ -321,6 +358,8 @@ export const ItemListVentas = () => {
       helper: "Ventas con saldo",
       icon: FiDollarSign,
       accent: "orange.400",
+      onClick: () => aplicarFiltro("con_saldo"),
+      isActive: filtro === "con_saldo",
     },
     {
       key: "alerts",
@@ -591,8 +630,32 @@ export const ItemListVentas = () => {
             Agregar venta
           </Button>
         </Flex>
+        <Flex gap={2} flexWrap="wrap" align="center">
+          {FILTROS_VENTAS.map((f) => {
+            const activo = filtro === f.key;
+            const cantidad = conteosFiltro?.[f.key];
+            return (
+              <Button
+                key={f.key}
+                size="xs"
+                borderRadius="full"
+                colorScheme={activo ? f.scheme || "teal" : "gray"}
+                variant={activo ? "solid" : "outline"}
+                onClick={() => aplicarFiltro(f.key === "todas" ? "todas" : f.key)}
+              >
+                {f.label}
+                {typeof cantidad === "number" && (
+                  <Badge ml={1.5} borderRadius="full" fontSize="2xs" colorScheme={activo ? "whiteAlpha" : "gray"}>
+                    {cantidad}
+                  </Badge>
+                )}
+              </Button>
+            );
+          })}
+        </Flex>
         <Text fontSize="small" color={mutedText}>
-          Mostrando {filteredVentas.length} de {ventasOrdenadas.length} ventas.
+          {filtro !== "todas" && `${filtroActual.label}: ${total} ${total === 1 ? "venta" : "ventas"}. `}
+          Mostrando {filteredVentas.length} de {ventasOrdenadas.length} en esta página.
           {clienteQuery &&
             ` Clientes encontrados: ${clienteMatches}.`}
           {productoQuery &&

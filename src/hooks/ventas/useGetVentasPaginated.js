@@ -1,8 +1,11 @@
 ﻿import { useEffect, useState, useCallback } from "react";
 import { getAllVentasPaginated } from "../../services/ventas.service.js";
 
-export const useGetVentasPaginated = (initialPage = 1, initialLimit = 10) => {
+// filtro: todas | sin_despachar | pendiente | en_proceso | finalizada | despachada | cancelada | con_saldo
+export const useGetVentasPaginated = (initialPage = 1, initialLimit = 10, initialFiltro = "todas") => {
   const [page, setPage] = useState(initialPage);
+  const [filtro, setFiltroState] = useState(initialFiltro);
+  const [conteosFiltro, setConteosFiltro] = useState({});
   const [limit, setLimit] = useState(initialLimit);
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -18,7 +21,7 @@ export const useGetVentasPaginated = (initialPage = 1, initialLimit = 10) => {
     const silent = Boolean(options?.silent);
     try {
       if (!silent) setLoading(true);
-      const res = await getAllVentasPaginated(p, l);
+      const res = await getAllVentasPaginated(p, l, filtro);
       setItems(res.items || []);
       setTotal(res.total || 0);
       setTotalPages(res.totalPages || 1);
@@ -26,12 +29,19 @@ export const useGetVentasPaginated = (initialPage = 1, initialLimit = 10) => {
       setStatusMetricsGlobal(res.statusMetricsGlobal ?? null);
       setDueSoonCountGlobal(res.dueSoonCountGlobal ?? 0);
       setDueSoonListGlobal(res.dueSoonListGlobal ?? []);
+      setConteosFiltro(res.conteosFiltro ?? {});
     } catch (err) {
       setError(err.response?.data?.error || "Error al cargar las ventas");
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [page, limit]);
+  }, [page, limit, filtro]);
+
+  // Al cambiar de filtro se vuelve a la primera página.
+  const setFiltro = useCallback((nuevo) => {
+    setFiltroState(nuevo || "todas");
+    setPage(1);
+  }, []);
 
   useEffect(() => {
     fetchVentas(page, limit);
@@ -40,6 +50,9 @@ export const useGetVentasPaginated = (initialPage = 1, initialLimit = 10) => {
   return {
     page,
     limit,
+    filtro,
+    setFiltro,
+    conteosFiltro,
     items,
     total,
     totalPages,
