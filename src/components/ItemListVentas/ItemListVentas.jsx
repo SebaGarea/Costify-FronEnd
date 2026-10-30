@@ -81,6 +81,7 @@ const formatDueDiffText = (diffDays) => {
 // Filtros de la lista (se resuelven en el servidor, sobre todas las ventas).
 const FILTROS_VENTAS = [
   { key: "todas", label: "Todas" },
+  { key: "sin_despachar", label: "Sin despachar", scheme: "blue" },
   { key: "pendiente", label: "Pendientes", scheme: "gray" },
   { key: "en_proceso", label: "En proceso", scheme: "orange" },
   { key: "finalizada", label: "Finalizadas", scheme: "green" },
