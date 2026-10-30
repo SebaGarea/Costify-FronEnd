@@ -28,11 +28,13 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { AddIcon, DeleteIcon, DownloadIcon, EditIcon } from "@chakra-ui/icons";
-import { FiSearch, FiSliders } from "react-icons/fi";
+import { FiRefreshCw, FiSearch, FiSliders } from "react-icons/fi";
 import { Link as RouterLink } from "react-router-dom";
 import {
   deleteMovimientoCaja,
   getCategoriasCaja,
+  getMercadoPagoEstado,
+  syncMercadoPago,
   getMovimientosCaja,
   getResumenCaja,
 } from "../../services/caja.service.js";
@@ -101,6 +103,19 @@ export const CajaView = () => {
   const [tipoNuevo, setTipoNuevo] = useState("egreso");
   const [cuentaAjuste, setCuentaAjuste] = useState(null);
 
+  // Integración con Mercado Pago (la importación corre sola cada 10 minutos).
+  const [mpEstado, setMpEstado] = useState(null);
+  const [sincronizando, setSincronizando] = useState(false);
+
+  const fetchMpEstado = useCallback(async () => {
+    try {
+      const res = await getMercadoPagoEstado();
+      setMpEstado(res.data);
+    } catch {
+      setMpEstado(null);
+    }
+  }, []);
+
   const fetchCategorias = useCallback(async () => {
     try {
       const res = await getCategoriasCaja({ archivadas: "true" });
@@ -136,6 +151,7 @@ export const CajaView = () => {
   }, [periodo, page, filtros, toast]);
 
   useEffect(() => { fetchCategorias(); }, [fetchCategorias]);
+  useEffect(() => { fetchMpEstado(); }, [fetchMpEstado]);
   useEffect(() => { fetchResumen(); }, [fetchResumen]);
   useEffect(() => { fetchMovimientos(); }, [fetchMovimientos]);
   useEffect(() => { setPage(1); }, [periodo, filtros]);
@@ -151,7 +167,35 @@ export const CajaView = () => {
     fetchResumen();
     fetchMovimientos();
     fetchCategorias();
-  }, [refetchCuentas, fetchResumen, fetchMovimientos, fetchCategorias]);
+    fetchMpEstado();
+  }, [refetchCuentas, fetchResumen, fetchMovimientos, fetchCategorias, fetchMpEstado]);
+
+  const handleSyncMp = async () => {
+    setSincronizando(true);
+    try {
+      const res = await syncMercadoPago();
+      const r = res.data || {};
+      const cambios = (r.nuevos || 0) + (r.vinculados || 0) + (r.devoluciones || 0);
+      toast({
+        status: "success",
+        title: cambios ? "Mercado Pago sincronizado" : "Mercado Pago ya estaba al día",
+        description: cambios
+          ? [
+              r.nuevos ? `${r.nuevos} movimientos nuevos` : null,
+              r.vinculados ? `${r.vinculados} cobros unidos a ventas` : null,
+              r.devoluciones ? `${r.devoluciones} devoluciones` : null,
+            ].filter(Boolean).join(" · ")
+          : undefined,
+        duration: 3000,
+      });
+      refrescarTodo();
+    } catch (error) {
+      toast({ status: "error", title: "No se pudo sincronizar con Mercado Pago", description: getApiError(error) });
+      fetchMpEstado();
+    } finally {
+      setSincronizando(false);
+    }
+  };
 
   useDataChanged(() => refrescarTodo(), ["caja", "venta"]);
 
@@ -168,7 +212,10 @@ export const CajaView = () => {
   };
 
   const handleDelete = async (mov) => {
-    if (!window.confirm("¿Eliminar este movimiento? Los saldos se recalculan.")) return;
+    const mensaje = mov.origen?.mpPaymentId
+      ? "¿Eliminar este movimiento de Mercado Pago? No se va a volver a importar y los saldos se recalculan."
+      : "¿Eliminar este movimiento? Los saldos se recalculan.";
+    if (!window.confirm(mensaje)) return;
     try {
       await deleteMovimientoCaja(mov._id);
       toast({ status: "success", title: "Movimiento eliminado", duration: 1500 });
@@ -309,7 +356,14 @@ export const CajaView = () => {
                         />
                       </Tooltip>
                     </Flex>
-                    <HStack spacing={1} mt={1}>
+                    {cuenta.aLiberar > 0 && (
+                      <Tooltip label="Cobrado en Mercado Pago pero todavía no disponible (neto de comisiones). Ya está sumado al saldo." hasArrow>
+                        <Text fontSize="xs" color={muted} className="tnum">
+                          A liberar: <b>{formatMoney(cuenta.aLiberar)}</b>
+                        </Text>
+                      </Tooltip>
+                    )}
+                    <HStack spacing={1} mt={1} flexWrap="wrap">
                       <Badge variant="subtle" colorScheme={cuenta.esDigital ? "blue" : "green"} textTransform="none">
                         {cuenta.esDigital ? "Digital" : "Efectivo"}
                       </Badge>
@@ -319,6 +373,36 @@ export const CajaView = () => {
                         </Badge>
                       )}
                     </HStack>
+                    {cuenta.integracion === "mercadopago" && mpEstado?.habilitado && (
+                      <Flex align="center" justify="space-between" mt={2} gap={2}>
+                        <Tooltip
+                          hasArrow
+                          label={
+                            mpEstado.ultimoError
+                              ? `Último error: ${mpEstado.ultimoError}`
+                              : "Se sincroniza sola cada 10 minutos"
+                          }
+                        >
+                          <Text fontSize="xs" color={mpEstado.ultimoError ? "red.400" : muted} noOfLines={1}>
+                            {mpEstado.ultimoError
+                              ? "Error al sincronizar"
+                              : mpEstado.ultimaSync
+                                ? `Sincronizado ${new Date(mpEstado.ultimaSync).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`
+                                : "Conectada a Mercado Pago"}
+                          </Text>
+                        </Tooltip>
+                        <Tooltip label="Sincronizar ahora" hasArrow>
+                          <IconButton
+                            aria-label="Sincronizar con Mercado Pago"
+                            icon={<FiRefreshCw />}
+                            size="xs"
+                            variant="ghost"
+                            isLoading={sincronizando}
+                            onClick={handleSyncMp}
+                          />
+                        </Tooltip>
+                      </Flex>
+                    )}
                   </Box>
                 ))}
                 <Box p={4} borderRadius="xl" bg="teal.500" color="white">
@@ -473,6 +557,8 @@ export const CajaView = () => {
                         const negativo = m.tipo === "egreso" || (m.tipo === "ajuste" && m.direccion === "-");
                         const colorMonto = m.tipo === "transferencia" || m.tipo === "ajuste" ? undefined : negativo ? "red.400" : "green.500";
                         const deVenta = m.origen?.tipo === "venta" && m.origen?.venta;
+                        const deMp = Boolean(m.origen?.mpPaymentId);
+                        const porLiberar = m.liberacion && new Date(m.liberacion) > new Date();
                         return (
                           <Flex
                             key={m._id}
@@ -507,6 +593,12 @@ export const CajaView = () => {
                                 {m.origen?.tipo === "compra" && (
                                   <Text fontSize="xs" color={muted}>· Lista de compras</Text>
                                 )}
+                                {deMp && (
+                                  <Badge colorScheme="blue" variant="subtle" textTransform="none">Mercado Pago</Badge>
+                                )}
+                                {porLiberar && (
+                                  <Text fontSize="xs" color="orange.400">· se libera el {formatFecha(m.liberacion)}</Text>
+                                )}
                               </HStack>
                             </Box>
                             <Text fontWeight="bold" className="tnum" color={colorMonto} whiteSpace="nowrap">
@@ -514,7 +606,18 @@ export const CajaView = () => {
                               {formatMoney(m.monto)}
                             </Text>
                             <HStack spacing={0}>
-                              <Tooltip label={deVenta ? "Se modifica desde la venta" : m.tipo === "ajuste" ? "Los ajustes no se editan" : "Editar"} hasArrow>
+                              <Tooltip
+                                label={
+                                  deVenta
+                                    ? "Se modifica desde la venta"
+                                    : m.tipo === "ajuste"
+                                      ? "Los ajustes no se editan"
+                                      : deMp
+                                        ? "Editar categoría y descripción"
+                                        : "Editar"
+                                }
+                                hasArrow
+                              >
                                 <IconButton
                                   aria-label="Editar movimiento"
                                   icon={<EditIcon />}
