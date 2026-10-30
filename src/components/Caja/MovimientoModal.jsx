@@ -107,6 +107,12 @@ export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuen
   };
 
   const tipoActual = TIPOS.find((t) => t.value === form.tipo) ?? TIPOS[0];
+  // Los ingresos y gastos de Mercado Pago entran solos: cargarlos a mano los duplica.
+  const cuentaElegida = cuentas.find((c) => c._id === form.cuenta);
+  const avisoMercadoPago =
+    !importado &&
+    form.tipo !== "transferencia" &&
+    cuentaElegida?.integracion === "mercadopago";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" initialFocusRef={undefined}>
@@ -184,6 +190,13 @@ export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuen
                 </FormControl>
               )}
             </SimpleGrid>
+
+            {avisoMercadoPago && (
+              <Text fontSize="sm" color="orange.400">
+                Ojo: los movimientos de Mercado Pago se importan solos. Si cargás este a mano, va a aparecer
+                dos veces. Usalo solo para algo que Mercado Pago no informa.
+              </Text>
+            )}
 
             <FormControl>
               <FormLabel>Descripción</FormLabel>
