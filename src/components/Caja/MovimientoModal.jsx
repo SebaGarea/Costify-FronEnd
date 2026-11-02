@@ -29,34 +29,49 @@ const TIPOS = [
   { value: "transferencia", label: "Transferencia", scheme: "blue" },
 ];
 
-const buildForm = (movimiento, tipoInicial, cuentas) => ({
+// "inicial" precarga campos de un movimiento nuevo (ej. un retiro de un socio).
+const buildForm = (movimiento, tipoInicial, cuentas, inicial) => ({
   tipo: movimiento?.tipo ?? tipoInicial ?? "egreso",
   monto: movimiento?.monto != null ? String(movimiento.monto) : "",
   cuenta: movimiento?.cuenta?._id ?? movimiento?.cuenta ?? cuentas[0]?._id ?? "",
   cuentaDestino: movimiento?.cuentaDestino?._id ?? movimiento?.cuentaDestino ?? "",
-  categoria: movimiento?.categoria?._id ?? movimiento?.categoria ?? "",
+  categoria: movimiento?.categoria?._id ?? movimiento?.categoria ?? inicial?.categoria ?? "",
+  socio: movimiento?.socio ?? inicial?.socio ?? "",
   fecha: movimiento?.fecha ? fechaInput(movimiento.fecha) : hoyISO(),
   descripcion: movimiento?.descripcion ?? "",
 });
 
-export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuentas = [], categorias = [], onSaved }) => {
+export const MovimientoModal = ({
+  isOpen,
+  onClose,
+  movimiento,
+  tipoInicial,
+  inicial,
+  cuentas = [],
+  categorias = [],
+  socios = [],
+  onSaved,
+}) => {
   const toast = useToast();
-  const [form, setForm] = useState(() => buildForm(movimiento, tipoInicial, cuentas));
+  const [form, setForm] = useState(() => buildForm(movimiento, tipoInicial, cuentas, inicial));
   const [saving, setSaving] = useState(false);
   const editando = Boolean(movimiento?._id);
   // Lo importado de Mercado Pago es real: solo se edita categoría y descripción.
   const importado = Boolean(movimiento?.origen?.mpPaymentId);
 
   useEffect(() => {
-    if (isOpen) setForm(buildForm(movimiento, tipoInicial, cuentas));
+    if (isOpen) setForm(buildForm(movimiento, tipoInicial, cuentas, inicial));
     // Solo al abrir: no pisar lo que el usuario está escribiendo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, movimiento, tipoInicial]);
+  }, [isOpen, movimiento, tipoInicial, inicial]);
 
   const categoriasDelTipo = useMemo(
     () => categorias.filter((c) => c.tipo === form.tipo),
     [categorias, form.tipo]
   );
+
+  // Los retiros de socios llevan quién retiró la plata.
+  const esRetiro = categorias.find((c) => c._id === form.categoria)?.clave === "retiros";
 
   const set = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }));
 
@@ -83,7 +98,12 @@ export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuen
       toast({ status: "warning", title: "Elegí una cuenta de destino distinta" });
       return;
     }
+    if (esRetiro && !form.socio) {
+      toast({ status: "warning", title: "Elegí qué socio retiró la plata" });
+      return;
+    }
     const payload = {
+      socio: esRetiro ? form.socio : null,
       tipo: form.tipo,
       monto,
       cuenta: form.cuenta,
@@ -118,7 +138,7 @@ export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuen
           <Stack spacing={4}>
             {importado && (
               <Text fontSize="sm" color="blue.400">
-                Importado de Mercado Pago: podés cambiar la categoría y la descripción.
+                Importado de Mercado Pago: podés cambiar la categoría y la descripción (por ejemplo, marcarlo como retiro de un socio).
               </Text>
             )}
             <ButtonGroup isAttached size="sm" w="100%" isDisabled={importado}>
@@ -184,6 +204,25 @@ export const MovimientoModal = ({ isOpen, onClose, movimiento, tipoInicial, cuen
                 </FormControl>
               )}
             </SimpleGrid>
+
+            {esRetiro && (
+              <FormControl isRequired>
+                <FormLabel>Socio</FormLabel>
+                <ButtonGroup size="sm" w="100%" isAttached>
+                  {socios.map((s) => (
+                    <Button
+                      key={s}
+                      flex="1"
+                      colorScheme={form.socio === s ? "purple" : "gray"}
+                      variant={form.socio === s ? "solid" : "outline"}
+                      onClick={() => setForm((f) => ({ ...f, socio: s }))}
+                    >
+                      {s}
+                    </Button>
+                  ))}
+                </ButtonGroup>
+              </FormControl>
+            )}
 
             <FormControl>
               <FormLabel>Descripción</FormLabel>

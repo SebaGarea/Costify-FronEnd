@@ -28,11 +28,11 @@ export const AjusteSaldoModal = ({ cuenta, onClose, onSaved }) => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (cuenta) setSaldoReal(String(Math.round(cuenta.saldo ?? 0)));
+    if (cuenta) setSaldoReal(String(Math.round(cuenta.disponible ?? cuenta.saldo ?? 0)));
   }, [cuenta]);
 
   const real = Number(String(saldoReal).replace(",", "."));
-  const diferencia = Number.isFinite(real) && cuenta ? real - (cuenta.saldo ?? 0) : 0;
+  const diferencia = Number.isFinite(real) && cuenta ? real - (cuenta.disponible ?? cuenta.saldo ?? 0) : 0;
 
   const handleSave = async () => {
     if (!Number.isFinite(real)) {
@@ -63,11 +63,16 @@ export const AjusteSaldoModal = ({ cuenta, onClose, onSaved }) => {
         <ModalHeader fontFamily="heading">Ajustar saldo · {cuenta?.nombre}</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <Text fontSize="sm" mb={4}>
-            Saldo en Costify: <b className="tnum">{formatMoney(cuenta?.saldo)}</b>
+          <Text fontSize="sm" mb={cuenta?.aLiberar > 0 ? 1 : 4}>
+            Disponible en Costify: <b className="tnum">{formatMoney(cuenta?.disponible ?? cuenta?.saldo)}</b>
           </Text>
+          {cuenta?.aLiberar > 0 && (
+            <Text fontSize="xs" color="gray.500" mb={4} className="tnum">
+              Lo retenido ({formatMoney(cuenta.aLiberar)}) no se toca: se libera solo.
+            </Text>
+          )}
           <FormControl>
-            <FormLabel>Saldo real</FormLabel>
+            <FormLabel>{cuenta?.aLiberar > 0 ? "Disponible real" : "Saldo real"}</FormLabel>
             <InputGroup>
               <InputLeftAddon>$</InputLeftAddon>
               <Input
@@ -80,7 +85,7 @@ export const AjusteSaldoModal = ({ cuenta, onClose, onSaved }) => {
               />
             </InputGroup>
             <FormHelperText>
-              Poné lo que ves en la app o lo que contaste en la caja. Se registra un ajuste por la diferencia
+              Poné el dinero disponible que ves en la app o lo que contaste en la caja. Se registra un ajuste por la diferencia
               {Math.abs(diferencia) >= 1 && (
                 <Text as="span" fontWeight="semibold" color={diferencia > 0 ? "green.500" : "red.400"} className="tnum">
                   {" "}({diferencia > 0 ? "+" : "−"}{formatMoney(Math.abs(diferencia))})
