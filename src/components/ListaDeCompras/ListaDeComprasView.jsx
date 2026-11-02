@@ -891,7 +891,7 @@ export const ListaDeComprasView = () => {
               {cuentasDigitales.length > 1 && (
                 <Text fontSize="xs" color={mutedText} className="tnum">
                   {cuentasDigitales
-                    .map((c) => `${c.nombre} ${currencyFormatter.format(c.saldo || 0)}`)
+                    .map((c) => `${c.nombre} ${currencyFormatter.format(c.disponible ?? c.saldo ?? 0)}`)
                     .join(" · ")}
                 </Text>
               )}

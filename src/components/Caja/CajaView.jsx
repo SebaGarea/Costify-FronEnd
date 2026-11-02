@@ -363,7 +363,7 @@ export const CajaView = () => {
                           {cuenta.nombre}
                         </Text>
                         <Text fontSize={{ base: "xl", md: "2xl" }} fontWeight="bold" className="tnum" whiteSpace="nowrap">
-                          {formatMoney(cuenta.saldo)}
+                          {formatMoney(cuenta.disponible ?? cuenta.saldo)}
                         </Text>
                       </Box>
                       <Tooltip label="Ajustar al saldo real" hasArrow>
@@ -377,10 +377,13 @@ export const CajaView = () => {
                       </Tooltip>
                     </Flex>
                     {cuenta.aLiberar > 0 && (
-                      <Tooltip label="Cobrado en Mercado Pago pero todavía no disponible (neto de comisiones). Ya está sumado al saldo." hasArrow>
-                        <Text fontSize="xs" color={muted} className="tnum">
-                          A liberar: <b>{formatMoney(cuenta.aLiberar)}</b>
-                        </Text>
+                      <Tooltip label="Cobrado pero retenido por Mercado Pago (neto de comisiones). No está sumado al disponible: pasa solo cuando se libera." hasArrow>
+                        <Box fontSize="xs" className="tnum">
+                          <Text color="orange.400">
+                            A liberar: <b>{formatMoney(cuenta.aLiberar)}</b>
+                          </Text>
+                          <Text color={muted}>Total con lo retenido: {formatMoney(cuenta.saldo)}</Text>
+                        </Box>
                       </Tooltip>
                     )}
                     <HStack spacing={1} mt={1} flexWrap="wrap">
@@ -423,11 +426,16 @@ export const CajaView = () => {
                 <Box p={4} borderRadius="xl" bg="teal.500" color="white">
                   <Text fontSize="sm" opacity={0.9}>Total disponible</Text>
                   <Text fontSize={{ base: "xl", md: "2xl" }} fontWeight="bold" className="tnum" whiteSpace="nowrap">
-                    {formatMoney(totales.total)}
+                    {formatMoney(totales.disponible ?? totales.total)}
                   </Text>
                   <Text fontSize="xs" opacity={0.9} className="tnum">
                     Efectivo {formatMoney(totales.efectivo)} · Digital {formatMoney(totales.digital)}
                   </Text>
+                  {totales.aLiberar > 0 && (
+                    <Text fontSize="xs" opacity={0.9} className="tnum">
+                      + {formatMoney(totales.aLiberar)} a liberar
+                    </Text>
+                  )}
                 </Box>
               </>
             )}
