@@ -30,13 +30,13 @@ const TIPOS = [
 ];
 
 // "inicial" precarga campos de un movimiento nuevo (ej. un retiro de un socio).
-const buildForm = (movimiento, tipoInicial, cuentas, inicial = {}) => ({
+const buildForm = (movimiento, tipoInicial, cuentas, inicial) => ({
   tipo: movimiento?.tipo ?? tipoInicial ?? "egreso",
   monto: movimiento?.monto != null ? String(movimiento.monto) : "",
   cuenta: movimiento?.cuenta?._id ?? movimiento?.cuenta ?? cuentas[0]?._id ?? "",
   cuentaDestino: movimiento?.cuentaDestino?._id ?? movimiento?.cuentaDestino ?? "",
-  categoria: movimiento?.categoria?._id ?? movimiento?.categoria ?? inicial.categoria ?? "",
-  socio: movimiento?.socio ?? inicial.socio ?? "",
+  categoria: movimiento?.categoria?._id ?? movimiento?.categoria ?? inicial?.categoria ?? "",
+  socio: movimiento?.socio ?? inicial?.socio ?? "",
   fecha: movimiento?.fecha ? fechaInput(movimiento.fecha) : hoyISO(),
   descripcion: movimiento?.descripcion ?? "",
 });
