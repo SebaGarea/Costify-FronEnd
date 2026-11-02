@@ -35,6 +35,7 @@ import {
   syncMercadoPago,
   getMovimientosCaja,
   getResumenCaja,
+  getSociosCaja,
 } from "../../services/caja.service.js";
 import { useCuentasCaja } from "../../hooks/caja/useCuentasCaja.js";
 import { useDataChanged } from "../../hooks/useDataChanged.js";
@@ -92,12 +93,14 @@ export const CajaView = () => {
   const [movimientos, setMovimientos] = useState({ items: [], total: 0, totalPages: 1 });
   const [loadingMovs, setLoadingMovs] = useState(true);
   const [page, setPage] = useState(1);
-  const [filtros, setFiltros] = useState({ cuenta: "", categoria: "", tipo: "", q: "" });
+  const [filtros, setFiltros] = useState({ cuenta: "", categoria: "", tipo: "", q: "", socio: "" });
+  const [socios, setSocios] = useState([]);
   const [busqueda, setBusqueda] = useState("");
 
   const movimientoModal = useDisclosure();
   const [movimientoEditando, setMovimientoEditando] = useState(null);
   const [tipoNuevo, setTipoNuevo] = useState("egreso");
+  const [inicialNuevo, setInicialNuevo] = useState(null);
   const [cuentaAjuste, setCuentaAjuste] = useState(null);
 
   // Integración con Mercado Pago (la importación corre sola: webhook + cada minuto).
@@ -147,6 +150,11 @@ export const CajaView = () => {
     }
   }, [periodo, page, filtros, toast]);
 
+  useEffect(() => {
+    getSociosCaja()
+      .then((res) => setSocios(res.data ?? []))
+      .catch(() => setSocios([]));
+  }, []);
   useEffect(() => { fetchCategorias(); }, [fetchCategorias]);
   useEffect(() => { fetchMpEstado(); }, [fetchMpEstado]);
   useEffect(() => { fetchResumen(); }, [fetchResumen]);
@@ -219,11 +227,16 @@ export const CajaView = () => {
     return () => clearInterval(id);
   }, [mpEstado?.habilitado, refrescarTodo]);
 
-  const abrirNuevo = (tipo) => {
+  const abrirNuevo = (tipo, inicial = null) => {
     setMovimientoEditando(null);
     setTipoNuevo(tipo);
+    setInicialNuevo(inicial);
     movimientoModal.onOpen();
   };
+
+  const categoriaRetiros = categorias.find((c) => c.clave === "retiros");
+  const abrirRetiro = (socio = "") =>
+    abrirNuevo("egreso", { categoria: categoriaRetiros?._id ?? "", socio });
 
   const abrirEdicion = (mov) => {
     setMovimientoEditando(mov);
@@ -276,7 +289,7 @@ export const CajaView = () => {
             m.cuenta?.nombre ?? "",
             m.cuentaDestino?.nombre ?? "",
             m.categoria?.nombre ?? "",
-            m.descripcion ?? "",
+            [m.socio ? `Retiro de ${m.socio}` : "", m.descripcion ?? ""].filter(Boolean).join(" · "),
             m.tipo === "transferencia" ? m.monto : signo * m.monto,
           ]);
         });
@@ -309,6 +322,8 @@ export const CajaView = () => {
     }
   };
 
+  const retirosPorSocio = resumen?.retirosPorSocio ?? [];
+  const totalRetiros = retirosPorSocio.reduce((acc, s) => acc + s.total, 0);
   const categoriasEgreso = resumen?.egresosPorCategoria ?? [];
   const maxCategoria = Math.max(1, ...categoriasEgreso.map((c) => c.total));
   const flujo = resumen?.flujoMensual ?? [];
@@ -477,6 +492,72 @@ export const CajaView = () => {
                   />
                 </SimpleGrid>
 
+                {/* Retiros de socios */}
+                <Box p={5} borderRadius="xl" bg={cardBg} borderWidth="1px" borderColor={border}>
+                  <Flex justify="space-between" align="center" mb={4} gap={2} flexWrap="wrap">
+                    <Box>
+                      <Heading size="sm" fontFamily="heading">Retiros de socios</Heading>
+                      <Text fontSize="xs" color={muted}>
+                        Lo que retiró cada uno en {nombreMes(mes)} · total {formatMoney(totalRetiros)}
+                      </Text>
+                    </Box>
+                    <Button
+                      size="sm"
+                      leftIcon={<AddIcon />}
+                      colorScheme="purple"
+                      variant="outline"
+                      onClick={() => abrirRetiro()}
+                      isDisabled={!categoriaRetiros}
+                    >
+                      Registrar retiro
+                    </Button>
+                  </Flex>
+                  <SimpleGrid columns={{ base: 1, sm: Math.max(1, Math.min(4, retirosPorSocio.length)) }} spacing={3}>
+                    {retirosPorSocio.map((s) => {
+                      const activo = filtros.socio === s.socio;
+                      return (
+                        <Flex
+                          key={s.socio}
+                          p={3}
+                          borderRadius="lg"
+                          borderWidth="1px"
+                          borderColor={activo ? "purple.400" : border}
+                          align="center"
+                          justify="space-between"
+                          gap={2}
+                        >
+                          <Tooltip label={activo ? "Ver todos los movimientos" : `Ver solo los retiros de ${s.socio}`} hasArrow>
+                            <Box
+                              cursor="pointer"
+                              minW={0}
+                              onClick={() => setFiltros((f) => ({ ...f, socio: activo ? "" : s.socio, categoria: "", tipo: "" }))}
+                            >
+                              <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>{s.socio}</Text>
+                              <Text fontSize="lg" fontWeight="bold" className="tnum" color="purple.400">
+                                {formatMoney(s.total)}
+                              </Text>
+                              <Text fontSize="xs" color={muted}>
+                                {s.cantidad === 0 ? "Sin retiros" : `${s.cantidad} ${s.cantidad === 1 ? "retiro" : "retiros"}`}
+                              </Text>
+                            </Box>
+                          </Tooltip>
+                          <Tooltip label={`Registrar retiro de ${s.socio}`} hasArrow>
+                            <IconButton
+                              aria-label={`Registrar retiro de ${s.socio}`}
+                              icon={<AddIcon />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="purple"
+                              onClick={() => abrirRetiro(s.socio)}
+                              isDisabled={!categoriaRetiros}
+                            />
+                          </Tooltip>
+                        </Flex>
+                      );
+                    })}
+                  </SimpleGrid>
+                </Box>
+
                 <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
                   {/* Gastos por categoría */}
                   <Box p={5} borderRadius="xl" bg={cardBg} borderWidth="1px" borderColor={border}>
@@ -560,8 +641,13 @@ export const CajaView = () => {
                       <option value="">Todas las categorías</option>
                       {categorias.map((c) => <option key={c._id} value={c._id}>{c.nombre}</option>)}
                     </Select>
+                    {filtros.socio && (
+                      <Badge colorScheme="purple" borderRadius="full" px={2} py={1} textTransform="none">
+                        Socio: {filtros.socio}
+                      </Badge>
+                    )}
                     {hayFiltros && (
-                      <Button size="sm" variant="ghost" onClick={() => { setFiltros({ cuenta: "", categoria: "", tipo: "", q: "" }); setBusqueda(""); }}>
+                      <Button size="sm" variant="ghost" onClick={() => { setFiltros({ cuenta: "", categoria: "", tipo: "", q: "", socio: "" }); setBusqueda(""); }}>
                         Limpiar
                       </Button>
                     )}
@@ -603,6 +689,9 @@ export const CajaView = () => {
                                 {m.categoria && (
                                   <Badge colorScheme={m.categoria.color || "gray"} variant="outline" textTransform="none">{m.categoria.nombre}</Badge>
                                 )}
+                                {m.socio && (
+                                  <Badge colorScheme="purple" variant="solid" textTransform="none">{m.socio}</Badge>
+                                )}
                                 <Text fontSize="xs" color={muted}>
                                   {m.cuenta?.nombre}
                                   {m.tipo === "transferencia" && m.cuentaDestino ? ` → ${m.cuentaDestino.nombre}` : ""}
@@ -628,7 +717,7 @@ export const CajaView = () => {
                                   m.tipo === "ajuste"
                                     ? "Los ajustes no se editan"
                                     : deMp
-                                      ? "Editar categoría y descripción"
+                                      ? "Editar categoría, socio y descripción"
                                       : "Editar"
                                 }
                                 hasArrow
@@ -686,8 +775,10 @@ export const CajaView = () => {
         onClose={movimientoModal.onClose}
         movimiento={movimientoEditando}
         tipoInicial={tipoNuevo}
+        inicial={inicialNuevo}
         cuentas={cuentasActivas.filter((c) => c.integracion !== "mercadopago")}
         categorias={categorias.filter((c) => c.activa)}
+        socios={socios}
         onSaved={refrescarTodo}
       />
       <AjusteSaldoModal

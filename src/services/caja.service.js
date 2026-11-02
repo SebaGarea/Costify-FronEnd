@@ -16,6 +16,10 @@ export const createMovimientoCaja = (data) => api.post("/api/caja/movimientos", 
 export const updateMovimientoCaja = (id, data) => api.put(`/api/caja/movimientos/${id}`, data);
 export const deleteMovimientoCaja = (id) => api.delete(`/api/caja/movimientos/${id}`);
 
+// Socios que retiran plata del negocio (Retiros de socios).
+export const getSociosCaja = () => api.get("/api/caja/socios");
+export const updateSociosCaja = (socios) => api.put("/api/caja/socios", { socios });
+
 export const getResumenCaja = (params) => api.get("/api/caja/resumen", { params });
 
 // Registra una compra de la lista de compras como egreso (categoría Materiales).
