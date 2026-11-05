@@ -1,5 +1,5 @@
 ﻿import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { login as loginRequest, getCurrentUser } from "../../services/auth.service";
+import { login as loginRequest, getCurrentUser, canjearCodigoGoogle } from "../../services/auth.service";
 
 const AuthContext = createContext(null);
 
@@ -35,38 +35,6 @@ export function AuthProvider({ children }) {
     const loadUser = async () => {
       const storedUser = localStorage.getItem("costify-user");
       const storedToken = localStorage.getItem("costify-token");
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlToken = urlParams.get("token");
-
-      if (urlToken) {
-        if (tokenIsValid(urlToken)) {
-          localStorage.setItem("costify-token", urlToken);
-          localStorage.removeItem("costify-user");
-          try {
-            const { data } = await getCurrentUser();
-            if (!mounted) return;
-            const userData = data?.usuario ?? data?.user ?? null;
-            if (userData) {
-              persistUser(userData);
-            } else {
-              persistUser(null);
-            }
-          } catch (error) {
-            localStorage.removeItem("costify-token");
-            localStorage.removeItem("costify-user");
-            if (mounted) persistUser(null);
-          }
-        } else {
-          localStorage.removeItem("costify-token");
-          localStorage.removeItem("costify-user");
-          if (mounted) persistUser(null);
-        }
-
-        const cleanUrl = window.location.pathname + window.location.hash;
-        window.history.replaceState({}, document.title, cleanUrl);
-        setInitializing(false);
-        return;
-      }
 
       if (storedToken && tokenIsValid(storedToken)) {
         if (storedUser) {
@@ -121,6 +89,19 @@ export function AuthProvider({ children }) {
     persistUser(null);
   };
 
+  // Login con Google: el backend redirige con un código de un solo uso que se
+  // canjea por el token de sesión.
+  const signInWithGoogleCode = async (codigo) => {
+    const { data } = await canjearCodigoGoogle(codigo);
+    localStorage.setItem("costify-token", data.token);
+    persistUser(data.usuario ?? null);
+  };
+
+  // Al cambiar la contraseña el backend entrega un token nuevo (los viejos dejan de valer).
+  const replaceToken = (token) => {
+    if (token) localStorage.setItem("costify-token", token);
+  };
+
   const signOut = () => {
     localStorage.removeItem("costify-token");
     persistUser(null);
@@ -135,7 +116,7 @@ export function AuthProvider({ children }) {
   }, [persistUser]);
 
   return (
-    <AuthContext.Provider value={{ user, initializing, signIn, signOut, setUserData: persistUser }}>
+    <AuthContext.Provider value={{ user, initializing, signIn, signInWithGoogleCode, replaceToken, signOut, setUserData: persistUser }}>
       {children}
     </AuthContext.Provider>
   );
