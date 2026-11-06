@@ -1,13 +1,24 @@
 # Costify — FrontEnd
 
-> Plataforma de gestión integral para talleres y emprendimientos de fabricación a medida: costos, ventas, producción y un **asistente de IA** que opera sobre los datos reales del negocio. Construida con **React 19**, **Vite** y **Chakra UI**.
+> **Sistema de gestión para talleres que fabrican a medida.** Calcula el costo y el precio de venta de cada trabajo, sigue cada venta desde la seña hasta la entrega, controla la plata del negocio y suma un **asistente de IA** que consulta y opera sobre los datos reales.
+>
+> Este repositorio es el **frontend**: una SPA en React 19 + Vite + Chakra UI. La API está en [Costify-BackEnd](https://github.com/SebaGarea/Costify-BackEnd).
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white)
 ![Chakra UI](https://img.shields.io/badge/Chakra_UI-2-319795?logo=chakraui&logoColor=white)
+![TanStack Query](https://img.shields.io/badge/TanStack_Query-5-FF4154?logo=reactquery&logoColor=white)
 ![FullCalendar](https://img.shields.io/badge/FullCalendar-6-1A82E2)
 ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)
-![Estado](https://img.shields.io/badge/Estado-En%20desarrollo%20activo-yellow)
+![Estado](https://img.shields.io/badge/Estado-En_producción-brightgreen)
+
+**🖥️ App en producción:** [elportalherreria.vercel.app](https://elportalherreria.vercel.app) (acceso por invitación) · **📚 Documentación de la API:** [costify.duckdns.org/api-docs](https://costify.duckdns.org/api-docs)
+
+<p align="center">
+  <a href="https://costify-fron-end-ebw7.vercel.app"><img src="https://img.shields.io/badge/%E2%96%B6%20Probar%20la%20demo-14b8a6?style=for-the-badge" alt="Probar la demo"></a>
+</p>
+
+> **Demo pública:** usuario `demo@costify.com` · contraseña `Demo1234` (ya vienen cargados en el login). Tiene datos ficticios que se reinician todas las noches. El asistente de IA está desactivado en la demo para no consumir cuota: responde explicando qué hace.
 
 ## 🎬 Demo en vivo
 
@@ -24,46 +35,78 @@ Los datos son ficticios y se resetean periódicamente. No hay datos reales de ni
 
 ---
 
-## 🌐 Demo en producción
+## 🧭 ¿Qué es Costify?
 
-**[👉 costify-fron-end.vercel.app](https://costify-fron-end.vercel.app)**
+Costify nació para resolver un problema real de **El Portal — Herrería Artística**, un taller de herrería y carpintería a medida. Cada trabajo es distinto, los precios del hierro y la pintura cambian seguido y parte de las ventas sale por Mercado Libre, con comisiones que hay que contemplar al poner precio.
+
+La app reúne en un solo lugar lo que antes estaba disperso:
+
+| Necesidad del taller | Cómo lo resuelve Costify |
+|---|---|
+| "¿Cuánto cobro este trabajo?" | **Plantillas de costo** que calculan costo, ganancia y precio final, también **por plataforma** (Mercado Libre, Tienda Nube). |
+| "Subió el hierro, ¿quedaron viejos los precios?" | El precio de cada producto se **recalcula en vivo** desde su plantilla. |
+| "¿Qué hay que entregar esta semana? ¿Quién debe plata?" | **Ventas** con seña, saldo y entrega, más un **calendario** y un **dashboard** con atrasos y pendientes. |
+| "¿Cuánta plata tenemos y en qué se fue?" | **Caja**: efectivo y Mercado Pago, gastos por categoría, plata **a liberar** y **retiros de cada socio**. |
+| "¿Qué hay que comprar?" | **Lista de compras** por sección que, al marcar "comprado", descuenta el gasto de la Caja. |
+| "No tengo tiempo de navegar pantallas" | **Asistente de IA** en un chat: consulta y ejecuta acciones con lenguaje natural. |
 
 ---
 
-## 📖 Descripción
+## ✨ Funcionalidades por sección
 
-**Costify** es una solución integral pensada para talleres, fábricas y emprendimientos que fabrican a medida y necesitan calcular precios, controlar ventas y entregas, organizar la producción — todo en un solo lugar.
+### 📊 Inicio: dashboard y calendario
+- **Métricas del negocio**:
+  - facturación y ticket promedio;
+  - saldo pendiente de cobro y margen estimado;
+  - producto estrella;
+  - rankings por medio de venta y por producto.
+- **Entregas próximas y atrasadas** de un vistazo.
+- **Calendario unificado** ([FullCalendar](https://fullcalendar.io/)): entregas de ventas, tareas y eventos manuales en una sola vista.
 
-Este repositorio contiene el **frontend**, una SPA en React que consume la [API Costify-BackEnd](https://github.com/SebaGarea/Costify-BackEnd). Incluye un **dashboard operativo**, un **calendario unificado**, gestión completa del catálogo y un **asistente de IA** integrado que responde consultas y ejecuta acciones sobre el negocio.
+### 🧾 Plantillas de costo (presupuestos)
+- **Secciones**: Herrería, Carpintería, Pintura y Otros, colapsables, con materiales, consumibles y extras.
+- **Barra fija** con costo, ganancia y precio final en vivo, aviso de "cambios sin guardar" y fecha de la última modificación.
+- **Pintura calculada por perfil de hierro**: la superficie sale sola de los metros usados.
+- **Precios por plataforma**: Mercado Libre (planes con cuotas) y Tienda Nube.
+- **Adjuntos y comentarios**: planos en PDF, fotos y notas del presupuesto.
 
----
+### 📦 Productos y materias primas
+- **Catálogo**: productos con galería de imágenes, stock y precio vinculado a su plantilla.
+- **Materias primas**: categorías, medidas y stock, con **importación masiva desde Excel**.
 
-## ✨ Funcionalidades
+### 💼 Ventas
+- **Ciclo completo**: pendiente → en proceso → finalizada → despachada (o cancelada).
+- **Cobro**: seña, saldo, cobros parciales y "marcar pagada".
+- **Datos de la venta**: cliente, medio de venta y fecha de entrega.
+- **Filtros** por estado, incluido "sin despachar".
 
-### Núcleo del negocio
-- 📊 **Dashboard operativo** — facturación, ticket promedio, saldo pendiente, margen estimado, producto estrella, entregas próximas y atrasadas, y rankings de medios y productos.
-- 🗓️ **Calendario unificado** ([FullCalendar](https://fullcalendar.io/)) que combina en una sola vista: entregas de ventas, tareas pendientes y eventos manuales.
-- 💰 **Ventas** — alta y edición con estados (pendiente, en proceso, finalizada, despachada, cancelada), seña, saldo, fecha de entrega y cliente.
-- 📦 **Catálogo de productos** — con **gestión de imágenes** (subir, eliminar individualmente y acumular), stock y precio dinámico vinculado a su plantilla de costo.
-- 🧱 **Materias primas** — categorías, tipos, medidas, stock e importación masiva desde Excel.
-- 🧾 **Plantillas de costo (presupuestos)** — armado por secciones (Herrería, Carpintería, Pintura, Otros) con:
-  - Secciones **colapsables** que se expanden al cargar materiales.
-  - **Barra fija (sticky)** con totales en vivo (costo, ganancia, precio final), estado de "cambios sin guardar" y última modificación.
-  - **Precios por plataforma** (Mercado Libre, Tienda Nube) calculados automáticamente.
-  - **Archivos adjuntos** (PDF/imágenes) y comentarios del presupuesto.
-- 🛒 **Lista de compras** colaborativa por secciones, con totales y barra de acciones fija.
+### 💰 Caja
+- **Una tarjeta por cuenta**: Efectivo, Mercado Pago y otras.
+  - Mercado Pago muestra por separado lo **disponible** y lo **a liberar**.
+  - **"Ajustar saldo"** lleva cada cuenta a su valor real.
+- **KPIs del período**: ingresos, egresos y resultado.
+- **Gráficos**: **gastos por categoría** y **flujo de los últimos 6 meses**.
+- **Retiros de socios**: total por persona, con acceso rápido para registrar un retiro.
+- **Movimientos**: ingresos, gastos y transferencias, con filtros, paginación y **exportación a Excel**.
 
-### Productividad
-- ✅ **Tareas** — prioridades, vencimientos, tags, filtros y búsqueda, integradas al calendario.
+### 🛒 Lista de compras y ✅ Tareas
+- **Lista de compras** colaborativa por secciones, con totales y botón "Comprado" que registra el gasto.
+- **Tareas** con prioridad, vencimiento, etiquetas, filtros y búsqueda, integradas al calendario.
 
-### Asistente de IA 🤖
-- Chat flotante (y pantalla completa) que **lee datos reales** del negocio y puede **ejecutar acciones**: crear/completar/editar tareas, registrar cobros, marcar entregas, crear ventas y productos, sumar a la lista de compras y sugerir ideas para redes.
-- **Resumen proactivo** del día al abrir el chat, indicador de "usando herramienta…", **refresco en vivo** de las vistas tras cada acción e **historial** persistente.
+### 🤖 Asistente de IA
+- **Chat flotante y a pantalla completa**, con respuestas en **streaming** y formato Markdown.
+- **Lee datos reales y ejecuta acciones**:
+  - crea ventas, tareas y productos;
+  - registra cobros y gastos;
+  - marca entregas;
+  - suma a la lista de compras.
+- **Resumen del día** al abrirlo, indicador de "usando herramienta…" y **refresco en vivo** de las pantallas afectadas.
 
-### Transversal
-- 🔐 **Autenticación** con login local y **Google OAuth 2.0**; sesión persistida con JWT.
-- 📱 **Diseño responsive** y **modo claro/oscuro** con Chakra UI.
-- 🔄 **Entornos separados** para desarrollo y producción.
+### 🔐 Acceso y experiencia
+- **Formas de entrar**: email y contraseña, o **"Continuar con Google"**. El registro es **solo por invitación**.
+- **Login con Google seguro**: el token nunca pasa por la URL; se canjea un código de un solo uso. Si algo falla, la pantalla explica por qué (sin cuenta, cancelado, vencido).
+- **Contraseña**: botón para **mostrarla u ocultarla**; al cambiarla se cierran las sesiones en otros dispositivos.
+- **Diseño responsive** (pensado para usar en el taller desde el celular) y **modo claro/oscuro**.
 
 ---
 
@@ -71,126 +114,89 @@ Este repositorio contiene el **frontend**, una SPA en React que consume la [API 
 
 | Categoría | Tecnologías |
 |---|---|
-| **Framework / Build** | [React 19](https://react.dev/), [Vite](https://vitejs.dev/) |
-| **UI** | [Chakra UI](https://chakra-ui.com/), [Framer Motion](https://www.framer.com/motion/) |
+| **Framework / Build** | [React 19](https://react.dev/), [Vite 7](https://vitejs.dev/) |
+| **UI** | [Chakra UI](https://chakra-ui.com/), [Framer Motion](https://www.framer.com/motion/), React Icons |
+| **Datos / HTTP** | [TanStack Query](https://tanstack.com/query), Axios, Fetch API (streaming del chat) |
 | **Calendario** | [FullCalendar](https://fullcalendar.io/) |
 | **Drag & Drop** | [dnd-kit](https://dndkit.com/) |
-| **Datos / HTTP** | [TanStack Query](https://tanstack.com/query), Axios, Fetch API (streaming del chat) |
-| **Markdown** | react-markdown (render de respuestas de IA) |
-| **Routing** | React Router 7 |
-| **Autenticación** | JWT + OAuth 2.0 (Google) |
-| **Calidad de código** | [ESLint](https://eslint.org/) |
+| **Excel** | xlsx-js-style (exportaciones con formato) |
+| **Markdown** | react-markdown (respuestas de la IA) |
+| **Routing** | React Router 7, con rutas protegidas |
+| **Calidad** | ESLint |
 | **Despliegue** | [Vercel](https://vercel.com/) |
 
 ---
 
-## 📦 Instalación
+## 🏗️ Arquitectura
 
-### Requisitos previos
-- Node.js v18 o superior
-- npm v9 o superior
-- [Costify-BackEnd](https://github.com/SebaGarea/Costify-BackEnd) corriendo localmente o desplegado
+```mermaid
+flowchart LR
+    U[Usuario<br/>PC o celular] --> F[SPA React<br/>Vercel]
+    F -->|REST + JWT| A[API Express<br/>Oracle Cloud]
+    F -->|streaming| A
+    A --> DB[(MongoDB)]
+    A --> IA[Google Gemini]
+    A --> MP[Mercado Pago]
+```
 
-### Pasos
+```
+src/
+├── components/   # vistas por módulo: Caja, Ventas, Plantillas, Chat, Login…
+├── pages/        # páginas enrutadas
+├── router/       # rutas y protección de rutas privadas
+├── hooks/        # custom hooks por dominio (auth, caja, ventas, tareas…)
+├── services/     # capa de acceso a la API (axios + interceptores)
+├── context/      # estado global (chat)
+├── layouts/      # layout principal y sidebar
+├── constants/    # reglas de negocio compartidas (precios por plataforma…)
+└── theme/        # tema de Chakra UI
+```
+
+---
+
+## 📦 Instalación local
+
+Requisitos: Node.js 18+ y la [API](https://github.com/SebaGarea/Costify-BackEnd) corriendo (local o desplegada).
 
 ```bash
-# 1. Clonar el repositorio
 git clone https://github.com/SebaGarea/Costify-FronEnd.git
 cd Costify-FronEnd
-
-# 2. Instalar dependencias
 npm install
 
-# 3. Configurar la URL del backend
-#    .env.development -> VITE_API_URL=http://localhost:8080
-#    .env.production  -> VITE_API_URL=https://tu-backend
+# URL de la API
+echo "VITE_API_URL=http://localhost:8080" > .env.development
+
+npm run dev       # http://localhost:5173
+npm run build     # build de producción (dist/)
+npm run lint
 ```
 
 ---
 
-## 🚀 Uso
+## ☁️ Despliegue
 
-```bash
-npm run dev       # servidor de desarrollo con hot-reload (http://localhost:5173)
-npm run build     # build de producción optimizada (carpeta dist/)
-npm run preview   # previsualiza la build de producción
-npm run lint      # análisis estático con ESLint
-```
-
----
-
-## 📁 Estructura del proyecto
-
-```
-Costify-FronEnd/
-├── public/                 # Archivos estáticos
-├── src/
-│   ├── assets/             # Imágenes, íconos y recursos
-│   ├── components/         # Vistas y componentes (Home, Ventas, Tareas, Chat…)
-│   ├── context/            # Contextos globales (ChatContext)
-│   ├── hooks/              # Custom hooks (auth, calendario, tareas, productos…)
-│   ├── layouts/            # Layout principal y Sidebar
-│   ├── pages/              # Páginas enrutadas
-│   ├── router/             # Definición y protección de rutas
-│   ├── services/           # Capa de acceso a la API
-│   └── theme/              # Tema de Chakra UI
-├── vite.config.js
-├── vercel.json
-└── package.json
-```
-
-### 🧭 Secciones de la app
-
-| Ruta | Sección |
-|---|---|
-| `/` | Dashboard operativo + calendario |
-| `/ventas` | Gestión de ventas |
-| `/productos` | Catálogo de productos |
-| `/materias-primas` | Materias primas (+ importación Excel) |
-| `/plantillas` | Plantillas de costo / presupuestos |
-| `/lista-compras` | Lista de compras |
-| `/tareas` | Tareas y recordatorios |
-| `/asistente` | Asistente de IA (pantalla completa) |
-| `/configuracion` | Configuración y perfil del negocio |
-
----
-
-## 🔗 Integración con el backend
-
-Este frontend funciona con [Costify-BackEnd](https://github.com/SebaGarea/Costify-BackEnd).
-
-- **Local:** levantá el backend en `http://localhost:8080` y apuntá `VITE_API_URL` ahí.
-- **Producción:** el frontend se despliega en **Vercel** y consume la API desplegada (Oracle Cloud, con Render como respaldo).
-
-El chat de IA usa **streaming** vía `fetch`, por lo que la URL del backend debe permitir CORS desde el origen del frontend.
-
----
-
-## 🔐 Flujo de autenticación
-
-1. El usuario ingresa desde `/login` (registro, login tradicional o **"Continuar con Google"**).
-2. El backend valida y emite un **JWT**.
-3. El token se persiste en `localStorage` y se adjunta como `Authorization: Bearer` en cada request.
-4. El router protege las rutas privadas verificando el token.
+- **Frontend** en **Vercel**, con despliegue automático al actualizar `main`.
+- **API** en un contenedor Docker en **Oracle Cloud**, detrás de Caddy con HTTPS automático.
+- **Flujo de ramas**: todo se desarrolla y prueba en `dev`. A `main` (producción) llega solo lo aprobado.
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Tests automatizados con Vitest y Testing Library
-- [ ] Exportación de reportes y presupuestos a PDF
-- [ ] Progressive Web App (PWA) con modo offline
-- [ ] Internacionalización (i18n)
+- [x] Plantillas de costo con precios por plataforma
+- [x] Ventas, tareas, calendario y dashboard
+- [x] Asistente de IA con acciones sobre el negocio
+- [x] Caja con cuentas, categorías y retiros de socios
+- [x] Login con Google seguro y auditoría de autenticación
+- [ ] Tests con Vitest y Testing Library
+- [ ] Exportación de presupuestos a PDF
+- [ ] PWA con modo offline
 
 ---
 
 ## 👨‍💻 Autor
 
-Desarrollado por **[Sebastián Garea](https://github.com/SebaGarea)**
+Desarrollado por **[Sebastián Garea](https://github.com/SebaGarea)**: diseño, desarrollo full-stack, despliegue y mantenimiento de una app que usa un negocio real.
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Sebastián_Garea-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/sebastian-garea-5713ba307/)
 [![GitHub](https://img.shields.io/badge/GitHub-SebaGarea-181717?logo=github&logoColor=white)](https://github.com/SebaGarea)
-
----
-
-**Costify FrontEnd © 2026**
