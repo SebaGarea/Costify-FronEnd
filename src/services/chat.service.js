@@ -7,7 +7,7 @@ const authHeaders = () => {
 };
 
 // Marcadores que el backend agrega al stream y que NO deben mostrarse en el chat:
-//   <<<COSTIFY_REFRESH:tarea,contenido>>>  -> refrescar esas entidades
+//   <<<COSTIFY_REFRESH:tarea,venta>>>  -> refrescar esas entidades
 //   <<<COSTIFY_TOOL:getMetricasNegocio>>>  -> indicador "usando herramienta…"
 const MARKER_PREFIX = "<<<COSTIFY_";
 const MARKER_RE = /\n?<<<COSTIFY_(REFRESH|TOOL):([^>]*)>>>/;

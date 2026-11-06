@@ -15,6 +15,7 @@ import {
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { registerUser } from "../services/auth.service.js";
+import { PasswordInput } from "../components/Login/PasswordInput.jsx";
 
 const Register = () => {
   const toast = useToast();
@@ -220,12 +221,12 @@ const Register = () => {
             </FormControl>
             <FormControl isRequired isInvalid={Boolean(errors.password && (touched.password || submitted))}>
               <FormLabel>Contraseña</FormLabel>
-              <Input name="password" type="password" value={form.password} onChange={handleChange} onBlur={handleBlur} />
+              <PasswordInput name="password" autoComplete="new-password" value={form.password} onChange={handleChange} onBlur={handleBlur} />
               <FormErrorMessage>{errors.password}</FormErrorMessage>
             </FormControl>
             <FormControl isRequired isInvalid={Boolean(errors.confirmPassword && (touched.confirmPassword || submitted))}>
               <FormLabel>Confirmar contraseña</FormLabel>
-              <Input name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
+              <PasswordInput name="confirmPassword" autoComplete="new-password" value={form.confirmPassword} onChange={handleChange} onBlur={handleBlur} />
               <FormErrorMessage>{errors.confirmPassword}</FormErrorMessage>
             </FormControl>
             <VStack align="start" spacing={1} color={muted} fontSize="sm">

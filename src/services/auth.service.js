@@ -21,6 +21,15 @@ api.interceptors.response.use(
 );
 
 export const login = (credentials) => api.post("/api/usuarios/login", credentials);
+export const canjearCodigoGoogle = (codigo) => api.post("/api/usuarios/auth/google/canjear", { codigo });
+export const googleLoginUrl = () =>
+  `${import.meta.env.VITE_API_URL}/api/usuarios/auth/google?redirect=${encodeURIComponent(window.location.origin)}`;
+// Mensaje legible de un error de la API de usuarios.
+export const authErrorMessage = (error, fallback = "Intentá nuevamente") => {
+  const data = error?.response?.data;
+  if (error?.response?.status === 401) return "Email o contraseña incorrectos";
+  return data?.mensaje || data?.error || data?.errores?.[0]?.msg || fallback;
+};
 export const registerUser = (payload) => api.post("/api/usuarios/registro", payload);
 export const getCurrentUser = () => api.get("/api/usuarios/current");
 export const changePassword = (payload) => api.post("/api/usuarios/change-password", payload);

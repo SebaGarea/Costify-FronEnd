@@ -8,19 +8,22 @@ import {
   Text,
   Divider,
   Flex,
-  FormControl,
-  FormLabel,
-  Input,
   useColorModeValue,
   Button,
+  Link,
+  SimpleGrid,
   useToast,
 } from "@chakra-ui/react";
 import { DownloadIcon } from "@chakra-ui/icons";
+import { Link as RouterLink } from "react-router-dom";
 import { getMaterialTypeLabel } from "../../constants/materialTypes";
 import { Loader } from "..";
 import ListaCompraSeccion from "../ListaCompraSeccion.jsx";
 import { useItemsMateriasPrimas } from "../../hooks";
 import { getShoppingList, saveShoppingList } from "../../services/shoppingList.service.js";
+import { registrarCompraCaja } from "../../services/caja.service.js";
+import { useCuentasCaja } from "../../hooks/caja/useCuentasCaja.js";
+import { getApiError } from "../../constants/caja.js";
 
 const SECTIONS = [
   {
@@ -140,25 +143,6 @@ const currencyFormatter = new Intl.NumberFormat("es-AR", {
   currency: "ARS",
   maximumFractionDigits: 0,
 });
-
-const stripNbsp = (value = "") => value.replace(/\u00A0/g, "");
-
-const formatInputCurrency = (value) => {
-  if (value === null || value === undefined) return "";
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return "";
-  return stripNbsp(currencyFormatter.format(numeric));
-};
-
-const parseInputCurrency = (value) => {
-  if (!value) return 0;
-  const sanitized = value.replace(/[^0-9,.-]/g, "");
-  const normalized = sanitized
-    .replace(/\./g, "")
-    .replace(/,/g, ".");
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
 
 export const ListaDeComprasView = () => {
   const {
@@ -477,10 +461,18 @@ export const ListaDeComprasView = () => {
     [subtotals]
   );
 
-  const totalDisponible = useMemo(
-    () => (Number(efectivoDisponible) || 0) + (Number(dineroDigital) || 0),
-    [efectivoDisponible, dineroDigital]
+  // Lo disponible sale de la Caja: efectivo = cuentas no digitales,
+  // digital = billeteras (Mercado Pago, cuenta secundaria, ...).
+  const {
+    cuentasActivas,
+    totales: totalesCaja,
+    refetch: refetchCaja,
+  } = useCuentasCaja();
+  const cuentasDigitales = useMemo(
+    () => cuentasActivas.filter((c) => c.esDigital),
+    [cuentasActivas]
   );
+  const totalDisponible = Number(totalesCaja.total) || 0;
 
   const diferencia = useMemo(
     () => totalDisponible - totalGeneral,
@@ -767,6 +759,80 @@ export const ListaDeComprasView = () => {
     totalGeneral,
   ]);
 
+
+  // Botón "Comprado" de un ítem: si se pagó en efectivo (o con una cuenta sin
+  // integración, como la cuenta secundaria) se registra el gasto en Caja; si se pagó con
+  // Mercado Pago no se carga nada (el gasto entra solo al sincronizar).
+  // En los dos casos el ítem sale de la lista.
+  const handleComprarItem = useCallback(
+    async (sectionKey, item, { cuenta, monto, esMercadoPago }) => {
+      if (!esMercadoPago) {
+        try {
+          await registrarCompraCaja({
+            cuenta,
+            total: monto,
+            items: [
+              {
+                nombre: getMaterialName(item),
+                seccion: sectionKey,
+                cantidad: Number(item.cantidad) || 0,
+                precioUnitario: getUnitPrice(item) || 0,
+                subtotal: getLineTotal(item) || 0,
+              },
+            ],
+          });
+        } catch (error) {
+          toast({
+            title: "No se pudo registrar el pago",
+            description: getApiError(error),
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        }
+      }
+
+      const restantes = {
+        ...sectionItems,
+        [sectionKey]: (sectionItems[sectionKey] || []).filter((it) => it?.id !== item.id),
+      };
+      setSectionItems(restantes);
+      await persistShoppingList({ sectionItems: restantes, efectivoDisponible, dineroDigital });
+      refetchCaja();
+      const cuentaNombre = cuentasActivas.find((c) => c._id === cuenta)?.nombre ?? "la cuenta";
+      toast({
+        title: `${getMaterialName(item)}: comprado`,
+        description: esMercadoPago
+          ? "El gasto entra solo cuando llegue el pago de Mercado Pago."
+          : `Se descontaron ${currencyFormatter.format(monto)} de ${cuentaNombre}.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    },
+    [
+      sectionItems,
+      efectivoDisponible,
+      dineroDigital,
+      persistShoppingList,
+      refetchCaja,
+      cuentasActivas,
+      getMaterialName,
+      getUnitPrice,
+      getLineTotal,
+      toast,
+    ]
+  );
+
+  const onComprarItemBySection = useMemo(() => {
+    const handlers = {};
+    SECTIONS.forEach((section) => {
+      handlers[section.key] = (item, datos) => handleComprarItem(section.key, item, datos);
+    });
+    return handlers;
+  }, [handleComprarItem]);
+
   const isPageLoading =
     (loading && rawsMaterialData.length === 0) || isShoppingListLoading;
 
@@ -802,41 +868,41 @@ export const ListaDeComprasView = () => {
           borderWidth="1px"
           borderColor={borderColor}
         >
-          <Heading size="sm" mb={3} fontFamily="heading">
-            Tu presupuesto
-          </Heading>
-          <Flex gap={4} direction={{ base: "column", sm: "row" }} align={{ base: "stretch", sm: "flex-end" }}>
-            <FormControl>
-              <FormLabel fontSize="sm">Efectivo disponible</FormLabel>
-              <Input
-                value={formatInputCurrency(efectivoDisponible)}
-                onChange={(event) =>
-                  setEfectivoDisponible(parseInputCurrency(event.target.value))
-                }
-                placeholder="$0"
-                size="sm"
-                inputMode="decimal"
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel fontSize="sm">Dinero digital</FormLabel>
-              <Input
-                value={formatInputCurrency(dineroDigital)}
-                onChange={(event) =>
-                  setDineroDigital(parseInputCurrency(event.target.value))
-                }
-                placeholder="$0"
-                size="sm"
-                inputMode="decimal"
-              />
-            </FormControl>
-            <Box minW={{ base: "auto", sm: "160px" }} textAlign={{ base: "left", sm: "right" }}>
+          <Flex justify="space-between" align="center" mb={3}>
+            <Heading size="sm" fontFamily="heading">
+              Tu presupuesto
+            </Heading>
+            <Link as={RouterLink} to="/caja" fontSize="sm" color="teal.500">
+              Ver Caja
+            </Link>
+          </Flex>
+          <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4}>
+            <Box>
+              <Text fontSize="xs" color={mutedText}>Efectivo disponible</Text>
+              <Text fontSize="lg" fontWeight="bold" className="tnum">
+                {currencyFormatter.format(totalesCaja.efectivo || 0)}
+              </Text>
+            </Box>
+            <Box>
+              <Text fontSize="xs" color={mutedText}>Dinero digital</Text>
+              <Text fontSize="lg" fontWeight="bold" className="tnum">
+                {currencyFormatter.format(totalesCaja.digital || 0)}
+              </Text>
+              {cuentasDigitales.length > 1 && (
+                <Text fontSize="xs" color={mutedText} className="tnum">
+                  {cuentasDigitales
+                    .map((c) => `${c.nombre} ${currencyFormatter.format(c.disponible ?? c.saldo ?? 0)}`)
+                    .join(" · ")}
+                </Text>
+              )}
+            </Box>
+            <Box textAlign={{ base: "left", sm: "right" }}>
               <Text fontSize="xs" color={mutedText}>Disponible total</Text>
               <Text fontSize="lg" fontWeight="bold" className="tnum">
                 {currencyFormatter.format(totalDisponible)}
               </Text>
             </Box>
-          </Flex>
+          </SimpleGrid>
         </Box>
 
         <Stack spacing={6}>
@@ -853,6 +919,8 @@ export const ListaDeComprasView = () => {
               showMaterialField={section.showMaterialField}
               materialFieldLabel={section.materialFieldLabel}
               onSubtotalChange={onSubtotalChangeBySection[section.key]}
+              cuentas={cuentasActivas}
+              onComprarItem={onComprarItemBySection[section.key]}
             />
           ))}
         </Stack>

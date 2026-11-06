@@ -9,10 +9,10 @@ export const getAllVentas = async () => {
   }
 };
 
-export const getAllVentasPaginated = async (page = 1, limit = 10) => {
+export const getAllVentasPaginated = async (page = 1, limit = 10, filtro = "todas") => {
   try {
     const response = await api.get("/api/ventas", {
-      params: { page, limit }
+      params: { page, limit, ...(filtro && filtro !== "todas" ? { filtro } : {}) }
     });
     return response.data;
   } catch (error) {

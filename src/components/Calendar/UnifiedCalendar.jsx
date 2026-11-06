@@ -22,7 +22,6 @@ const Legend = () => {
     { color: "#38A169", label: "Entregas" },
     { color: "#E53E3E", label: "Tareas" },
     { color: "#4299E1", label: "Eventos" },
-    { color: "#B83280", label: "Publicaciones" },
   ];
   return (
     <HStack spacing={4} flexWrap="wrap">

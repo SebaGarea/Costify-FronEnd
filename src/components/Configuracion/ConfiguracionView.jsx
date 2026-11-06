@@ -43,6 +43,7 @@ import { BsLightningCharge } from "react-icons/bs";
 import { useAuth } from "../../hooks/auth/useAuth.jsx";
 import { createInvitation, listInvitations } from "../../services/invitations.service";
 import { changePassword } from "../../services/auth.service";
+import { PasswordInput } from "../Login/PasswordInput.jsx";
 import { usePerfilesPintura } from "../../hooks/perfilesPintura/usePerfilesPintura.js";
 import { createPerfilPintura, updatePerfilPintura, deletePerfilPintura } from "../../services/perfilesPintura.service.js";
 import { useConfiguracion } from "../../hooks/configuracion/useConfiguracion.js";
@@ -64,7 +65,7 @@ const formatDateTime = (value) => {
 };
 
 export const ConfiguracionView = () => {
-  const { user } = useAuth();
+  const { user, replaceToken } = useAuth();
   const isAdmin = (user?.role ?? "").toLowerCase() === "admin";
   const toast = useToast();
   const accentColor = useColorModeValue("teal.600", "teal.300");
@@ -164,20 +165,28 @@ export const ConfiguracionView = () => {
       toast({ title: "Las contraseñas no coinciden", status: "error", duration: 3000, isClosable: true });
       return;
     }
-    if (passwordForm.newPassword.length < 6) {
-      toast({ title: "Contraseña muy corta", description: "Debe tener al menos 6 caracteres", status: "warning", duration: 3000, isClosable: true });
+    if (passwordForm.newPassword.length < 8) {
+      toast({ title: "Contraseña muy corta", description: "Debe tener al menos 8 caracteres", status: "warning", duration: 3000, isClosable: true });
       return;
     }
     setChangingPassword(true);
     try {
-      await changePassword({
+      const { data } = await changePassword({
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      toast({ title: "Contraseña actualizada", status: "success", duration: 4000, isClosable: true });
+      replaceToken(data?.token);
+      toast({
+        title: "Contraseña actualizada",
+        description: "Se cerraron las sesiones abiertas en otros dispositivos.",
+        status: "success",
+        duration: 4000,
+        isClosable: true,
+      });
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error) {
-      const message = error.response?.data?.error ?? "No se pudo actualizar la contraseña";
+      const data = error.response?.data;
+      const message = data?.error ?? data?.mensaje ?? data?.errores?.[0]?.msg ?? "No se pudo actualizar la contraseña";
       toast({ title: "Error", description: message, status: "error", duration: 4000, isClosable: true });
     } finally {
       setChangingPassword(false);
@@ -300,8 +309,7 @@ export const ConfiguracionView = () => {
             <Stack spacing={4}>
               <FormControl isRequired>
                 <FormLabel>Contraseña actual</FormLabel>
-                <Input
-                  type="password"
+                <PasswordInput
                   autoComplete="current-password"
                   value={passwordForm.currentPassword}
                   onChange={handlePasswordField("currentPassword")}
@@ -309,8 +317,7 @@ export const ConfiguracionView = () => {
               </FormControl>
               <FormControl isRequired>
                 <FormLabel>Nueva contraseña</FormLabel>
-                <Input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   value={passwordForm.newPassword}
                   onChange={handlePasswordField("newPassword")}
@@ -318,8 +325,7 @@ export const ConfiguracionView = () => {
               </FormControl>
               <FormControl isRequired>
                 <FormLabel>Confirmar nueva contraseña</FormLabel>
-                <Input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   value={passwordForm.confirmPassword}
                   onChange={handlePasswordField("confirmPassword")}

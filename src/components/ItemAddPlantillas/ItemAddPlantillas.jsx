@@ -77,6 +77,8 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   Textarea,
+  Tooltip,
+  Spinner,
 } from "@chakra-ui/react";
 import { FiPlus, FiMinus, FiRefreshCw, FiChevronDown, FiChevronUp, FiLayers } from "react-icons/fi";
 import { useNavigate } from "react-router";
@@ -85,6 +87,11 @@ import {
   uploadArchivosPlantilla,
   deleteArchivoPlantilla,
 } from "../../services/plantillas.service.js";
+import {
+  getShoppingList,
+  linkPlantillaItem,
+  unlinkPlantillaItem,
+} from "../../services/shoppingList.service.js";
 import { getMaterialTypeLabel } from "../../constants/materialTypes.js";
 import {
   MERCADO_LIBRE_PLANS,
@@ -206,7 +213,23 @@ const seccionLabels = {
   otros: "Otros",
 };
 
+// Identificador estable de cada ítem: lo usa la lista de compras para saber
+// qué ítem de la planilla está vinculado (el backend también genera uno si falta).
+const crearUidItem = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+// En la lista de compras se compran unidades enteras: 1.5 → 2, 0.87 → 1.
+// Mismo criterio que el backend (redondeo a 4 decimales para evitar errores de coma flotante).
+const redondearCantidadCompra = (value) => {
+  const parsed = parseFloat(String(value ?? "").replace(",", "."));
+  if (!Number.isFinite(parsed) || parsed <= 0) return 1;
+  return Math.max(1, Math.ceil(Math.round(parsed * 10000) / 10000));
+};
+
 const createEmptyItem = () => ({
+  uid: crearUidItem(),
   categoriaMP: "",
   tipoMP: "",
   medidaMP: "",
@@ -1134,6 +1157,134 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
     [rawsMaterialData]
   );
 
+  // ---------- Lista de compras ----------
+  // Ítems de esta planilla que están en la lista de compras:
+  // uid → { cantidad (la de la lista), sincronizada (última cantidad tomada de la planilla) }.
+  // La lista de compras es la fuente de verdad, así que el switch se guarda al instante
+  // (no depende del botón Guardar de la planilla).
+  const [itemsEnLista, setItemsEnLista] = useState(() => new Map());
+  const [itemsListaPendientes, setItemsListaPendientes] = useState(() => new Set());
+
+  const aplicarListaCompra = useCallback(
+    (listaCompra) => {
+      if (!listaCompra) return;
+      const vinculados = new Map();
+      Object.values(listaCompra.sectionItems || {}).forEach((items) => {
+        (Array.isArray(items) ? items : []).forEach((it) => {
+          if (it?.origen?.plantillaId === PlantillasId && it.origen.itemUid) {
+            vinculados.set(it.origen.itemUid, {
+              cantidad: Number(it.cantidad) || 0,
+              sincronizada: Number(it.origen.cantidadSincronizada) || 0,
+            });
+          }
+        });
+      });
+      setItemsEnLista(vinculados);
+    },
+    [PlantillasId]
+  );
+
+  const refrescarListaCompra = useCallback(async () => {
+    if (!PlantillasId) return;
+    try {
+      const res = await getShoppingList();
+      aplicarListaCompra(res?.data?.listaCompra);
+    } catch (error) {
+      console.error("No se pudo cargar la lista de compras", error);
+    }
+  }, [PlantillasId, aplicarListaCompra]);
+
+  useEffect(() => {
+    if (!PlantillasId) {
+      setItemsEnLista(new Map());
+      return;
+    }
+    refrescarListaCompra();
+  }, [PlantillasId, refrescarListaCompra]);
+
+  const describirItemPersonalizado = (item) =>
+    item.descripcionPersonalizada?.trim() ||
+    [item.categoriaMP, item.tipoMP, item.nombreMadera, item.medidaMP, item.espesorMP]
+      .filter(Boolean)
+      .join(" - ");
+
+  // Misma resolución de materia prima que usa el guardado de la planilla.
+  const resolverMaterialItem = (item) =>
+    item.isCustomMaterial
+      ? null
+      : getMaterialMatch(
+          item.categoriaMP,
+          item.tipoMP,
+          item.medidaMP,
+          item.espesorMP || null,
+          item.nombreMadera
+        );
+
+  // Devuelve por qué no se puede agregar el ítem a la lista (o null si se puede).
+  const motivoListaDeshabilitada = (item) => {
+    if (!PlantillasId) return "Guardá la planilla para poder agregar ítems a la lista de compras";
+    if (!item.uid) return "Guardá la planilla para habilitar esta opción";
+    if (item.isCustomMaterial) {
+      if (!describirItemPersonalizado(item)) return "Completá la descripción del material";
+    } else if (!resolverMaterialItem(item)) {
+      return "Elegí el material completo para poder agregarlo";
+    }
+    if (!(parseFloat(item.cantidad) > 0)) return "Cargá una cantidad";
+    return null;
+  };
+
+  const handleListaCompraToggle = async (categoria, item, checked) => {
+    if (!PlantillasId || !item?.uid) return;
+    const uid = item.uid;
+    setItemsListaPendientes((prev) => new Set(prev).add(uid));
+    try {
+      let res;
+      if (checked) {
+        const payload = {
+          plantillaId: PlantillasId,
+          uid,
+          seccion: categoria,
+          cantidad: item.cantidad,
+        };
+        if (item.isCustomMaterial) {
+          payload.esPersonalizado = true;
+          payload.descripcion = describirItemPersonalizado(item);
+          payload.valor = parseFloat(item.valor) || 0;
+        } else {
+          payload.materiaPrimaId = resolverMaterialItem(item)?._id;
+        }
+        res = await linkPlantillaItem(payload);
+      } else {
+        res = await unlinkPlantillaItem(PlantillasId, uid);
+      }
+      aplicarListaCompra(res?.data?.listaCompra);
+      toast({
+        title: checked ? "Agregado a la lista de compras" : "Quitado de la lista de compras",
+        description: checked
+          ? `${redondearCantidadCompra(item.cantidad)} u.`
+          : undefined,
+        status: "success",
+        duration: 1500,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error al actualizar la lista de compras", error);
+      toast({
+        title: "No se pudo actualizar la lista de compras",
+        description: error?.response?.data?.mensaje || "Intentá nuevamente en unos segundos.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+    } finally {
+      setItemsListaPendientes((prev) => {
+        const next = new Set(prev);
+        next.delete(uid);
+        return next;
+      });
+    }
+  };
+
   // Función optimizada para manejar cambios en items específicos
   const handleItemChange = useCallback(
     (categoria, index, field, value) => {
@@ -1637,6 +1788,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
           ? item.perfilPinturaPerimetro * cantidad * METROS_POR_UNIDAD * precioPinturaM2
           : 0;
         return {
+          uid: item.uid,
           categoria,
           cantidad,
           valor: valorPersonalizado,
@@ -1682,6 +1834,7 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
         ? item.perfilPinturaPerimetro * cantidad * precioPinturaM2
         : 0;
       return {
+        uid: item.uid,
         categoria,
         materiaPrima: materiaPrimaId,
         cantidad,
@@ -1928,6 +2081,8 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
 
       setUltimaModificacion(new Date());
       setBaselineSnap(snapActual); // ya no hay cambios pendientes
+      // El backend sincroniza la lista de compras al guardar (cantidades, ítems borrados).
+      refrescarListaCompra();
 
       if (shouldRedirect) {
         setTimeout(() => { navigate("/plantillas"); }, 1000);
@@ -2589,34 +2744,90 @@ export const ItemAddPlantillas = ({ PlantillasId }) => {
                   </FormControl>
                 )}
 
-                {isHerreria && (
-                  <Box borderTop="1px" borderColor="orange.200" pt={2}>
-                    <HStack spacing={3} align="center" width="100%">
-                      <FormLabel fontSize="sm" mb={0} whiteSpace="nowrap">🔥 Pintura al horno</FormLabel>
-                      <Switch
-                        colorScheme="orange"
-                        isChecked={item.pinturaAlHorno}
-                        onChange={(e) => handlePinturaToggle(index, e.target.checked)}
-                      />
-                      {item.pinturaAlHorno && (
-                        item.perfilPinturaId && item.perfilPinturaPerimetro > 0 ? (
-                          <>
-                            <Text fontSize="xs" color="orange.500" whiteSpace="nowrap">
-                              {perfilesPintura.find((p) => p._id === item.perfilPinturaId)?.nombre ?? "Perfil detectado"}
-                            </Text>
-                            <Badge colorScheme="orange" fontSize="sm" px={3} py={1} ml="auto" whiteSpace="nowrap">
-                              {formatPrice(item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * METROS_POR_UNIDAD * precioPinturaM2)}
-                            </Badge>
-                          </>
-                        ) : (
-                          <Text fontSize="xs" color="gray.400" fontStyle="italic">
-                            Sin perfil detectado
+                {(() => {
+                  // Controles al pie del ítem: pintura al horno (solo herrería) y, pegado
+                  // a su lado, "Agregar a lista de compras", en la misma fila.
+                  let listaCompraControl = null;
+                  if (itemTieneCarga(item)) {
+                    const vinculo = item.uid ? itemsEnLista.get(item.uid) : null;
+                    const enLista = Boolean(vinculo);
+                    const pendiente = Boolean(item.uid && itemsListaPendientes.has(item.uid));
+                    const motivo = enLista
+                      ? !PlantillasId ? motivoListaDeshabilitada(item) : null
+                      : motivoListaDeshabilitada(item);
+                    const cantidadActual = redondearCantidadCompra(item.cantidad);
+                    const cambiaAlGuardar =
+                      enLista && parseFloat(item.cantidad) > 0 && cantidadActual !== vinculo.sincronizada;
+                    const switchId = `lista-compra-${item.uid || `${categoria}-${index}`}`;
+                    listaCompraControl = (
+                      <HStack spacing={3} align="center" flexWrap="wrap">
+                        <FormLabel htmlFor={switchId} fontSize="sm" mb={0} whiteSpace="nowrap">
+                          🛒 Agregar a lista de compras
+                        </FormLabel>
+                        <Tooltip label={motivo} isDisabled={!motivo} hasArrow>
+                          <Box as="span" display="inline-flex">
+                            <Switch
+                              id={switchId}
+                              colorScheme="teal"
+                              isChecked={enLista}
+                              isDisabled={Boolean(motivo) || pendiente}
+                              onChange={(e) =>
+                                handleListaCompraToggle(categoria, item, e.target.checked)
+                              }
+                            />
+                          </Box>
+                        </Tooltip>
+                        {pendiente && <Spinner size="xs" color="teal.400" />}
+                        {enLista && (
+                          <Badge colorScheme="teal" fontSize="sm" px={3} py={1} whiteSpace="nowrap">
+                            En lista: {vinculo.cantidad} u.
+                          </Badge>
+                        )}
+                        {enLista && cambiaAlGuardar && (
+                          <Text fontSize="xs" color="gray.500" fontStyle="italic" whiteSpace="nowrap">
+                            Al guardar: {cantidadActual} u.
                           </Text>
-                        )
-                      )}
-                    </HStack>
-                  </Box>
-                )}
+                        )}
+                      </HStack>
+                    );
+                  }
+
+                  if (!isHerreria && !listaCompraControl) return null;
+
+                  return (
+                    <Box borderTop="1px" borderColor={isHerreria ? "orange.200" : "teal.200"} pt={2}>
+                      <Flex align="center" width="100%" columnGap={6} rowGap={2} flexWrap="wrap">
+                        {isHerreria && (
+                          <HStack spacing={3} align="center">
+                            <FormLabel fontSize="sm" mb={0} whiteSpace="nowrap">🔥 Pintura al horno</FormLabel>
+                            <Switch
+                              colorScheme="orange"
+                              isChecked={item.pinturaAlHorno}
+                              onChange={(e) => handlePinturaToggle(index, e.target.checked)}
+                            />
+                            {item.pinturaAlHorno && (
+                              item.perfilPinturaId && item.perfilPinturaPerimetro > 0 ? (
+                                <>
+                                  <Text fontSize="xs" color="orange.500" whiteSpace="nowrap">
+                                    {perfilesPintura.find((p) => p._id === item.perfilPinturaId)?.nombre ?? "Perfil detectado"}
+                                  </Text>
+                                  <Badge colorScheme="orange" fontSize="sm" px={3} py={1} whiteSpace="nowrap">
+                                    {formatPrice(item.perfilPinturaPerimetro * (parseFloat(item.cantidad) || 0) * METROS_POR_UNIDAD * precioPinturaM2)}
+                                  </Badge>
+                                </>
+                              ) : (
+                                <Text fontSize="xs" color="gray.400" fontStyle="italic">
+                                  Sin perfil detectado
+                                </Text>
+                              )
+                            )}
+                          </HStack>
+                        )}
+                        {listaCompraControl}
+                      </Flex>
+                    </Box>
+                  );
+                })()}
               </VStack>
             </Box>
             );
