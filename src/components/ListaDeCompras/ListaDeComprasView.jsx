@@ -472,7 +472,8 @@ export const ListaDeComprasView = () => {
     () => cuentasActivas.filter((c) => c.esDigital),
     [cuentasActivas]
   );
-  const totalDisponible = Number(totalesCaja.total) || 0;
+  // Mismo número que "Total disponible" en Caja.
+  const totalDisponible = Number(totalesCaja.disponible ?? totalesCaja.total) || 0;
 
   const diferencia = useMemo(
     () => totalDisponible - totalGeneral,
